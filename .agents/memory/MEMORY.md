@@ -1,0 +1,1 @@
+- [Measurement ordering](measurement-ordering.md) — why follow-up stock updates conservatively preserve same-day measurements.

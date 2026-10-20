@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { ArrowRight, Truck } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { EmptyState, ErrorState, LevelPill, LoadingState, Panel, RecCard, Stat, guardianSrc } from '@/components/bits';
+import { FollowUpList } from '@/components/followups';
 import { addDays, fmt, niceDate, rm, useGuard } from '@/lib/guard';
 
 export default function Dashboard() {
@@ -46,9 +47,9 @@ export default function Dashboard() {
         <Stat label="Projected savings" value={rm(s.estimatedSavings)} note="from approved purchasing changes" tone="jade" testId="text-savings" />
       </div>
 
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
         <Panel title="Portions sold, last 14 days" sub="All menu items combined">
-          <div className="h-56">
+          <div className="h-56 min-w-0 w-full">
             <ResponsiveContainer>
               <BarChart data={chart}>
                 <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
@@ -75,7 +76,11 @@ export default function Dashboard() {
         </Panel>
       </div>
 
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5">
+      <Panel title="Result checks" sub="Outstanding follow-ups, soonest first. Completed and cancelled checks live in Activity." action={<Link href="/activity" className="text-xs text-primary font-semibold">History</Link>}>
+        <FollowUpList data={data} />
+      </Panel>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
         <Panel title="Waiting for your call" sub="Top pending recommendations" action={<Link href="/recommendations" className="text-xs text-primary font-semibold">All</Link>}>
           {pending.length === 0 ? <EmptyState title="All decided" body="Every recommendation has a human decision." /> : (
             <div className="space-y-3">{pending.slice(0, 3).map((r) => <RecCard key={r.id} rec={r} compact />)}</div>
@@ -87,9 +92,9 @@ export default function Dashboard() {
               {deliveries.map((i) => (
                 <div key={i.id} className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2">
                   <Truck className="w-4 h-4 text-jade" />
-                  <div className="flex-1 text-sm font-medium">{i.name}</div>
+                  <div className="flex-1 min-w-0 text-sm font-medium">{i.name}</div>
                   <div className="num text-xs">{fmt(i.deliveryQuantity)} {i.unit}</div>
-                  <div className="num text-xs text-muted-foreground w-24 text-right">{niceDate(i.deliveryDate)}</div>
+                  <div className="num text-xs text-muted-foreground shrink-0 text-right">{niceDate(i.deliveryDate)}</div>
                 </div>
               ))}
             </div>

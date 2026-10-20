@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DecisionInputDecision } from './decisionInputDecision';
+import type { DecisionInputFollowUpDays } from './decisionInputFollowUpDays';
 
 export interface DecisionInput {
   decision: DecisionInputDecision;
@@ -13,4 +14,5 @@ export interface DecisionInput {
   quantity?: number;
   /** @maxLength 500 */
   note?: string;
+  followUpDays?: DecisionInputFollowUpDays;
 }

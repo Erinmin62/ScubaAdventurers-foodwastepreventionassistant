@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Activity } from './activity';
+import type { FollowUp } from './followUp';
 import type { Forecast } from './forecast';
 import type { Ingredient } from './ingredient';
 import type { MenuItem } from './menuItem';
@@ -29,4 +30,6 @@ export interface GuardState {
   recommendations: Recommendation[];
   activity: Activity[];
   summary: Summary;
+  followUps: FollowUp[];
+  approvedRecommendations: Recommendation[];
 }

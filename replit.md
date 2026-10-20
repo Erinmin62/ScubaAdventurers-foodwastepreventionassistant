@@ -6,6 +6,7 @@ Food-waste prevention assistant for café and restaurant owners using realistic 
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
+- `pnpm --filter @workspace/api-server test` — follow-up snapshot, calendar, outcome and inventory-safety regression tests
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
@@ -33,7 +34,7 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Product
 
-Sales and inventory input/CSV import, tomorrow's menu forecasts, safe-stock capacity checks, expiry and overstock risks, editable preparation/purchasing approvals, actual sales and leftover tracking, waste/cost comparisons, and persistent activity history.
+Sales and inventory input/CSV import, tomorrow's menu forecasts, safe-stock capacity checks, expiry and overstock risks, editable preparation/purchasing approvals, actual sales and leftover tracking, waste/cost comparisons, and persistent activity history. Approvals schedule one- or two-day follow-ups (default two), with immutable ingredient-level snapshots and owner-reported remaining stock, ingredient discards, and action taken. Follow-ups are retained independently of regenerated recommendations in the persistent workspace document.
 
 ## User preferences
 
@@ -41,7 +42,9 @@ Use synthetic data. The user requested cute Genshin Impact-like characters while
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Follow-up forecasts exclude unconfirmed deliveries and are not a stock ledger. Comparisons do not establish consumption or causal waste reduction. Ingredient discards are not added to prepared-food leftover totals.
+- Old documents have no follow-ups or known inventory measurement dates by default. Attach checks explicitly with a current snapshot; never invent historical approval times or stock.
+- Inventory writes from outcomes require explicit confirmation. Historical observations do not overwrite unknown, same-day, or newer measurements. Inventory forms/imports date current measurements using the Kuala Lumpur planning day.
 
 ## Pointers
 

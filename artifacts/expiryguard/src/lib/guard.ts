@@ -2,6 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetGuardStateQueryKey,
   useAddGuardRecords,
+  useAttachFollowUp,
+  useRecordFollowUpOutcome,
   useDecideRecommendation,
   useGetGuardState,
 } from '@workspace/api-client-react';
@@ -15,7 +17,9 @@ export function useGuardMutations() {
   const onSuccess = () => qc.invalidateQueries({ queryKey: getGetGuardStateQueryKey() });
   const add = useAddGuardRecords({ mutation: { onSuccess } });
   const decide = useDecideRecommendation({ mutation: { onSuccess } });
-  return { add, decide };
+  const attach = useAttachFollowUp({ mutation: { onSuccess } });
+  const record = useRecordFollowUpOutcome({ mutation: { onSuccess } });
+  return { add, decide, attach, record };
 }
 
 export const rm = (n: number) => `RM ${(n ?? 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -74,3 +78,11 @@ export function downloadCsv(name: string, content: string) {
 
 export const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 export const isNum = (s: unknown) => s !== '' && s !== undefined && s !== null && !isNaN(Number(s)) && Number(s) >= 0;
+
+export type FollowDays = 1 | 2;
+export function followTiming(scheduled: string, today: string): { label: string; tone: 'upcoming' | 'due' | 'overdue'; days: number } {
+  const d = daysBetween(today, scheduled);
+  if (d > 0) return { label: `Upcoming · in ${d} day${d === 1 ? '' : 's'}`, tone: 'upcoming', days: d };
+  if (d === 0) return { label: 'Due today', tone: 'due', days: 0 };
+  return { label: `Overdue · ${-d} day${d === -1 ? '' : 's'}`, tone: 'overdue', days: d };
+}

@@ -2,7 +2,8 @@ import { GetGuardStateResponse } from "@workspace/api-zod";
 
 export type State = typeof GetGuardStateResponse._output;
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
-  decisions: Record<string, { decision: string; quantity: number | null; original: number; savings: number }>;
+  followUps?: State["followUps"];
+  decisions: Record<string, { decision: string; quantity: number | null; original: number; savings: number; approvedAt?: string; recommendation?: State["recommendations"][number] }>;
   baseline: { wasteCost: number; wasteKg: number };
 };
 export const round = (n: number) => Math.round(n * 100) / 100;
@@ -96,5 +97,17 @@ export function compute(s: Stored): State {
   const purchaseRecs = recommendations.filter(r => r.type === "purchase");
   const baselinePurchaseCost = round(purchaseRecs.reduce((n, r) => n + r.original * (s.ingredients.find(i => i.id === r.targetId)?.cost ?? 0), 0));
   const plannedPurchaseCost = round(purchaseRecs.reduce((n, r) => n + (r.approvedQuantity ?? r.original) * (s.ingredients.find(i => i.id === r.targetId)?.cost ?? 0), 0));
-  return { today: d, tomorrow, cafeName: "Little Leaf Café", synthetic: true, ingredients: s.ingredients, sales: s.sales, results: s.results, menu: s.menu, forecasts, risks, recommendations, activity: s.activity, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
+  const approvedRecommendations: State["recommendations"] = Object.entries(s.decisions).flatMap(([id, decision]) => {
+    if (!["approved", "edited"].includes(decision.decision) || decision.quantity === null) return [];
+    const known = decision.recommendation;
+    if (known) return [{ ...known, status: decision.decision, approvedQuantity: decision.quantity }];
+    // Legacy decisions retained IDs/amounts but no original wording or timestamp.
+    // Expose only those known facts, clearly marked, for explicit attachment.
+    const [, kind, targetId] = id.split(":");
+    const type = kind === "prep" ? "preparation" : kind === "first" ? "use-first" : kind === "purchase" ? "purchase" : null;
+    const target = type === "preparation" ? s.menu.find(m => m.id === targetId) : s.ingredients.find(i => i.id === targetId);
+    if (!type || !target || !targetId) return [];
+    return [{ id, type, targetId, title: `Previously approved ${type}: ${target.name}`, description: "Legacy decision: original recommendation wording, approval time and historical stock were not saved. Only the recorded action and amounts are known. A follow-up starts from an explicitly attached current snapshot.", original: decision.original, suggested: decision.quantity, unit: "unit" in target ? target.unit : "portions", savings: decision.savings, status: decision.decision, approvedQuantity: decision.quantity }];
+  });
+  return { today: d, tomorrow, cafeName: "Little Leaf Café", synthetic: true, ingredients: s.ingredients, sales: s.sales, results: s.results, menu: s.menu, forecasts, risks, recommendations, activity: s.activity, followUps: s.followUps ?? [], approvedRecommendations, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
 }

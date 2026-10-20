@@ -1,11 +1,11 @@
 import { Router, type IRouter } from "express";
 import { db, guardWorkspace } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { AddGuardRecordsBody, DecideRecommendationBody, DecideRecommendationParams, GetGuardStateResponse } from "@workspace/api-zod";
+import { AddGuardRecordsBody, DecideRecommendationBody, DecideRecommendationParams, GetGuardStateResponse, AttachFollowUpBody, RecordFollowUpOutcomeBody } from "@workspace/api-zod";
 import { compute, seed, today, round, type Stored } from "../lib/guard-model";
+import { InputError, cancelOutstanding, completeFollowUp, scheduleFollowUp } from "../lib/guard-follow-ups";
 
 const router: IRouter = Router();
-class InputError extends Error {}
 const requiredString = (v: unknown, field: string): string => {
   if (typeof v !== "string" || !v.trim() || v.length > 160) throw new InputError(`${field} must be a non-empty string (max 160 characters).`);
   return v.trim();
@@ -59,6 +59,7 @@ router.post("/guard/records", async (req, res): Promise<void> => {
               category: row.category ? requiredString(row.category, "category") : existing?.category ?? "Other",
               deliveryQuantity: numeric(row.deliveryQuantity ?? existing?.deliveryQuantity ?? 0, "deliveryQuantity"),
               deliveryDate: date(row.deliveryDate || existing?.deliveryDate || today(), "deliveryDate"),
+              measuredDate: today(),
             };
             if (!["kg", "L", "pcs"].includes(ingredient.unit)) throw new InputError("unit must be kg, L, or pcs.");
             if (existing && ingredient.unit !== existing.unit && s.menu.some(m => m.recipe.some(r => r.ingredientId === existing.id))) throw new InputError("Cannot change a recipe ingredient's unit.");
@@ -100,9 +101,13 @@ router.post("/guard/recommendations/:id/decision", async (req, res): Promise<voi
       const computed = compute(s);
       const recommendation = computed.recommendations.find(r => r.id === params.data.id);
       if (!recommendation) throw new InputError("This recommendation is no longer current. Refresh the page.");
-      const { decision, quantity: input, note } = body.data;
+      const { decision, quantity: input, note, followUpDays = 2 } = body.data;
       if (decision === "edited" && input == null) throw new InputError("Enter an adjusted quantity.");
-      const quantity = decision === "rejected" ? null : numeric(input ?? recommendation.suggested, "quantity", recommendation.type === "preparation");
+      const previous = s.decisions[recommendation.id];
+      const quantity = decision === "rejected" ? null : numeric(input ?? (previous?.decision === decision ? previous.quantity : null) ?? recommendation.suggested, "quantity", recommendation.type === "preparation");
+      // A repeated decision is a no-op, including after its follow-up was completed.
+      // Legacy approvals are deliberately not backfilled through this path.
+      if (previous?.decision === decision && previous.quantity === quantity) return;
       if (quantity !== null && recommendation.type === "preparation") {
         const menu = s.menu.find(m => m.id === recommendation.targetId)!;
         for (const recipe of menu.recipe) {
@@ -118,11 +123,45 @@ router.post("/guard/recommendations/:id/decision", async (req, res): Promise<voi
       }
       const ingredient = s.ingredients.find(i => i.id === recommendation.targetId);
       const savings = recommendation.type === "purchase" && quantity !== null ? round((recommendation.original - quantity) * (ingredient?.cost ?? 0)) : 0;
-      s.decisions[recommendation.id] = { decision, quantity, original: recommendation.original, savings };
+      cancelOutstanding(s, recommendation.id, decision === "rejected" ? "Owner rejected the revised decision." : "Superseded by an owner-approved revision; previous snapshot retained.");
+      const approvedAt = new Date().toISOString();
+      s.decisions[recommendation.id] = { decision, quantity, original: recommendation.original, savings, approvedAt: quantity === null ? undefined : approvedAt, recommendation: structuredClone(recommendation) };
       if (recommendation.type === "purchase" && ingredient) ingredient.deliveryQuantity = quantity ?? recommendation.original;
+      if (quantity !== null) {
+        // Completed observations belong to the old decision, never replace them.
+        // Scheduling below only considers outstanding checks for this new revision.
+        scheduleFollowUp(s, { ...recommendation, status: decision, approvedQuantity: quantity }, quantity, followUpDays, approvedAt, true);
+      }
       s.activity.unshift({ id: crypto.randomUUID(), time: new Date().toISOString(), title: recommendation.title, detail: `${recommendation.description} Owner ${decision}. ${recommendation.original} → ${quantity ?? recommendation.original} ${recommendation.unit}. ${recommendation.type === "purchase" && quantity !== null ? "Internal purchasing plan updated. No supplier order placed." : recommendation.type === "preparation" && quantity !== null ? `Preparation plan saved for ${computed.tomorrow}.` : "No purchasing change."}${note ? ` Note: ${note}` : ""}`, decision, impact: savings });
     });
     res.json(state);
+  } catch (err) {
+    if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
+    throw err;
+  }
+});
+router.post("/guard/recommendations/:id/follow-up", async (req, res): Promise<void> => {
+  const body = AttachFollowUpBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Choose one or two follow-up days." }); return; }
+  try {
+    const state = await change(s => {
+      const decision = s.decisions[req.params.id as string];
+      if (!decision || !["approved", "edited"].includes(decision.decision) || decision.quantity === null) throw new InputError("Only an existing approved recommendation can have a follow-up attached.");
+      const recommendation = compute(s).approvedRecommendations.find(r => r.id === req.params.id);
+      if (!recommendation) throw new InputError("Original recommendation details are unavailable. Approve a current recommendation to start a new check.");
+      scheduleFollowUp(s, { ...recommendation, status: decision.decision, approvedQuantity: decision.quantity }, decision.quantity, body.data.followUpDays ?? 2, decision.approvedAt ?? null);
+    });
+    res.json(state);
+  } catch (err) {
+    if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
+    throw err;
+  }
+});
+router.post("/guard/follow-ups/:id/outcome", async (req, res): Promise<void> => {
+  const body = RecordFollowUpOutcomeBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Enter a valid observation date, action taken, and non-negative finite quantities for every ingredient." }); return; }
+  try {
+    res.json(await change(s => completeFollowUp(s, req.params.id as string, body.data)));
   } catch (err) {
     if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
     throw err;

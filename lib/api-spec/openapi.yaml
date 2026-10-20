@@ -53,6 +53,44 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/recommendations/{id}/follow-up:
+    post:
+      operationId: attachFollowUp
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FollowUpScheduleInput" }
+      responses:
+        "200":
+          description: Follow-up attached using a current snapshot, not a historical baseline
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/follow-ups/{id}/outcome:
+    post:
+      operationId: recordFollowUpOutcome
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OutcomeInput" }
+      responses:
+        "200":
+          description: Outcome recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
   /healthz:
     get:
       operationId: healthCheck
@@ -81,6 +119,7 @@ components:
         category: { type: string }
         deliveryQuantity: { type: number, minimum: 0 }
         deliveryDate: { type: string }
+        measuredDate: { type: ["string", "null"] }
     Sale:
       type: object
       required: [date, menuId, portions]
@@ -178,7 +217,7 @@ components:
         actualWasteKg: { type: number }
     GuardState:
       type: object
-      required: [today, tomorrow, cafeName, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary]
+      required: [today, tomorrow, cafeName, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations]
       properties:
         today: { type: string }
         tomorrow: { type: string }
@@ -209,6 +248,89 @@ components:
           type: array
           items: { $ref: "#/components/schemas/Activity" }
         summary: { $ref: "#/components/schemas/Summary" }
+        followUps:
+          type: array
+          items: { $ref: "#/components/schemas/FollowUp" }
+        approvedRecommendations:
+          type: array
+          items: { $ref: "#/components/schemas/Recommendation" }
+    FollowUpScheduleInput:
+      type: object
+      properties:
+        followUpDays: { type: integer, enum: [1, 2], default: 2 }
+    FollowUpIngredient:
+      type: object
+      required: [ingredientId, name, unit, startingQuantity, expiry, deliveryQuantity, deliveryDate, expectedUsage, expectedRemaining]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        unit: { type: string }
+        startingQuantity: { type: number }
+        expiry: { type: string }
+        deliveryQuantity: { type: number }
+        deliveryDate: { type: string }
+        expectedUsage: { type: number }
+        expectedRemaining: { type: number }
+    OutcomeRowInput:
+      type: object
+      required: [ingredientId, remaining, wasted]
+      properties:
+        ingredientId: { type: string }
+        remaining: { type: number, minimum: 0, maximum: 1000000 }
+        wasted: { type: number, minimum: 0, maximum: 1000000 }
+    OutcomeInput:
+      type: object
+      required: [observationDate, actionTaken, rows, updateInventory]
+      properties:
+        observationDate: { type: string }
+        actionTaken: { type: string, minLength: 1, maxLength: 1000 }
+        updateInventory: { type: boolean }
+        rows:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/OutcomeRowInput" }
+    OutcomeRow:
+      allOf:
+        - $ref: "#/components/schemas/OutcomeRowInput"
+        - type: object
+          required: [assessment, nextAction, inventoryUpdate]
+          properties:
+            assessment: { type: string }
+            nextAction: { type: string }
+            inventoryUpdate: { type: string }
+    FollowUpOutcome:
+      type: object
+      required: [observationDate, actionTaken, rows, recordedAt]
+      properties:
+        observationDate: { type: string }
+        actionTaken: { type: string }
+        recordedAt: { type: string }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/OutcomeRow" }
+    FollowUp:
+      type: object
+      required: [id, recommendationId, recommendation, approvedAction, approvedQuantity, approvedAt, snapshotAt, startingDate, scheduledDate, name, status, ingredients, outcome, cancellationReason]
+      properties:
+        id: { type: string }
+        recommendationId: { type: string }
+        recommendation: { $ref: "#/components/schemas/Recommendation" }
+        approvedAction: { type: string }
+        approvedQuantity: { type: number }
+        approvedAt: { type: ["string", "null"] }
+        snapshotAt: { type: string }
+        startingDate: { type: string }
+        scheduledDate: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [outstanding, completed, cancelled] }
+        cancellationReason: { type: ["string", "null"] }
+        ingredients:
+          type: array
+          items: { $ref: "#/components/schemas/FollowUpIngredient" }
+        outcome:
+          oneOf:
+            - $ref: "#/components/schemas/FollowUpOutcome"
+            - type: "null"
     RecordsInput:
       type: object
       required: [kind, rows]
@@ -228,6 +350,7 @@ components:
         decision: { type: string, enum: [approved, edited, rejected] }
         quantity: { type: number, minimum: 0 }
         note: { type: string, maxLength: 500 }
+        followUpDays: { type: integer, enum: [1, 2], default: 2 }
     HealthStatus:
       type: object
       properties:

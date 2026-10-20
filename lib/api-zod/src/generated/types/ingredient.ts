@@ -19,4 +19,6 @@ export interface Ingredient {
   /** @minimum 0 */
   deliveryQuantity: number;
   deliveryDate: string;
+  /** @nullable */
+  measuredDate?: string | null;
 }

@@ -18,6 +18,8 @@ export interface Ingredient {
   /** @minimum 0 */
   deliveryQuantity: number;
   deliveryDate: string;
+  /** @nullable */
+  measuredDate?: string | null;
 }
 
 export interface Sale {
@@ -109,6 +111,73 @@ export interface Summary {
   actualWasteKg: number;
 }
 
+export type FollowUpStatus = typeof FollowUpStatus[keyof typeof FollowUpStatus];
+
+
+export const FollowUpStatus = {
+  outstanding: 'outstanding',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface FollowUpIngredient {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  startingQuantity: number;
+  expiry: string;
+  deliveryQuantity: number;
+  deliveryDate: string;
+  expectedUsage: number;
+  expectedRemaining: number;
+}
+
+export interface OutcomeRowInput {
+  ingredientId: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  remaining: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  wasted: number;
+}
+
+export type OutcomeRow = OutcomeRowInput & {
+  assessment: string;
+  nextAction: string;
+  inventoryUpdate: string;
+};
+
+export interface FollowUpOutcome {
+  observationDate: string;
+  actionTaken: string;
+  recordedAt: string;
+  rows: OutcomeRow[];
+}
+
+export interface FollowUp {
+  id: string;
+  recommendationId: string;
+  recommendation: Recommendation;
+  approvedAction: string;
+  approvedQuantity: number;
+  /** @nullable */
+  approvedAt: string | null;
+  snapshotAt: string;
+  startingDate: string;
+  scheduledDate: string;
+  name: string;
+  status: FollowUpStatus;
+  /** @nullable */
+  cancellationReason: string | null;
+  ingredients: FollowUpIngredient[];
+  outcome: FollowUpOutcome | null;
+}
+
 export interface GuardState {
   today: string;
   tomorrow: string;
@@ -123,6 +192,32 @@ export interface GuardState {
   recommendations: Recommendation[];
   activity: Activity[];
   summary: Summary;
+  followUps: FollowUp[];
+  approvedRecommendations: Recommendation[];
+}
+
+export type FollowUpScheduleInputFollowUpDays = typeof FollowUpScheduleInputFollowUpDays[keyof typeof FollowUpScheduleInputFollowUpDays];
+
+
+export const FollowUpScheduleInputFollowUpDays = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export interface FollowUpScheduleInput {
+  followUpDays?: FollowUpScheduleInputFollowUpDays;
+}
+
+export interface OutcomeInput {
+  observationDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  actionTaken: string;
+  updateInventory: boolean;
+  /** @minItems 1 */
+  rows: OutcomeRowInput[];
 }
 
 export type RecordsInputKind = typeof RecordsInputKind[keyof typeof RecordsInputKind];
@@ -154,12 +249,21 @@ export const DecisionInputDecision = {
   rejected: 'rejected',
 } as const;
 
+export type DecisionInputFollowUpDays = typeof DecisionInputFollowUpDays[keyof typeof DecisionInputFollowUpDays];
+
+
+export const DecisionInputFollowUpDays = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
 export interface DecisionInput {
   decision: DecisionInputDecision;
   /** @minimum 0 */
   quantity?: number;
   /** @maxLength 500 */
   note?: string;
+  followUpDays?: DecisionInputFollowUpDays;
 }
 
 export interface HealthStatus {

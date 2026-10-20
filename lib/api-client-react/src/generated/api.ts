@@ -21,8 +21,10 @@ import type {
 
 import type {
   DecisionInput,
+  FollowUpScheduleInput,
   GuardState,
   HealthStatus,
+  OutcomeInput,
   RecordsInput
 } from './api.schemas';
 
@@ -287,6 +289,172 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDecideRecommendationMutationOptions(options));
+    }
+
+export const getAttachFollowUpUrl = (id: string,) => {
+
+
+
+
+  return `/api/guard/recommendations/${id}/follow-up`
+}
+
+export const attachFollowUp = async (id: string,
+    followUpScheduleInput: FollowUpScheduleInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getAttachFollowUpUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(followUpScheduleInput)
+  }
+);}
+
+
+
+
+
+export const getAttachFollowUpMutationKey = () => ['attachFollowUp'] as const;
+
+export const getAttachFollowUpMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachFollowUp>>, TError,AttachFollowUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attachFollowUp>>, TError,AttachFollowUpMutationVariables, TContext> => {
+
+const mutationKey = getAttachFollowUpMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attachFollowUp>>, AttachFollowUpMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  attachFollowUp(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttachFollowUpMutationResult = NonNullable<Awaited<ReturnType<typeof attachFollowUp>>>
+    export type AttachFollowUpMutationBody = BodyType<FollowUpScheduleInput>
+    export type AttachFollowUpMutationError = ErrorType<unknown>
+    export type AttachFollowUpMutationVariables = {id: string;data: BodyType<FollowUpScheduleInput>}
+
+    export const useAttachFollowUp = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachFollowUp>>, TError,AttachFollowUpMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof attachFollowUp>>,
+        TError,
+        AttachFollowUpMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAttachFollowUpMutationOptions(options));
+    }
+
+export const getRecordFollowUpOutcomeUrl = (id: string,) => {
+
+
+
+
+  return `/api/guard/follow-ups/${id}/outcome`
+}
+
+export const recordFollowUpOutcome = async (id: string,
+    outcomeInput: OutcomeInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getRecordFollowUpOutcomeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(outcomeInput)
+  }
+);}
+
+
+
+
+
+export const getRecordFollowUpOutcomeMutationKey = () => ['recordFollowUpOutcome'] as const;
+
+export const getRecordFollowUpOutcomeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordFollowUpOutcome>>, TError,RecordFollowUpOutcomeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordFollowUpOutcome>>, TError,RecordFollowUpOutcomeMutationVariables, TContext> => {
+
+const mutationKey = getRecordFollowUpOutcomeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordFollowUpOutcome>>, RecordFollowUpOutcomeMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  recordFollowUpOutcome(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordFollowUpOutcomeMutationResult = NonNullable<Awaited<ReturnType<typeof recordFollowUpOutcome>>>
+    export type RecordFollowUpOutcomeMutationBody = BodyType<OutcomeInput>
+    export type RecordFollowUpOutcomeMutationError = ErrorType<unknown>
+    export type RecordFollowUpOutcomeMutationVariables = {id: string;data: BodyType<OutcomeInput>}
+
+    export const useRecordFollowUpOutcome = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordFollowUpOutcome>>, TError,RecordFollowUpOutcomeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordFollowUpOutcome>>,
+        TError,
+        RecordFollowUpOutcomeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRecordFollowUpOutcomeMutationOptions(options));
     }
 
 export const getHealthCheckUrl = () => {

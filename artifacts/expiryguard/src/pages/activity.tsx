@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState, PageHeader, Panel, StatusPill } from '@/components/bits';
+import { FollowUpDetail, UntrackedApprovals } from '@/components/followups';
 import { Input } from '@/components/ui/input';
 import { rm, useGuard } from '@/lib/guard';
 
@@ -16,6 +17,13 @@ export default function Activity() {
   return (
     <div className="space-y-5">
       <PageHeader kicker="Ledger" title="Every decision, kept.">Permanent record of imports, approvals, edits and rejections. Impact values are synthetic estimates. Total logged impact: <b className="num">{rm(total)}</b>.</PageHeader>
+      <Panel title="Follow-up checks" sub="Completed and cancelled result checks with the full saved comparison">
+        <div className="mb-3"><UntrackedApprovals data={data} /></div>
+        {(() => {
+          const done = data.followUps.filter((f) => f.status !== 'outstanding').sort((a, b) => (b.outcome?.recordedAt ?? b.scheduledDate).localeCompare(a.outcome?.recordedAt ?? a.scheduledDate));
+          return done.length === 0 ? <EmptyState title="No finished checks yet" body="Recorded results will appear here permanently." /> : <div className="space-y-3">{done.map((f) => <FollowUpDetail key={f.id} f={f} />)}</div>;
+        })()}
+      </Panel>
       <Panel>
         <div className="relative mb-4 max-w-sm"><Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" placeholder="Search history" value={q} onChange={(e) => setQ(e.target.value)} data-testid="input-search-activity" /></div>
         {list.length === 0 ? <EmptyState title="The ledger is empty" body="Decisions and imports will be written here." /> : (

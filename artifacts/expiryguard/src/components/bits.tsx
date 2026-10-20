@@ -1,12 +1,12 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { AlertTriangle, Check, Download, FileUp, Pencil, RotateCw, X } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Check, Download, FileUp, Pencil, RotateCw, X } from 'lucide-react';
 import type { Recommendation } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { downloadCsv, errorMessage, fmt, parseCsv, rm, useGuardMutations } from '@/lib/guard';
+import { addDays, downloadCsv, errorMessage, fmt, niceDate, parseCsv, rm, useGuard, useGuardMutations, type FollowDays } from '@/lib/guard';
 
 export const guardianSrc = `${import.meta.env.BASE_URL}guardian.png`;
 
@@ -25,7 +25,7 @@ export function PageHeader({ kicker, title, children, aside }: { kicker: string;
 
 export function Panel({ title, sub, children, className, action }: { title?: string; sub?: string; children: ReactNode; className?: string; action?: ReactNode }) {
   return (
-    <section className={cn('rise rounded-2xl border bg-card p-5 shadow-sm', className)}>
+    <section className={cn('rise min-w-0 rounded-2xl border bg-card p-5 shadow-sm', className)}>
       {title && (
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
@@ -102,17 +102,27 @@ export function StatusPill({ status }: { status: string }) {
 const typeLabel: Record<string, string> = { purchase: 'Purchase', preparation: 'Prep plan', 'use-first': 'Use first' };
 
 export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boolean }) {
-  const { decide } = useGuardMutations();
+  const { decide, attach } = useGuardMutations();
+  const { data } = useGuard();
   const { toast } = useToast();
+  const [days, setDays] = useState<FollowDays>(2);
+  const [attaching, setAttaching] = useState(false);
+  const today = data?.today;
+  const hasFollowUp = !!data?.followUps.some((f) => f.recommendationId === rec.id);
+  const decidedYes = rec.status === 'approved' || rec.status === 'edited';
+  const doAttach = () => attach.mutate({ id: rec.id, data: { followUpDays: days } }, {
+    onSuccess: () => { setAttaching(false); toast({ title: 'Follow-up check scheduled', description: rec.title }); },
+    onError: (e) => toast({ title: 'Follow-up not scheduled', description: errorMessage(e), variant: 'destructive' }),
+  });
   const [editing, setEditing] = useState(false);
   const [qty, setQty] = useState(String(rec.approvedQuantity ?? rec.suggested));
   const [note, setNote] = useState('');
   const pending = rec.status === 'pending';
-  const busy = decide.isPending;
+  const busy = decide.isPending || attach.isPending;
 
   const send = (decision: 'approved' | 'edited' | 'rejected', quantity?: number) => {
     decide.mutate(
-      { id: rec.id, data: { decision, ...(quantity !== undefined ? { quantity } : {}), ...(note ? { note } : {}) } },
+      { id: rec.id, data: { decision, ...(quantity !== undefined ? { quantity } : {}), ...(note ? { note } : {}), ...(decision !== 'rejected' ? { followUpDays: days } : {}) } },
       {
         onSuccess: () => { setEditing(false); toast({ title: `${typeLabel[rec.type] ?? 'Item'} ${decision}`, description: rec.title }); },
         onError: (e) => toast({ title: 'Decision not saved', description: errorMessage(e), variant: 'destructive' }),
@@ -129,7 +139,7 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
             <StatusPill status={rec.status} />
           </div>
           <div className="font-semibold mt-1">{rec.title}</div>
-          {!compact && <p className="text-sm text-muted-foreground mt-1">{rec.description}</p>}
+          {!compact && <p className="text-sm text-muted-foreground mt-1">{decidedYes && <b>Forecast suggestion (before your decision): </b>}{rec.description}</p>}
         </div>
         <div className="text-right shrink-0">
           <div className="num text-lg font-semibold">{fmt(rec.approvedQuantity ?? rec.suggested)} <span className="text-xs text-muted-foreground">{rec.unit}</span></div>
@@ -137,12 +147,24 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
           {rec.savings > 0 && <div className="num text-xs text-jade font-semibold">saves {rm(rec.savings)} est.</div>}
         </div>
       </div>
+      {(editing || pending || attaching) && today && (
+        <DaySelect value={days} onChange={setDays} today={today} id={rec.id} />
+      )}
+      {attaching && (
+        <div className="mt-2 rounded-lg border border-amber/40 bg-amber/10 p-3 text-xs space-y-2" data-testid={`text-attach-explain-${rec.id}`}>
+          <p>This decision was made before follow-up checks existed. Yuzu will take a <b>current</b> pantry snapshot as the starting point; the original approval time is unknown and will be recorded as such. Nothing is backfilled.</p>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={busy} onClick={doAttach} data-testid={`button-confirm-attach-${rec.id}`}><CalendarClock className="w-4 h-4 mr-1" />Schedule check</Button>
+            <Button size="sm" variant="ghost" onClick={() => setAttaching(false)}>Cancel</Button>
+          </div>
+        </div>
+      )}
       {editing ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr_auto] items-center">
           <Input type="number" min={0} step="0.1" value={qty} onChange={(e) => setQty(e.target.value)} data-testid={`input-qty-${rec.id}`} />
           <Input placeholder="Note (optional)" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} data-testid={`input-note-${rec.id}`} />
           <div className="flex gap-2">
-            <Button size="sm" disabled={busy || qty === '' || Number(qty) < 0} onClick={() => send('edited', Number(qty))} data-testid={`button-save-edit-${rec.id}`}><Check className="w-4 h-4 mr-1" />Approve edit</Button>
+            <Button size="sm" disabled={busy || qty === '' || !Number.isFinite(Number(qty)) || Number(qty) < 0} onClick={() => send('edited', Number(qty))} data-testid={`button-save-edit-${rec.id}`}><Check className="w-4 h-4 mr-1" />Approve edit</Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
           </div>
         </div>
@@ -155,7 +177,11 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
               <Button size="sm" variant="ghost" disabled={busy} onClick={() => send('rejected')} data-testid={`button-reject-${rec.id}`}><X className="w-4 h-4 mr-1" />Reject</Button>
             </>
           ) : (
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => setEditing(true)} data-testid={`button-revise-${rec.id}`}><Pencil className="w-4 h-4 mr-1" />Revise decision</Button>
+            <>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => setEditing(true)} data-testid={`button-revise-${rec.id}`}><Pencil className="w-4 h-4 mr-1" />Revise decision</Button>
+              {rec.status !== 'rejected' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => send('rejected')} data-testid={`button-reject-revision-${rec.id}`}><X className="w-4 h-4 mr-1" />Reject</Button>}
+              {decidedYes && !hasFollowUp && !attaching && <Button size="sm" variant="secondary" disabled={busy} onClick={() => setAttaching(true)} data-testid={`button-attach-${rec.id}`}><CalendarClock className="w-4 h-4 mr-1" />Add follow-up check</Button>}
+            </>
           )}
         </div>
       )}
@@ -239,6 +265,20 @@ export function CsvImport({ spec }: { spec: ImportSpec }) {
           <Button onClick={submit} disabled={add.isPending} data-testid={`button-import-${spec.kind}`}>{add.isPending ? 'Importing...' : `Import ${rows.length} rows`}</Button>
         </div>
       )}
+    </div>
+  );
+}
+
+export function DaySelect({ value, onChange, today, id }: { value: FollowDays; onChange: (d: FollowDays) => void; today: string; id: string }) {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-muted-foreground font-semibold uppercase tracking-wider">Check result in</span>
+      {([1, 2] as FollowDays[]).map((d) => (
+        <button key={d} type="button" onClick={() => onChange(d)} data-testid={`button-days-${d}-${id}`}
+          className={cn('rounded-full border px-3 py-1 font-semibold transition-colors', value === d ? 'bg-ink text-[hsl(38_40%_94%)] border-ink' : 'bg-background hover:bg-muted')}>
+          {d} day{d > 1 ? 's' : ''} <span className="num opacity-70">· {niceDate(addDays(today, d))}</span>
+        </button>
+      ))}
     </div>
   );
 }
