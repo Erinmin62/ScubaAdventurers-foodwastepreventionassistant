@@ -1,6 +1,6 @@
-# [Project name]
+# ExpiryGuardAI
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Food-waste prevention assistant for café and restaurant owners using realistic synthetic sales, inventory, and result records.
 
 ## Run & Operate
 
@@ -26,15 +26,18 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- This is an intentionally shared synthetic-data demo without authentication. Add authentication and tenant isolation before accepting real business data.
+- Forecasts are transparent rules-based estimates, not an external LLM or a trained ML model.
+- All purchasing and preparation recommendations require human approval. Never place supplier orders automatically or suggest using expired ingredients.
+- Monetary values use Malaysian ringgit (RM), and planning dates use Asia/Kuala_Lumpur.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Sales and inventory input/CSV import, tomorrow's menu forecasts, safe-stock capacity checks, expiry and overstock risks, editable preparation/purchasing approvals, actual sales and leftover tracking, waste/cost comparisons, and persistent activity history.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+Use synthetic data. The user requested cute Genshin Impact-like characters while keeping practical business controls. Every recommendation must support approve, edit, and reject, with decision and estimated purchasing impact recorded.
 
 ## Gotchas
 

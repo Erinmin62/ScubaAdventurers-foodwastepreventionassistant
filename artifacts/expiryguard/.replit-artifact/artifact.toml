@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ExpiryGuardAI"
+description = "A food waste prevention assistant for café and restaurant owners with synthetic sales, inventory, forecasts, approval-based preparation and purchasing recommendations, and impact tracking."
+version = "1.0.0"
+id = "artifacts/expiryguard"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26267
+
+[services.development]
+run = "pnpm --filter @workspace/expiryguard run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/expiryguard", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/expiryguard/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26267"
+BASE_PATH = "/"

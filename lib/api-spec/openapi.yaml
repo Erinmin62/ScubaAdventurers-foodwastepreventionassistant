@@ -11,6 +11,48 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /guard/state:
+    get:
+      operationId: getGuardState
+      responses:
+        "200":
+          description: Complete cafe workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/records:
+    post:
+      operationId: addGuardRecords
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordsInput" }
+      responses:
+        "200":
+          description: Updated workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/recommendations/{id}/decision:
+    post:
+      operationId: decideRecommendation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecisionInput" }
+      responses:
+        "200":
+          description: Decision saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +68,166 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    Ingredient:
+      type: object
+      required: [id, name, quantity, unit, expiry, cost, category, deliveryQuantity, deliveryDate]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        quantity: { type: number, minimum: 0 }
+        unit: { type: string }
+        expiry: { type: string }
+        cost: { type: number, minimum: 0 }
+        category: { type: string }
+        deliveryQuantity: { type: number, minimum: 0 }
+        deliveryDate: { type: string }
+    Sale:
+      type: object
+      required: [date, menuId, portions]
+      properties:
+        date: { type: string }
+        menuId: { type: string }
+        portions: { type: integer, minimum: 0 }
+    Result:
+      type: object
+      required: [date, menuId, prepared, sold, leftover]
+      properties:
+        date: { type: string }
+        menuId: { type: string }
+        prepared: { type: integer, minimum: 0 }
+        sold: { type: integer, minimum: 0 }
+        leftover: { type: integer, minimum: 0 }
+    RecipeItem:
+      type: object
+      required: [ingredientId, amount]
+      properties:
+        ingredientId: { type: string }
+        amount: { type: number }
+    MenuItem:
+      type: object
+      required: [id, name, price, cost, recipe]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        price: { type: number }
+        cost: { type: number }
+        recipe:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    Forecast:
+      type: object
+      required: [menuId, name, predicted, capacity, suggested, confidence, reason]
+      properties:
+        menuId: { type: string }
+        name: { type: string }
+        predicted: { type: integer }
+        capacity: { type: integer }
+        suggested: { type: integer }
+        confidence: { type: string }
+        reason: { type: string }
+    Risk:
+      type: object
+      required: [ingredientId, name, daysLeft, level, expectedUse, atRisk, value, message]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        daysLeft: { type: integer }
+        level: { type: string }
+        expectedUse: { type: number }
+        atRisk: { type: number }
+        value: { type: number }
+        message: { type: string }
+    Recommendation:
+      type: object
+      required: [id, type, targetId, title, description, original, suggested, unit, savings, status, approvedQuantity]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        targetId: { type: string }
+        title: { type: string }
+        description: { type: string }
+        original: { type: number }
+        suggested: { type: number }
+        unit: { type: string }
+        savings: { type: number }
+        status: { type: string }
+        approvedQuantity: { type: ["number", "null"] }
+    Activity:
+      type: object
+      required: [id, time, title, detail, decision, impact]
+      properties:
+        id: { type: string }
+        time: { type: string }
+        title: { type: string }
+        detail: { type: string }
+        decision: { type: string }
+        impact: { type: number }
+    Summary:
+      type: object
+      required: [predictedPortions, riskValue, pendingCount, estimatedSavings, baselineWasteCost, actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg, actualWasteKg]
+      properties:
+        predictedPortions: { type: integer }
+        riskValue: { type: number }
+        pendingCount: { type: integer }
+        estimatedSavings: { type: number }
+        baselineWasteCost: { type: number }
+        actualWasteCost: { type: number }
+        baselinePurchaseCost: { type: number }
+        plannedPurchaseCost: { type: number }
+        baselineWasteKg: { type: number }
+        actualWasteKg: { type: number }
+    GuardState:
+      type: object
+      required: [today, tomorrow, cafeName, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary]
+      properties:
+        today: { type: string }
+        tomorrow: { type: string }
+        cafeName: { type: string }
+        synthetic: { type: boolean }
+        ingredients:
+          type: array
+          items: { $ref: "#/components/schemas/Ingredient" }
+        sales:
+          type: array
+          items: { $ref: "#/components/schemas/Sale" }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/Result" }
+        menu:
+          type: array
+          items: { $ref: "#/components/schemas/MenuItem" }
+        forecasts:
+          type: array
+          items: { $ref: "#/components/schemas/Forecast" }
+        risks:
+          type: array
+          items: { $ref: "#/components/schemas/Risk" }
+        recommendations:
+          type: array
+          items: { $ref: "#/components/schemas/Recommendation" }
+        activity:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }
+        summary: { $ref: "#/components/schemas/Summary" }
+    RecordsInput:
+      type: object
+      required: [kind, rows]
+      properties:
+        kind: { type: string, enum: [sales, inventory, results] }
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 2000
+          items:
+            type: object
+            additionalProperties: true
+    DecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, edited, rejected] }
+        quantity: { type: number, minimum: 0 }
+        note: { type: string, maxLength: 500 }
     HealthStatus:
       type: object
       properties:
