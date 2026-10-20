@@ -1,1 +1,2 @@
 - [Measurement ordering](measurement-ordering.md) — why follow-up stock updates conservatively preserve same-day measurements.
+- [Preview sessions](preview-session-verification.md) — a passing fresh screenshot does not disprove errors retained in an open development tab.

@@ -1,13 +1,19 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'wouter';
-import { ArrowRight, Truck } from 'lucide-react';
+import { ArrowRight, Bot, Truck } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { EmptyState, ErrorState, LevelPill, LoadingState, Panel, RecCard, Stat, guardianSrc } from '@/components/bits';
 import { FollowUpList } from '@/components/followups';
+import type { GuardState } from '@workspace/api-client-react';
 import { addDays, fmt, niceDate, rm, useGuard } from '@/lib/guard';
 
 export default function Dashboard() {
   const { data, isLoading, error, refetch } = useGuard();
+  useEffect(() => {
+    if (!isLoading && window.location.hash === '#result-checks') {
+      document.getElementById('result-checks')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isLoading]);
   const chart = useMemo(() => {
     if (!data) return [];
     return Array.from({ length: 14 }, (_, i) => {
@@ -76,9 +82,13 @@ export default function Dashboard() {
         </Panel>
       </div>
 
+      <AutomationSummary data={data} />
+
+      <div id="result-checks" className="scroll-mt-16">
       <Panel title="Result checks" sub="Outstanding follow-ups, soonest first. Completed and cancelled checks live in Activity." action={<Link href="/activity" className="text-xs text-primary font-semibold">History</Link>}>
         <FollowUpList data={data} />
       </Panel>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
         <Panel title="Waiting for your call" sub="Top pending recommendations" action={<Link href="/recommendations" className="text-xs text-primary font-semibold">All</Link>}>
@@ -102,5 +112,34 @@ export default function Dashboard() {
         </Panel>
       </div>
     </div>
+  );
+}
+
+function AutomationSummary({ data }: { data: GuardState }) {
+  const a = data.automation;
+  const lastPlan = a.runs.find((r) => r.workflow === 'daily-planning');
+  const lastFollow = a.runs.find((r) => r.workflow === 'follow-ups');
+  const out = data.followUps.filter((f) => f.status === 'outstanding');
+  const due = out.filter((f) => f.scheduledDate.slice(0, 10) === data.today).length;
+  const overdue = out.filter((f) => f.scheduledDate.slice(0, 10) < data.today).length;
+  const chip = (on: boolean, label: string) => (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${on ? 'bg-jade/12 text-jade border-jade/30' : 'bg-muted text-muted-foreground'}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${on ? 'bg-jade' : 'bg-muted-foreground'}`} />{label} {on ? 'on' : 'paused'}
+    </span>
+  );
+  return (
+    <section className="rise rounded-2xl border bg-card p-4 flex flex-col md:flex-row md:items-center gap-3" data-testid="panel-automation-summary">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-10 h-10 rounded-xl bg-ink text-primary grid place-items-center shrink-0"><Bot className="w-5 h-5" /></div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap gap-1.5">{chip(a.dailyPlanning, 'Daily planning')}{chip(a.followUpHandling, 'Follow-ups')}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {lastPlan ? <>Planned {niceDate(lastPlan.date)}: <span className="num">{fmt(lastPlan.predictedPortions, 0)}</span> portions, <span className="num">{lastPlan.riskCount}</span> risks, <span className="num">{lastPlan.draftCount}</span> drafts. </> : <>No daily planning run yet. </>}
+            Result checks: <span className="num">{due}</span> due, <span className="num">{overdue}</span> overdue{lastFollow ? <> (scanned {niceDate(lastFollow.date)})</> : null}.
+          </div>
+        </div>
+      </div>
+      <Link href="/automation" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary shrink-0" data-testid="link-automation-summary">Automations <ArrowRight className="w-4 h-4" /></Link>
+    </section>
   );
 }

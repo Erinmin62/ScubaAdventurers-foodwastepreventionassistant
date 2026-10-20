@@ -7,6 +7,13 @@
  */
 
 export * from './activity';
+export * from './automationRun';
+export * from './automationRunInput';
+export * from './automationRunInputWorkflow';
+export * from './automationRunTrigger';
+export * from './automationRunWorkflow';
+export * from './automationSettingsInput';
+export * from './automationState';
 export * from './decisionInput';
 export * from './decisionInputDecision';
 export * from './decisionInputFollowUpDays';

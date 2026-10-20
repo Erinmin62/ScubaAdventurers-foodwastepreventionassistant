@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import { db, guardWorkspace } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { AddGuardRecordsBody, DecideRecommendationBody, DecideRecommendationParams, GetGuardStateResponse, AttachFollowUpBody, RecordFollowUpOutcomeBody } from "@workspace/api-zod";
-import { compute, seed, today, round, type Stored } from "../lib/guard-model";
+import { AddGuardRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody } from "@workspace/api-zod";
+import { compute, today, round } from "../lib/guard-model";
+import { changeWorkspace as change } from "../lib/guard-store";
+import { runWorkflows } from "../lib/guard-automation";
 import { InputError, cancelOutstanding, completeFollowUp, scheduleFollowUp } from "../lib/guard-follow-ups";
 
 const router: IRouter = Router();
@@ -19,24 +19,30 @@ const date = (v: unknown, field: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value) throw new InputError(`${field} must be a valid YYYY-MM-DD date.`);
   return value;
 };
-async function initialize() {
-  await db.insert(guardWorkspace).values({ id: "demo", data: seed() }).onConflictDoNothing();
-}
-async function change(action: (s: Stored) => void) {
-  await initialize();
-  return db.transaction(async tx => {
-    const [record] = await tx.select().from(guardWorkspace).where(eq(guardWorkspace.id, "demo")).for("update");
-    if (!record) throw new Error("Workspace unavailable.");
-    const stored = record.data as Stored;
-    action(stored);
-    await tx.update(guardWorkspace).set({ data: stored }).where(eq(guardWorkspace.id, "demo"));
-    return GetGuardStateResponse.parse(compute(stored));
-  });
-}
 router.get("/guard/state", async (_req, res): Promise<void> => {
-  await initialize();
-  const [record] = await db.select().from(guardWorkspace).where(eq(guardWorkspace.id, "demo"));
-  res.json(GetGuardStateResponse.parse(compute(record!.data as Stored)));
+  res.json(await change());
+});
+router.patch("/guard/automation", async (req, res): Promise<void> => {
+  const body = UpdateAutomationBody.safeParse(req.body);
+  if (!body.success || Object.keys(body.data).length === 0) { res.status(400).json({ error: "Provide a workflow toggle as true or false." }); return; }
+  res.json(await change(s => {
+    s.automation ??= { dailyPlanning: true, followUpHandling: true, runs: [] };
+    const updates: string[] = [];
+    for (const key of ["dailyPlanning", "followUpHandling"] as const) {
+      const value = body.data[key];
+      if (value !== undefined && value !== s.automation[key]) {
+        s.automation[key] = value;
+        updates.push(`${key === "dailyPlanning" ? "Daily planning" : "Follow-up handling"} ${value ? "enabled" : "paused"}`);
+      }
+    }
+    if (updates.length) s.activity.unshift({ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Automation settings changed", detail: `${updates.join(". ")}. Existing follow-ups and live expiry safety checks remain available. No orders placed.`, decision: "automation", impact: 0 });
+  }));
+});
+router.post("/guard/automation/run", async (req, res): Promise<void> => {
+  const body = RunAutomationBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Select daily-planning, follow-ups, or all." }); return; }
+  try { res.json(await change(s => runWorkflows(s, body.data.workflow), false)); }
+  catch (err) { if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; } throw err; }
 });
 router.post("/guard/records", async (req, res): Promise<void> => {
   const parsed = AddGuardRecordsBody.safeParse(req.body);
@@ -85,6 +91,7 @@ router.post("/guard/records", async (req, res): Promise<void> => {
         } catch (e) { if (e instanceof InputError) throw new InputError(`Row ${index + 1}: ${e.message}`); throw e; }
       });
       s.activity.unshift({ id: crypto.randomUUID(), time: new Date().toISOString(), title: `${rows.length} ${kind} record${rows.length === 1 ? "" : "s"} saved`, detail: "Records added or updated. Forecasts recalculated; no orders were placed. Existing approvals remain recorded; stock is rechecked on approval.", decision: "input", impact: 0 });
+      if (s.automationProgress) s.automationProgress.dailyDate = undefined;
     });
     res.json(state);
   } catch (err) {
@@ -127,7 +134,7 @@ router.post("/guard/recommendations/:id/decision", async (req, res): Promise<voi
       const approvedAt = new Date().toISOString();
       s.decisions[recommendation.id] = { decision, quantity, original: recommendation.original, savings, approvedAt: quantity === null ? undefined : approvedAt, recommendation: structuredClone(recommendation) };
       if (recommendation.type === "purchase" && ingredient) ingredient.deliveryQuantity = quantity ?? recommendation.original;
-      if (quantity !== null) {
+      if (quantity !== null && (s.automation?.followUpHandling ?? true)) {
         // Completed observations belong to the old decision, never replace them.
         // Scheduling below only considers outstanding checks for this new revision.
         scheduleFollowUp(s, { ...recommendation, status: decision, approvedQuantity: quantity }, quantity, followUpDays, approvedAt, true);

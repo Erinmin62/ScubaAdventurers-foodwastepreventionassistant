@@ -2,6 +2,8 @@ import { GetGuardStateResponse } from "@workspace/api-zod";
 
 export type State = typeof GetGuardStateResponse._output;
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
+  automation?: State["automation"];
+  automationProgress?: { dailyDate?: string; followUpDate?: string; reminded?: Record<string, string> };
   followUps?: State["followUps"];
   decisions: Record<string, { decision: string; quantity: number | null; original: number; savings: number; approvedAt?: string; recommendation?: State["recommendations"][number] }>;
   baseline: { wasteCost: number; wasteKg: number };
@@ -109,5 +111,5 @@ export function compute(s: Stored): State {
     if (!type || !target || !targetId) return [];
     return [{ id, type, targetId, title: `Previously approved ${type}: ${target.name}`, description: "Legacy decision: original recommendation wording, approval time and historical stock were not saved. Only the recorded action and amounts are known. A follow-up starts from an explicitly attached current snapshot.", original: decision.original, suggested: decision.quantity, unit: "unit" in target ? target.unit : "portions", savings: decision.savings, status: decision.decision, approvedQuantity: decision.quantity }];
   });
-  return { today: d, tomorrow, cafeName: "Little Leaf Café", synthetic: true, ingredients: s.ingredients, sales: s.sales, results: s.results, menu: s.menu, forecasts, risks, recommendations, activity: s.activity, followUps: s.followUps ?? [], approvedRecommendations, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
+  return { today: d, tomorrow, cafeName: "Little Leaf Café", synthetic: true, ingredients: s.ingredients, sales: s.sales, results: s.results, menu: s.menu, forecasts, risks, recommendations, activity: s.activity, followUps: s.followUps ?? [], approvedRecommendations, automation: s.automation ?? { dailyPlanning: true, followUpHandling: true, runs: [] }, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
 }

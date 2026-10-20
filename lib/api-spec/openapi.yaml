@@ -11,6 +11,34 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /guard/automation:
+    patch:
+      operationId: updateAutomation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AutomationSettingsInput" }
+      responses:
+        "200":
+          description: Automation settings saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/automation/run:
+    post:
+      operationId: runAutomation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AutomationRunInput" }
+      responses:
+        "200":
+          description: Enabled workflows run now
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
   /guard/state:
     get:
       operationId: getGuardState
@@ -106,6 +134,41 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    AutomationSettingsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        dailyPlanning: { type: boolean }
+        followUpHandling: { type: boolean }
+    AutomationRunInput:
+      type: object
+      required: [workflow]
+      properties:
+        workflow: { type: string, enum: [daily-planning, follow-ups, all] }
+    AutomationRun:
+      type: object
+      required: [id, workflow, trigger, time, date, detail, draftCount, riskCount, dueCount, overdueCount, predictedPortions]
+      properties:
+        id: { type: string }
+        workflow: { type: string, enum: [daily-planning, follow-ups] }
+        trigger: { type: string, enum: [automatic, manual] }
+        time: { type: string }
+        date: { type: string }
+        detail: { type: string }
+        draftCount: { type: integer }
+        riskCount: { type: integer }
+        dueCount: { type: integer }
+        overdueCount: { type: integer }
+        predictedPortions: { type: integer }
+    AutomationState:
+      type: object
+      required: [dailyPlanning, followUpHandling, runs]
+      properties:
+        dailyPlanning: { type: boolean }
+        followUpHandling: { type: boolean }
+        runs:
+          type: array
+          items: { $ref: "#/components/schemas/AutomationRun" }
     Ingredient:
       type: object
       required: [id, name, quantity, unit, expiry, cost, category, deliveryQuantity, deliveryDate]
@@ -217,12 +280,13 @@ components:
         actualWasteKg: { type: number }
     GuardState:
       type: object
-      required: [today, tomorrow, cafeName, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations]
+      required: [today, tomorrow, cafeName, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations, automation]
       properties:
         today: { type: string }
         tomorrow: { type: string }
         cafeName: { type: string }
         synthetic: { type: boolean }
+        automation: { $ref: "#/components/schemas/AutomationState" }
         ingredients:
           type: array
           items: { $ref: "#/components/schemas/Ingredient" }

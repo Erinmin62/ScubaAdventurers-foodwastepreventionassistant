@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "esbuild src/lib/guard-follow-ups.test.ts --bundle --platform=node --format=esm --outfile=/tmp/expiryguard-follow-ups.test.mjs && node --test /tmp/expiryguard-follow-ups.test.mjs",
+    "test": "esbuild src/lib/guard-follow-ups.test.ts src/lib/guard-automation.test.ts --bundle --platform=node --format=esm --outdir=/tmp/expiryguard-tests && node --test /tmp/expiryguard-tests/*.test.js",
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",

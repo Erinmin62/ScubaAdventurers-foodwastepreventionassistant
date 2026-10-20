@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AutomationRunInput,
+  AutomationSettingsInput,
   DecisionInput,
   FollowUpScheduleInput,
   GuardState,
@@ -54,6 +56,170 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getUpdateAutomationUrl = () => {
+
+
+
+
+  return `/api/guard/automation`
+}
+
+export const updateAutomation = async (automationSettingsInput: AutomationSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getUpdateAutomationUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(automationSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAutomationMutationKey = () => ['updateAutomation'] as const;
+
+export const getUpdateAutomationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutomation>>, TError,UpdateAutomationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAutomation>>, TError,UpdateAutomationMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAutomationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAutomation>>, UpdateAutomationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAutomation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAutomationMutationResult = NonNullable<Awaited<ReturnType<typeof updateAutomation>>>
+    export type UpdateAutomationMutationBody = BodyType<AutomationSettingsInput>
+    export type UpdateAutomationMutationError = ErrorType<unknown>
+    export type UpdateAutomationMutationVariables = {data: BodyType<AutomationSettingsInput>}
+
+    export const useUpdateAutomation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAutomation>>, TError,UpdateAutomationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAutomation>>,
+        TError,
+        UpdateAutomationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAutomationMutationOptions(options));
+    }
+
+export const getRunAutomationUrl = () => {
+
+
+
+
+  return `/api/guard/automation/run`
+}
+
+export const runAutomation = async (automationRunInput: AutomationRunInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getRunAutomationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(automationRunInput)
+  }
+);}
+
+
+
+
+
+export const getRunAutomationMutationKey = () => ['runAutomation'] as const;
+
+export const getRunAutomationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAutomation>>, TError,RunAutomationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runAutomation>>, TError,RunAutomationMutationVariables, TContext> => {
+
+const mutationKey = getRunAutomationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runAutomation>>, RunAutomationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  runAutomation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunAutomationMutationResult = NonNullable<Awaited<ReturnType<typeof runAutomation>>>
+    export type RunAutomationMutationBody = BodyType<AutomationRunInput>
+    export type RunAutomationMutationError = ErrorType<unknown>
+    export type RunAutomationMutationVariables = {data: BodyType<AutomationRunInput>}
+
+    export const useRunAutomation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runAutomation>>, TError,RunAutomationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runAutomation>>,
+        TError,
+        RunAutomationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRunAutomationMutationOptions(options));
+    }
 
 export const getGetGuardStateUrl = () => {
 

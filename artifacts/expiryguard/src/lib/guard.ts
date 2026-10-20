@@ -6,6 +6,8 @@ import {
   useRecordFollowUpOutcome,
   useDecideRecommendation,
   useGetGuardState,
+  useRunAutomation,
+  useUpdateAutomation,
 } from '@workspace/api-client-react';
 
 export function useGuard() {
@@ -19,7 +21,9 @@ export function useGuardMutations() {
   const decide = useDecideRecommendation({ mutation: { onSuccess } });
   const attach = useAttachFollowUp({ mutation: { onSuccess } });
   const record = useRecordFollowUpOutcome({ mutation: { onSuccess } });
-  return { add, decide, attach, record };
+  const updateAutomation = useUpdateAutomation({ mutation: { onSuccess } });
+  const runAutomation = useRunAutomation({ mutation: { onSuccess } });
+  return { add, decide, attach, record, updateAutomation, runAutomation };
 }
 
 export const rm = (n: number) => `RM ${(n ?? 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

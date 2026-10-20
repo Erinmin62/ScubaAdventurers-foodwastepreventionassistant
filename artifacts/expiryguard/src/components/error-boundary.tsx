@@ -4,6 +4,7 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from 'react';
+import { claimRecovery, isStaleModuleError } from '@/lib/stale-module-recovery';
 
 export interface ErrorFallbackProps {
   error: Error;
@@ -59,6 +60,13 @@ function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
         >
           Try again
         </button>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-4 ml-3 rounded border border-gray-300 px-4 py-2 text-sm text-gray-900 hover:bg-gray-100"
+        >
+          Reload page
+        </button>
       </div>
     </div>
   );
@@ -80,6 +88,17 @@ export class ErrorBoundary extends Component<
       toError(error),
       info.componentStack,
     );
+    // Retry alone reuses the same broken dependency graph. Recover a stale
+    // development tab once; genuine/repeated errors keep the visible fallback.
+    if (import.meta.env.DEV && isStaleModuleError(toError(error))) {
+      try {
+        if (claimRecovery(window.sessionStorage, Date.now())) {
+          window.location.reload();
+        }
+      } catch {
+        // Restricted browser storage must not cause another boundary failure.
+      }
+    }
   }
 
   componentDidUpdate(prevProps: ErrorBoundaryProps): void {

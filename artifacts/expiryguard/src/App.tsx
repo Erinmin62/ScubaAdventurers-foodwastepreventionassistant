@@ -13,6 +13,7 @@ import Forecast from '@/pages/forecast';
 import Recommendations from '@/pages/recommendations';
 import Impact from '@/pages/impact';
 import Activity from '@/pages/activity';
+import Automation from '@/pages/automation';
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/forecast" component={Forecast} />
           <Route path="/recommendations" component={Recommendations} />
           <Route path="/impact" component={Impact} />
+          <Route path="/automation" component={Automation} />
           <Route path="/activity" component={Activity} />
           <Route component={NotFound} />
         </Switch>

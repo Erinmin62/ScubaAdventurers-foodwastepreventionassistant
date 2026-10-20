@@ -59,6 +59,18 @@ export default defineConfig({
     },
     dedupe: ['react', 'react-dom'],
   },
+  optimizeDeps: {
+    // Keep the renderer and hook-owning runtime in the initial optimized graph,
+    // including the dialog dependencies used further down the Today page.
+    include: [
+      'react',
+      'react-dom/client',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-checkbox',
+    ],
+  },
   root: path.resolve(import.meta.dirname),
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist/public'),

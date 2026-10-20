@@ -108,6 +108,7 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
   const [days, setDays] = useState<FollowDays>(2);
   const [attaching, setAttaching] = useState(false);
   const today = data?.today;
+  const autoFollow = data?.automation?.followUpHandling ?? true;
   const hasFollowUp = !!data?.followUps.some((f) => f.recommendationId === rec.id);
   const decidedYes = rec.status === 'approved' || rec.status === 'edited';
   const doAttach = () => attach.mutate({ id: rec.id, data: { followUpDays: days } }, {
@@ -122,7 +123,7 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
 
   const send = (decision: 'approved' | 'edited' | 'rejected', quantity?: number) => {
     decide.mutate(
-      { id: rec.id, data: { decision, ...(quantity !== undefined ? { quantity } : {}), ...(note ? { note } : {}), ...(decision !== 'rejected' ? { followUpDays: days } : {}) } },
+      { id: rec.id, data: { decision, ...(quantity !== undefined ? { quantity } : {}), ...(note ? { note } : {}), ...(decision !== 'rejected' && autoFollow ? { followUpDays: days } : {}) } },
       {
         onSuccess: () => { setEditing(false); toast({ title: `${typeLabel[rec.type] ?? 'Item'} ${decision}`, description: rec.title }); },
         onError: (e) => toast({ title: 'Decision not saved', description: errorMessage(e), variant: 'destructive' }),
@@ -147,12 +148,18 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
           {rec.savings > 0 && <div className="num text-xs text-jade font-semibold">saves {rm(rec.savings)} est.</div>}
         </div>
       </div>
-      {(editing || pending || attaching) && today && (
+      {(editing || pending) && !attaching && today && autoFollow && (
         <DaySelect value={days} onChange={setDays} today={today} id={rec.id} />
       )}
+      {(editing || pending) && !attaching && data && !autoFollow && (
+        <div className="mt-3 rounded-lg border border-dashed bg-muted/50 px-3 py-2 text-xs text-muted-foreground" data-testid={`text-autofollow-paused-${rec.id}`}>
+          <b className="text-foreground">Auto-scheduling of result checks is paused.</b> Existing checks are kept. After approving you can still add a follow-up check by hand.
+        </div>
+      )}
+      {attaching && today && <DaySelect value={days} onChange={setDays} today={today} id={rec.id} />}
       {attaching && (
         <div className="mt-2 rounded-lg border border-amber/40 bg-amber/10 p-3 text-xs space-y-2" data-testid={`text-attach-explain-${rec.id}`}>
-          <p>This decision was made before follow-up checks existed. Yuzu will take a <b>current</b> pantry snapshot as the starting point; the original approval time is unknown and will be recorded as such. Nothing is backfilled.</p>
+          <p>{!autoFollow && <>Auto-scheduling is paused, so this check is attached by you. </>}If this decision was made before follow-up checks existed, Yuzu will take a <b>current</b> pantry snapshot as the starting point and any unknown approval time is recorded as unknown. Nothing is backfilled.</p>
           <div className="flex gap-2">
             <Button size="sm" disabled={busy} onClick={doAttach} data-testid={`button-confirm-attach-${rec.id}`}><CalendarClock className="w-4 h-4 mr-1" />Schedule check</Button>
             <Button size="sm" variant="ghost" onClick={() => setAttaching(false)}>Cancel</Button>

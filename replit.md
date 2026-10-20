@@ -27,6 +27,9 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
+- Automation is limited to daily planning reviews and follow-up scheduling/reminders. A server-side minute check runs while the API is active, with request-time catch-up after downtime; it is not an external guaranteed scheduler.
+- Pausing automation never disables live expiry checks or deletes existing follow-ups. Automation never approves plans, places orders, or invents measured stock/waste records.
+
 - This is an intentionally shared synthetic-data demo without authentication. Add authentication and tenant isolation before accepting real business data.
 - Forecasts are transparent rules-based estimates, not an external LLM or a trained ML model.
 - All purchasing and preparation recommendations require human approval. Never place supplier orders automatically or suggest using expired ingredients.

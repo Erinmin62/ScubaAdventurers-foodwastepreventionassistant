@@ -5,6 +5,60 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface AutomationSettingsInput {
+  dailyPlanning?: boolean;
+  followUpHandling?: boolean;
+}
+
+export type AutomationRunInputWorkflow = typeof AutomationRunInputWorkflow[keyof typeof AutomationRunInputWorkflow];
+
+
+export const AutomationRunInputWorkflow = {
+  'daily-planning': 'daily-planning',
+  'follow-ups': 'follow-ups',
+  all: 'all',
+} as const;
+
+export interface AutomationRunInput {
+  workflow: AutomationRunInputWorkflow;
+}
+
+export type AutomationRunWorkflow = typeof AutomationRunWorkflow[keyof typeof AutomationRunWorkflow];
+
+
+export const AutomationRunWorkflow = {
+  'daily-planning': 'daily-planning',
+  'follow-ups': 'follow-ups',
+} as const;
+
+export type AutomationRunTrigger = typeof AutomationRunTrigger[keyof typeof AutomationRunTrigger];
+
+
+export const AutomationRunTrigger = {
+  automatic: 'automatic',
+  manual: 'manual',
+} as const;
+
+export interface AutomationRun {
+  id: string;
+  workflow: AutomationRunWorkflow;
+  trigger: AutomationRunTrigger;
+  time: string;
+  date: string;
+  detail: string;
+  draftCount: number;
+  riskCount: number;
+  dueCount: number;
+  overdueCount: number;
+  predictedPortions: number;
+}
+
+export interface AutomationState {
+  dailyPlanning: boolean;
+  followUpHandling: boolean;
+  runs: AutomationRun[];
+}
+
 export interface Ingredient {
   id: string;
   name: string;
@@ -183,6 +237,7 @@ export interface GuardState {
   tomorrow: string;
   cafeName: string;
   synthetic: boolean;
+  automation: AutomationState;
   ingredients: Ingredient[];
   sales: Sale[];
   results: Result[];

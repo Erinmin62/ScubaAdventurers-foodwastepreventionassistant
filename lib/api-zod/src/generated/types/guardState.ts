@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Activity } from './activity';
+import type { AutomationState } from './automationState';
 import type { FollowUp } from './followUp';
 import type { Forecast } from './forecast';
 import type { Ingredient } from './ingredient';
@@ -21,6 +22,7 @@ export interface GuardState {
   tomorrow: string;
   cafeName: string;
   synthetic: boolean;
+  automation: AutomationState;
   ingredients: Ingredient[];
   sales: Sale[];
   results: Result[];
