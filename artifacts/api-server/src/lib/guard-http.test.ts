@@ -12,6 +12,8 @@ import { GetInboxResponse, GetNotificationsResponse, ReviewNotificationResponse 
 import { resetWorkspace, snapshotWorkspace } from "./guard-http-fixture";
 import { seed, shift, today, compute, type State } from "./guard-model";
 import type { Reorders } from "./guard-reorder";
+import { createOwnerAuth } from "../middlewares/owner-auth";
+import { currentWorkspaceId, inWorkspace, ownerWorkspaceId } from "./workspace-context";
 
 let server: Server, base: string;
 before(async () => {
@@ -55,6 +57,74 @@ async function scan() {
   return (response.data as Reorders).plans.find(p => p.status === "PENDING_APPROVAL")!;
 }
 const endpoint = (id: string) => `/guard/reorders/${id}/decision`;
+test("Auth: missing workspace context fails closed and concurrent owner contexts stay isolated", async () => {
+  assert.throws(() => currentWorkspaceId(), /authenticated workspace/);
+  await Promise.all(["a", "b"].map(id => inWorkspace(ownerWorkspaceId(id), async () => {
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(currentWorkspaceId(), ownerWorkspaceId(id));
+  })));
+});
+
+test("HTTP auth: anonymous access is denied and owner data, approvals, preferences and review tokens are isolated", async () => {
+  // Stub only Clerk's already-verified request identity, never the authorization
+  // middleware. This test-only header is not read anywhere in production.
+  const app = express();
+  app.use(express.json());
+  app.use("/guard", createOwnerAuth(req => req.get("test-owner") ?? null));
+  app.use(guardRouter, reorderRouter, notificationsRouter, inboxRouter);
+  const secured = app.listen(0, "127.0.0.1");
+  await new Promise<void>(resolve => secured.once("listening", resolve));
+  const address = secured.address();
+  assert.ok(address && typeof address !== "string");
+  const url = `http://127.0.0.1:${address.port}`;
+  const call = async (path: string, owner?: string, body?: unknown, method = "POST", extra: Record<string, string> = {}) => {
+    const r = await fetch(url + path, {
+      method: body === undefined ? "GET" : method,
+      headers: { "Content-Type": "application/json", ...(owner ? { "test-owner": owner } : {}), ...extra },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { status: r.status, data: await r.json() as State & Reorders & typeof GetNotificationsResponse._output & typeof ReviewNotificationResponse._output };
+  };
+  const a = ownerWorkspaceId("auth-test-a"), b = ownerWorkspaceId("auth-test-b");
+  const stateA = fixture();
+  stateA.ingredients[0]!.name = "Private owner A";
+  resetWorkspace(stateA, a);
+  const stateB = seed(); stateB.ingredients[0]!.name = "Private owner B";
+  resetWorkspace(stateB, b);
+  try {
+    for (const [path, body, method] of [
+      ["/guard/state"], ["/guard/inbox"], ["/guard/notifications"],
+      ["/guard/notifications", {}, "PATCH"], ["/guard/reorders/scan", {}],
+      ["/guard/recommendations/any/decision", {}], ["/guard/notifications/review", { token: "x".repeat(43) }],
+    ] as const) {
+      assert.equal((await call(path, undefined, body, method)).status, 401);
+    }
+    assert.equal((await call("/guard/state?workspaceId=owner:auth-test-a", "auth-test-b")).data.ingredients[0]!.name, "Private owner B");
+    assert.equal((await call("/guard/state", "auth-test-a")).data.ingredients[0]!.name, "Private owner A");
+    assert.equal((await call("/guard/state", "auth-test-a", undefined, undefined, { Origin: "https://attacker.example" })).status, 403);
+    const plan = (await call("/guard/reorders/scan", "auth-test-a", {})).data.plans.find((p: { status: string }) => p.status === "PENDING_APPROVAL");
+    assert.ok(plan);
+    const bBefore = snapshotWorkspace(b);
+    const crossDecision = await call(endpoint(plan.id), "auth-test-b", { decision: "approve", quantity: 3, approver: "A" });
+    assert.notEqual(crossDecision.status, 200);
+    assert.deepEqual(snapshotWorkspace(b).ingredients, bBefore.ingredients);
+    const prefs = { ...defaultNotificationSettings(), phone: "+60123456789", enabled: true, optIn: true };
+    assert.equal((await call("/guard/notifications", "auth-test-a", prefs, "PATCH")).status, 200);
+    const generated = (await call("/guard/notifications/scan", "auth-test-a", {})).data;
+    assert.ok(generated.records.length);
+    const token = generated.records[0].reviewUrl.split("#token=")[1];
+    assert.equal((await call("/guard/notifications/review", "auth-test-a", { token })).status, 200);
+    assert.equal((await call("/guard/notifications/review", "auth-test-b", { token })).status, 410);
+    assert.equal((await call("/guard/notifications", "auth-test-b")).data.settings.phone, "");
+    assert.equal(snapshotWorkspace(a).notifications?.sandbox, undefined);
+    assert.equal(snapshotWorkspace(b).notifications?.sandbox, undefined);
+    // No signed-in owner can pass the scheduler's separate credential gate.
+    const tick = await fetch(url + "/guard/notifications/tick", { method: "POST", headers: { "test-owner": "auth-test-a" } });
+    assert.ok([403, 503].includes(tick.status));
+  } finally {
+    await new Promise<void>((resolve, reject) => secured.close(error => error ? reject(error) : resolve()));
+  }
+});
 async function requestInbox(body?: unknown) {
   const result = await request(body ? "/guard/inbox/update" : "/guard/inbox", body);
   assert.equal(result.status, 200);

@@ -4,10 +4,12 @@ import guardRouter from "./guard";
 import reorderRouter from "./guard-reorders";
 import notificationsRouter from "./guard-notifications";
 import inboxRouter from "./guard-inbox";
+import { ownerAuth } from "../middlewares/owner-auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use("/guard", ownerAuth);
 router.use(guardRouter);
 router.use(reorderRouter);
 router.use(notificationsRouter);

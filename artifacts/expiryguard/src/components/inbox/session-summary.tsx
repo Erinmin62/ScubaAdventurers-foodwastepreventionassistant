@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/react';
 import { Link } from 'wouter';
 import { AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -6,11 +7,13 @@ import { isActiveCritical, summaryParts, useInbox } from '@/lib/inbox';
 
 const KEY = 'expiryguard.inbox.session';
 type Seen = { shown: boolean; critical: string[] };
-const read = (): Seen | null => { try { const v = sessionStorage.getItem(KEY); return v ? JSON.parse(v) as Seen : null; } catch { return null; } };
-const write = (s: Seen) => { try { sessionStorage.setItem(KEY, JSON.stringify(s)); } catch { /* storage unavailable */ } };
+const read = (key: string): Seen | null => { try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) as Seen : null; } catch { return null; } };
+const write = (key: string, s: Seen) => { try { sessionStorage.setItem(key, JSON.stringify(s)); } catch { /* storage unavailable */ } };
 
 /** Shows once per browser session, and again only when a genuinely new (or escalated) critical notification appears. */
 export function SessionSummary() {
+  const { userId, sessionId } = useAuth();
+  const key = `${KEY}:${userId}:${sessionId}`;
   const { data } = useInbox();
   const [open, setOpen] = useState(false);
   const [fresh, setFresh] = useState(false);
@@ -20,18 +23,18 @@ export function SessionSummary() {
     const crit = data.items.filter(isActiveCritical);
     // Fingerprint = set of active critical ids only. Text/quantity edits do not re-trigger; new, escalated or reopened ids do.
     const snapshot = crit.map((n) => n.id);
-    const seen = read();
+    const seen = read(key);
     if (!seen) {
       const show = data.unreadCount > 0 || crit.length > 0;
-      write({ shown: show, critical: snapshot });
+      write(key, { shown: show, critical: snapshot });
       if (show) { setOpen(true); setFresh(false); }
       return;
     }
     const prev = new Set(Array.isArray(seen.critical) ? seen.critical : []);
     const isNew = crit.some((n) => !prev.has(n.id));
     if (isNew) { setOpen(true); setFresh(true); }
-    write({ shown: true, critical: snapshot });
-  }, [data]);
+    write(key, { shown: true, critical: snapshot });
+  }, [data, key]);
 
   if (!open || !data) return null;
   const parts = summaryParts(data.counts);

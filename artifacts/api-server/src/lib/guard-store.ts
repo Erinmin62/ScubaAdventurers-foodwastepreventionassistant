@@ -6,11 +6,13 @@ import { runWorkflows } from "./guard-automation";
 import { scanNotificationEvents } from "./guard-notifications";
 import { migrateBatches } from "./guard-batches";
 import { syncInbox } from "./guard-inbox";
+import { currentWorkspaceId } from "./workspace-context";
 
 export async function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun = true) {
-  await db.insert(guardWorkspace).values({ id: "demo", data: seed() }).onConflictDoNothing();
+  const id = currentWorkspaceId();
+  await db.insert(guardWorkspace).values({ id, data: seed() }).onConflictDoNothing();
   return db.transaction(async tx => {
-    const [record] = await tx.select().from(guardWorkspace).where(eq(guardWorkspace.id, "demo")).for("update");
+    const [record] = await tx.select().from(guardWorkspace).where(eq(guardWorkspace.id, id)).for("update");
     if (!record) throw new Error("Workspace unavailable.");
     const stored = record.data as Stored;
     const before = JSON.stringify(stored);
@@ -21,7 +23,7 @@ export async function changeWorkspace(action: (s: Stored) => void = () => {}, au
     syncInbox(stored);
     const state = GetGuardStateResponse.parse(compute(stored));
     if (JSON.stringify(stored) !== before) {
-      await tx.update(guardWorkspace).set({ data: stored }).where(eq(guardWorkspace.id, "demo"));
+      await tx.update(guardWorkspace).set({ data: stored }).where(eq(guardWorkspace.id, id));
     }
     return state;
   });

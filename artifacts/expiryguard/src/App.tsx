@@ -1,10 +1,10 @@
 import { type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OwnerSession } from '@/components/owner-session';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { Redirect, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { Shell } from '@/components/shell';
 import Dashboard from '@/pages/dashboard';
 import Inventory from '@/pages/inventory';
@@ -18,13 +18,13 @@ import Reordering from '@/pages/reordering';
 import Notifications from '@/pages/notifications';
 import NotificationReview from '@/pages/notification-review';
 
-const queryClient = new QueryClient();
-
 function Router() {
   return (
     <Shell>
       <RoutedErrorBoundary>
         <Switch>
+          <Route path="/sign-in/*?"><Redirect to="/" /></Route>
+          <Route path="/sign-up/*?"><Redirect to="/" /></Route>
           <Route path="/" component={Dashboard} />
           <Route path="/inventory" component={Inventory} />
           <Route path="/sales" component={Sales} />
@@ -50,14 +50,14 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+      <OwnerSession>
+        <TooltipProvider>
           <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+          <Toaster />
+        </TooltipProvider>
+      </OwnerSession>
+    </WouterRouter>
   );
 }
 

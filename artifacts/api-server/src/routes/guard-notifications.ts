@@ -6,6 +6,7 @@ import { InputError } from "../lib/guard-follow-ups";
 import { safeEqual, verifyWhatsAppSignature } from "../lib/whatsapp-cloud";
 import { runGuardMonitor } from "../lib/guard-monitor";
 import { createAuthenticatedSchedulerHandler } from "../lib/guard-scheduler";
+import { inWorkspace, LEGACY_DEMO_WORKSPACE } from "../lib/workspace-context";
 
 const router = Router();
 router.get("/guard/notifications", async (_req, res) => {
@@ -71,7 +72,7 @@ router.post("/guard/notifications/webhook", async (req, res) => {
       if (change?.value?.metadata?.phone_number_id !== phoneId || !Array.isArray(change.value.statuses)) continue;
       for (const status of change.value.statuses) if (typeof status?.id === "string") statuses.push(status);
     }
-  await changeWorkspace(s => {
+  await inWorkspace(LEGACY_DEMO_WORKSPACE, () => changeWorkspace(s => {
     const records = notificationsFor(s).records;
     const rank: { [key: string]: number } = { accepted: 1, delivered: 2, read: 3 };
     for (const status of statuses) {
@@ -88,7 +89,7 @@ router.post("/guard/notifications/webhook", async (req, res) => {
         delete record.lastError;
       }
     }
-  }, false);
+  }, false));
   res.sendStatus(200);
 });
 export default router;

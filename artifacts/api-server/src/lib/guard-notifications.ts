@@ -31,7 +31,7 @@ export function notificationState(s: Stored): Notifications {
     sandbox: publicSandboxState(n.sandbox),
     blockers: [
       "Production WhatsApp Business sending is not enabled. Twilio Sandbox test sending is a separate, server-configured channel.",
-      "Owner authentication/authorization is not implemented in this shared demo. Public settings must not control live messaging.",
+      "Preferences and review links are private to your signed-in workspace. Preview settings never control live Sandbox messaging.",
       "Live activation also requires an approved Meta message template, protected credentials, and a verified published HTTPS review URL.",
     ],
     monitor: "Server checks every minute while running; reminders are at least 24 hours apart. For unattended monitoring, publish on an always-running Reserved VM. Autoscale sleep and the development workspace do not guarantee scheduled execution.",
@@ -120,6 +120,6 @@ export function readNotificationReview(s: Stored, token: string, now = new Date(
   return {
     title: record.title, message: record.message.split("\n\nRead-only review:")[0]!,
     expiresAt: record.expiresAt, path: record.path, demo: true,
-    notice: "Read-only expiring link. Opening it cannot approve or execute anything. The main app remains a shared unauthenticated demo; this link is not owner authentication. Review current data in the app before making a decision.",
+    notice: "Read-only expiring link, available only to the signed-in workspace owner. Opening it cannot approve or execute anything. Review current data in the app before making a decision.",
   };
 }

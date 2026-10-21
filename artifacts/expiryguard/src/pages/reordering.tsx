@@ -189,7 +189,7 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
             </div>
           )}
           {mode === 'approve' && (qn !== l.recommendedQuantity || date !== l.deliveryDate) && <p className="text-xs text-muted-foreground">Waste and demand figures above describe the original recommendation, not your edited quantity/date. Edited waste impact has not been evaluated. No waste reduction is claimed for an override.</p>}
-          <label className="text-xs font-semibold space-y-1 block">Your name (self-reported, shared demo has no sign-in)
+          <label className="text-xs font-semibold space-y-1 block">Decision note / name (self-reported; access is restricted to your signed-in account)
             <Input maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Owner name" data-testid={`input-approver-${plan.id}`} />
           </label>
           {mode === 'approve' && (

@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { UserButton } from '@clerk/react';
 import { Link, useLocation } from 'wouter';
 import { BarChart3, BellRing, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,7 +58,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
         <div className="hidden md:block mt-auto m-3 rounded-xl border border-sidebar-border p-3 text-[11px] leading-snug text-sidebar-foreground/70">
           <div className="font-semibold text-sidebar-primary uppercase tracking-wider mb-1">Synthetic demo</div>
-          Shared sample data. Figures are estimates. Nothing is ever ordered automatically.
+          Private workspace with sample data. Figures are estimates. Nothing is ever ordered automatically.
         </div>
       </aside>
       <div className="flex-1 md:ml-60 min-w-0">
@@ -67,6 +68,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="flex items-center gap-3">
             {data && <span className="num text-muted-foreground">Today {niceDate(data.today)} · Planning {niceDate(data.tomorrow)}</span>}
             <NotificationBell />
+            <UserButton />
           </span>
         </div>
         <SessionSummary />

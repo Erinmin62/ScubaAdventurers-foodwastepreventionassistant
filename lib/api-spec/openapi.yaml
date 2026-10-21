@@ -4,6 +4,11 @@ info:
   title: Api
   version: 0.1.0
   description: API specification
+# Guard endpoints require a verified Clerk session and return 401 when signed
+# out. Workspace identity comes only from that session, never request input.
+# Notification review tokens additionally require the owning session.
+security:
+  - ownerSession: []
 servers:
   - url: /api
     description: Base API path
@@ -100,6 +105,8 @@ paths:
               schema: { $ref: "#/components/schemas/NotificationState" }
   /guard/notifications/tick:
     post:
+      security:
+        - schedulerSecret: []
       operationId: runNotificationTick
       responses:
         "204": { description: Authorized server-side planning and notification scan completed; demo previews only }
@@ -123,12 +130,14 @@ paths:
           description: Link expired, resolved or invalid
   /guard/notifications/webhook:
     get:
+      security: []
       operationId: verifyWhatsAppWebhook
       responses:
         "200": { description: Meta verification challenge }
         "403": { description: Verification rejected }
     post:
       operationId: receiveWhatsAppWebhook
+      security: []
       responses:
         "200": { description: Verified provider status processed }
         "403": { description: Signature verification rejected }
@@ -291,6 +300,7 @@ paths:
               schema: { $ref: "#/components/schemas/GuardState" }
   /healthz:
     get:
+      security: []
       operationId: healthCheck
       tags: [health]
       summary: Health check
@@ -303,6 +313,16 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 components:
+  securitySchemes:
+    ownerSession:
+      type: apiKey
+      in: cookie
+      name: __session
+      description: Clerk-verified browser session; all café data is scoped to its owner.
+    schedulerSecret:
+      type: http
+      scheme: bearer
+      description: Separate server-configured scheduler credential; a user session cannot run global checks.
   schemas:
     InboxUpdateInput:
       type: object
