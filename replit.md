@@ -45,6 +45,9 @@ Use synthetic data. The user requested cute Genshin Impact-like characters while
 
 ## Gotchas
 
+- Waste-aware reordering updates only the single simulated incoming delivery after explicit approval; it never changes on-hand stock or places supplier orders. Supplier terms and delivered shelf life are editable assumptions, not verified data.
+- See `docs/waste-aware-reordering.md` for calculations, safeguards, test commands and the hackathon walkthrough. Daily planning includes reorder drafts; future order dates/receipt uncertainties require owner reconciliation.
+
 - Follow-up forecasts exclude unconfirmed deliveries and are not a stock ledger. Comparisons do not establish consumption or causal waste reduction. Ingredient discards are not added to prepared-food leftover totals.
 - Old documents have no follow-ups or known inventory measurement dates by default. Attach checks explicitly with a current snapshot; never invent historical approval times or stock.
 - Inventory writes from outcomes require explicit confirmation. Historical observations do not overwrite unknown, same-day, or newer measurements. Inventory forms/imports date current measurements using the Kuala Lumpur planning day.

@@ -5,6 +5,126 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type ReorderDecisionInputDecision = typeof ReorderDecisionInputDecision[keyof typeof ReorderDecisionInputDecision];
+
+
+export const ReorderDecisionInputDecision = {
+  approve: 'approve',
+  reject: 'reject',
+} as const;
+
+export interface ReorderDecisionInput {
+  decision: ReorderDecisionInputDecision;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  approver: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  quantity?: number;
+  deliveryDate?: string;
+}
+
+export interface ReorderConfig {
+  ingredientId: string;
+  /**
+     * @minimum 1
+     * @maximum 14
+     */
+  leadDays: number;
+  /**
+     * @minimum 1
+     * @maximum 14
+     */
+  reviewDays: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  minOrder: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  safetyStock: number;
+  /**
+     * @minimum 1
+     * @maximum 90
+     */
+  shelfDays: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  dailyUsage?: number;
+}
+
+export interface ReorderLine {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  unitCost: number;
+  expiry: string;
+  currentStock: number;
+  expiredQuantity: number;
+  wasteQuantity: number;
+  wasteCost: number;
+  incomingQuantity: number;
+  incomingDate: string;
+  dailyUsage: number;
+  expectedDemand: number;
+  originalQuantity: number;
+  recommendedQuantity: number;
+  additionalQuantity: number;
+  deliveryDate: string;
+  originalCost: number;
+  proposedCost: number;
+  potentialWasteReduction: number;
+  shortageBeforeDelivery: number;
+  explanation: string;
+  assumptions: string[];
+  demandAvailable: boolean;
+  config: ReorderConfig;
+}
+
+export type ReorderPlanStatus = typeof ReorderPlanStatus[keyof typeof ReorderPlanStatus];
+
+
+export const ReorderPlanStatus = {
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  EXECUTED: 'EXECUTED',
+  REJECTED: 'REJECTED',
+  FAILED: 'FAILED',
+  SUPERSEDED: 'SUPERSEDED',
+} as const;
+
+export interface ReorderPlan {
+  id: string;
+  status: ReorderPlanStatus;
+  createdAt: string;
+  fingerprint: string;
+  line: ReorderLine;
+  detail: string;
+  decidedAt?: string;
+  approver?: string;
+  approvedQuantity?: number;
+  approvedDate?: string;
+  beforeQuantity?: number;
+  afterQuantity?: number;
+  beforeDate?: string;
+  afterDate?: string;
+}
+
+export interface ReorderState {
+  settings: ReorderConfig[];
+  plans: ReorderPlan[];
+  analysis: ReorderLine[];
+  lastScan?: string;
+}
+
 export interface AutomationSettingsInput {
   dailyPlanning?: boolean;
   followUpHandling?: boolean;

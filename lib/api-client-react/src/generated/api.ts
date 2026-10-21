@@ -27,7 +27,10 @@ import type {
   GuardState,
   HealthStatus,
   OutcomeInput,
-  RecordsInput
+  RecordsInput,
+  ReorderConfig,
+  ReorderDecisionInput,
+  ReorderState
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -56,6 +59,310 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetReordersUrl = () => {
+
+
+
+
+  return `/api/guard/reorders`
+}
+
+export const getReorders = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReorderState> => {
+
+  return customFetch<ReorderState>(getGetReordersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReordersQueryKey = () => {
+    return [
+    `/api/guard/reorders`
+    ] as const;
+    }
+
+
+export const getGetReordersQueryOptions = <TData = Awaited<ReturnType<typeof getReorders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReorders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReordersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReorders>>> = ({ signal }) => getReorders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReorders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReordersQueryResult = NonNullable<Awaited<ReturnType<typeof getReorders>>>
+export type GetReordersQueryError = ErrorType<unknown>
+
+
+
+export function useGetReorders<TData = Awaited<ReturnType<typeof getReorders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReorders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReordersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getScanReordersUrl = () => {
+
+
+
+
+  return `/api/guard/reorders/scan`
+}
+
+export const scanReorders = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReorderState> => {
+
+  return customFetch<ReorderState>(getScanReordersUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getScanReordersMutationKey = () => ['scanReorders'] as const;
+
+export const getScanReordersMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scanReorders>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof scanReorders>>, TError,void, TContext> => {
+
+const mutationKey = getScanReordersMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scanReorders>>, void> = () => {
+
+
+          return  scanReorders(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScanReordersMutationResult = NonNullable<Awaited<ReturnType<typeof scanReorders>>>
+
+    export type ScanReordersMutationError = ErrorType<unknown>
+
+
+    export const useScanReorders = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scanReorders>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof scanReorders>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getScanReordersMutationOptions(options));
+    }
+
+export const getConfigureReorderUrl = () => {
+
+
+
+
+  return `/api/guard/reorders/settings`
+}
+
+export const configureReorder = async (reorderConfig: ReorderConfig, options?: Parameters<typeof customFetch>[1]): Promise<ReorderState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReorderState>(getConfigureReorderUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reorderConfig)
+  }
+);}
+
+
+
+
+
+export const getConfigureReorderMutationKey = () => ['configureReorder'] as const;
+
+export const getConfigureReorderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configureReorder>>, TError,ConfigureReorderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof configureReorder>>, TError,ConfigureReorderMutationVariables, TContext> => {
+
+const mutationKey = getConfigureReorderMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof configureReorder>>, ConfigureReorderMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  configureReorder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfigureReorderMutationResult = NonNullable<Awaited<ReturnType<typeof configureReorder>>>
+    export type ConfigureReorderMutationBody = BodyType<ReorderConfig>
+    export type ConfigureReorderMutationError = ErrorType<unknown>
+    export type ConfigureReorderMutationVariables = {data: BodyType<ReorderConfig>}
+
+    export const useConfigureReorder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configureReorder>>, TError,ConfigureReorderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof configureReorder>>,
+        TError,
+        ConfigureReorderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfigureReorderMutationOptions(options));
+    }
+
+export const getDecideReorderUrl = (id: string,) => {
+
+
+
+
+  return `/api/guard/reorders/${id}/decision`
+}
+
+export const decideReorder = async (id: string,
+    reorderDecisionInput: ReorderDecisionInput, options?: Parameters<typeof customFetch>[1]): Promise<ReorderState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReorderState>(getDecideReorderUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reorderDecisionInput)
+  }
+);}
+
+
+
+
+
+export const getDecideReorderMutationKey = () => ['decideReorder'] as const;
+
+export const getDecideReorderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideReorder>>, TError,DecideReorderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decideReorder>>, TError,DecideReorderMutationVariables, TContext> => {
+
+const mutationKey = getDecideReorderMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideReorder>>, DecideReorderMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  decideReorder(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideReorderMutationResult = NonNullable<Awaited<ReturnType<typeof decideReorder>>>
+    export type DecideReorderMutationBody = BodyType<ReorderDecisionInput>
+    export type DecideReorderMutationError = ErrorType<unknown>
+    export type DecideReorderMutationVariables = {id: string;data: BodyType<ReorderDecisionInput>}
+
+    export const useDecideReorder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideReorder>>, TError,DecideReorderMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof decideReorder>>,
+        TError,
+        DecideReorderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDecideReorderMutationOptions(options));
+    }
 
 export const getUpdateAutomationUrl = () => {
 

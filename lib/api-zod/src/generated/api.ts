@@ -8,6 +8,635 @@
 import * as zod from 'zod';
 
 
+export const getReordersResponseSettingsItemLeadDaysMax = 14;
+
+export const getReordersResponseSettingsItemReviewDaysMax = 14;
+
+export const getReordersResponseSettingsItemMinOrderMin = 0;
+export const getReordersResponseSettingsItemMinOrderMax = 1000000;
+
+export const getReordersResponseSettingsItemSafetyStockMin = 0;
+export const getReordersResponseSettingsItemSafetyStockMax = 1000000;
+
+export const getReordersResponseSettingsItemShelfDaysMax = 90;
+
+export const getReordersResponseSettingsItemDailyUsageMin = 0;
+export const getReordersResponseSettingsItemDailyUsageMax = 1000000;
+
+export const getReordersResponsePlansItemLineConfigLeadDaysMax = 14;
+
+export const getReordersResponsePlansItemLineConfigReviewDaysMax = 14;
+
+export const getReordersResponsePlansItemLineConfigMinOrderMin = 0;
+export const getReordersResponsePlansItemLineConfigMinOrderMax = 1000000;
+
+export const getReordersResponsePlansItemLineConfigSafetyStockMin = 0;
+export const getReordersResponsePlansItemLineConfigSafetyStockMax = 1000000;
+
+export const getReordersResponsePlansItemLineConfigShelfDaysMax = 90;
+
+export const getReordersResponsePlansItemLineConfigDailyUsageMin = 0;
+export const getReordersResponsePlansItemLineConfigDailyUsageMax = 1000000;
+
+export const getReordersResponseAnalysisItemConfigLeadDaysMax = 14;
+
+export const getReordersResponseAnalysisItemConfigReviewDaysMax = 14;
+
+export const getReordersResponseAnalysisItemConfigMinOrderMin = 0;
+export const getReordersResponseAnalysisItemConfigMinOrderMax = 1000000;
+
+export const getReordersResponseAnalysisItemConfigSafetyStockMin = 0;
+export const getReordersResponseAnalysisItemConfigSafetyStockMax = 1000000;
+
+export const getReordersResponseAnalysisItemConfigShelfDaysMax = 90;
+
+export const getReordersResponseAnalysisItemConfigDailyUsageMin = 0;
+export const getReordersResponseAnalysisItemConfigDailyUsageMax = 1000000;
+
+
+
+export const GetReordersResponse = zod.object({
+  "settings": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(getReordersResponseSettingsItemLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(getReordersResponseSettingsItemReviewDaysMax),
+  "minOrder": zod.number().min(getReordersResponseSettingsItemMinOrderMin).max(getReordersResponseSettingsItemMinOrderMax),
+  "safetyStock": zod.number().min(getReordersResponseSettingsItemSafetyStockMin).max(getReordersResponseSettingsItemSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(getReordersResponseSettingsItemShelfDaysMax),
+  "dailyUsage": zod.number().min(getReordersResponseSettingsItemDailyUsageMin).max(getReordersResponseSettingsItemDailyUsageMax).optional()
+})),
+  "plans": zod.array(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['PENDING_APPROVAL', 'EXECUTED', 'REJECTED', 'FAILED', 'SUPERSEDED']),
+  "createdAt": zod.string(),
+  "fingerprint": zod.string(),
+  "line": zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(getReordersResponsePlansItemLineConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(getReordersResponsePlansItemLineConfigReviewDaysMax),
+  "minOrder": zod.number().min(getReordersResponsePlansItemLineConfigMinOrderMin).max(getReordersResponsePlansItemLineConfigMinOrderMax),
+  "safetyStock": zod.number().min(getReordersResponsePlansItemLineConfigSafetyStockMin).max(getReordersResponsePlansItemLineConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(getReordersResponsePlansItemLineConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(getReordersResponsePlansItemLineConfigDailyUsageMin).max(getReordersResponsePlansItemLineConfigDailyUsageMax).optional()
+})
+}),
+  "detail": zod.string(),
+  "decidedAt": zod.string().optional(),
+  "approver": zod.string().optional(),
+  "approvedQuantity": zod.number().optional(),
+  "approvedDate": zod.string().optional(),
+  "beforeQuantity": zod.number().optional(),
+  "afterQuantity": zod.number().optional(),
+  "beforeDate": zod.string().optional(),
+  "afterDate": zod.string().optional()
+})),
+  "analysis": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(getReordersResponseAnalysisItemConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(getReordersResponseAnalysisItemConfigReviewDaysMax),
+  "minOrder": zod.number().min(getReordersResponseAnalysisItemConfigMinOrderMin).max(getReordersResponseAnalysisItemConfigMinOrderMax),
+  "safetyStock": zod.number().min(getReordersResponseAnalysisItemConfigSafetyStockMin).max(getReordersResponseAnalysisItemConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(getReordersResponseAnalysisItemConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(getReordersResponseAnalysisItemConfigDailyUsageMin).max(getReordersResponseAnalysisItemConfigDailyUsageMax).optional()
+})
+})),
+  "lastScan": zod.string().optional()
+})
+
+
+export const scanReordersResponseSettingsItemLeadDaysMax = 14;
+
+export const scanReordersResponseSettingsItemReviewDaysMax = 14;
+
+export const scanReordersResponseSettingsItemMinOrderMin = 0;
+export const scanReordersResponseSettingsItemMinOrderMax = 1000000;
+
+export const scanReordersResponseSettingsItemSafetyStockMin = 0;
+export const scanReordersResponseSettingsItemSafetyStockMax = 1000000;
+
+export const scanReordersResponseSettingsItemShelfDaysMax = 90;
+
+export const scanReordersResponseSettingsItemDailyUsageMin = 0;
+export const scanReordersResponseSettingsItemDailyUsageMax = 1000000;
+
+export const scanReordersResponsePlansItemLineConfigLeadDaysMax = 14;
+
+export const scanReordersResponsePlansItemLineConfigReviewDaysMax = 14;
+
+export const scanReordersResponsePlansItemLineConfigMinOrderMin = 0;
+export const scanReordersResponsePlansItemLineConfigMinOrderMax = 1000000;
+
+export const scanReordersResponsePlansItemLineConfigSafetyStockMin = 0;
+export const scanReordersResponsePlansItemLineConfigSafetyStockMax = 1000000;
+
+export const scanReordersResponsePlansItemLineConfigShelfDaysMax = 90;
+
+export const scanReordersResponsePlansItemLineConfigDailyUsageMin = 0;
+export const scanReordersResponsePlansItemLineConfigDailyUsageMax = 1000000;
+
+export const scanReordersResponseAnalysisItemConfigLeadDaysMax = 14;
+
+export const scanReordersResponseAnalysisItemConfigReviewDaysMax = 14;
+
+export const scanReordersResponseAnalysisItemConfigMinOrderMin = 0;
+export const scanReordersResponseAnalysisItemConfigMinOrderMax = 1000000;
+
+export const scanReordersResponseAnalysisItemConfigSafetyStockMin = 0;
+export const scanReordersResponseAnalysisItemConfigSafetyStockMax = 1000000;
+
+export const scanReordersResponseAnalysisItemConfigShelfDaysMax = 90;
+
+export const scanReordersResponseAnalysisItemConfigDailyUsageMin = 0;
+export const scanReordersResponseAnalysisItemConfigDailyUsageMax = 1000000;
+
+
+
+export const ScanReordersResponse = zod.object({
+  "settings": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(scanReordersResponseSettingsItemLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(scanReordersResponseSettingsItemReviewDaysMax),
+  "minOrder": zod.number().min(scanReordersResponseSettingsItemMinOrderMin).max(scanReordersResponseSettingsItemMinOrderMax),
+  "safetyStock": zod.number().min(scanReordersResponseSettingsItemSafetyStockMin).max(scanReordersResponseSettingsItemSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(scanReordersResponseSettingsItemShelfDaysMax),
+  "dailyUsage": zod.number().min(scanReordersResponseSettingsItemDailyUsageMin).max(scanReordersResponseSettingsItemDailyUsageMax).optional()
+})),
+  "plans": zod.array(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['PENDING_APPROVAL', 'EXECUTED', 'REJECTED', 'FAILED', 'SUPERSEDED']),
+  "createdAt": zod.string(),
+  "fingerprint": zod.string(),
+  "line": zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(scanReordersResponsePlansItemLineConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(scanReordersResponsePlansItemLineConfigReviewDaysMax),
+  "minOrder": zod.number().min(scanReordersResponsePlansItemLineConfigMinOrderMin).max(scanReordersResponsePlansItemLineConfigMinOrderMax),
+  "safetyStock": zod.number().min(scanReordersResponsePlansItemLineConfigSafetyStockMin).max(scanReordersResponsePlansItemLineConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(scanReordersResponsePlansItemLineConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(scanReordersResponsePlansItemLineConfigDailyUsageMin).max(scanReordersResponsePlansItemLineConfigDailyUsageMax).optional()
+})
+}),
+  "detail": zod.string(),
+  "decidedAt": zod.string().optional(),
+  "approver": zod.string().optional(),
+  "approvedQuantity": zod.number().optional(),
+  "approvedDate": zod.string().optional(),
+  "beforeQuantity": zod.number().optional(),
+  "afterQuantity": zod.number().optional(),
+  "beforeDate": zod.string().optional(),
+  "afterDate": zod.string().optional()
+})),
+  "analysis": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(scanReordersResponseAnalysisItemConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(scanReordersResponseAnalysisItemConfigReviewDaysMax),
+  "minOrder": zod.number().min(scanReordersResponseAnalysisItemConfigMinOrderMin).max(scanReordersResponseAnalysisItemConfigMinOrderMax),
+  "safetyStock": zod.number().min(scanReordersResponseAnalysisItemConfigSafetyStockMin).max(scanReordersResponseAnalysisItemConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(scanReordersResponseAnalysisItemConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(scanReordersResponseAnalysisItemConfigDailyUsageMin).max(scanReordersResponseAnalysisItemConfigDailyUsageMax).optional()
+})
+})),
+  "lastScan": zod.string().optional()
+})
+
+
+export const configureReorderBodyLeadDaysMax = 14;
+
+export const configureReorderBodyReviewDaysMax = 14;
+
+export const configureReorderBodyMinOrderMin = 0;
+export const configureReorderBodyMinOrderMax = 1000000;
+
+export const configureReorderBodySafetyStockMin = 0;
+export const configureReorderBodySafetyStockMax = 1000000;
+
+export const configureReorderBodyShelfDaysMax = 90;
+
+export const configureReorderBodyDailyUsageMin = 0;
+export const configureReorderBodyDailyUsageMax = 1000000;
+
+
+
+export const ConfigureReorderBody = zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(configureReorderBodyLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(configureReorderBodyReviewDaysMax),
+  "minOrder": zod.number().min(configureReorderBodyMinOrderMin).max(configureReorderBodyMinOrderMax),
+  "safetyStock": zod.number().min(configureReorderBodySafetyStockMin).max(configureReorderBodySafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(configureReorderBodyShelfDaysMax),
+  "dailyUsage": zod.number().min(configureReorderBodyDailyUsageMin).max(configureReorderBodyDailyUsageMax).optional()
+})
+
+export const configureReorderResponseSettingsItemLeadDaysMax = 14;
+
+export const configureReorderResponseSettingsItemReviewDaysMax = 14;
+
+export const configureReorderResponseSettingsItemMinOrderMin = 0;
+export const configureReorderResponseSettingsItemMinOrderMax = 1000000;
+
+export const configureReorderResponseSettingsItemSafetyStockMin = 0;
+export const configureReorderResponseSettingsItemSafetyStockMax = 1000000;
+
+export const configureReorderResponseSettingsItemShelfDaysMax = 90;
+
+export const configureReorderResponseSettingsItemDailyUsageMin = 0;
+export const configureReorderResponseSettingsItemDailyUsageMax = 1000000;
+
+export const configureReorderResponsePlansItemLineConfigLeadDaysMax = 14;
+
+export const configureReorderResponsePlansItemLineConfigReviewDaysMax = 14;
+
+export const configureReorderResponsePlansItemLineConfigMinOrderMin = 0;
+export const configureReorderResponsePlansItemLineConfigMinOrderMax = 1000000;
+
+export const configureReorderResponsePlansItemLineConfigSafetyStockMin = 0;
+export const configureReorderResponsePlansItemLineConfigSafetyStockMax = 1000000;
+
+export const configureReorderResponsePlansItemLineConfigShelfDaysMax = 90;
+
+export const configureReorderResponsePlansItemLineConfigDailyUsageMin = 0;
+export const configureReorderResponsePlansItemLineConfigDailyUsageMax = 1000000;
+
+export const configureReorderResponseAnalysisItemConfigLeadDaysMax = 14;
+
+export const configureReorderResponseAnalysisItemConfigReviewDaysMax = 14;
+
+export const configureReorderResponseAnalysisItemConfigMinOrderMin = 0;
+export const configureReorderResponseAnalysisItemConfigMinOrderMax = 1000000;
+
+export const configureReorderResponseAnalysisItemConfigSafetyStockMin = 0;
+export const configureReorderResponseAnalysisItemConfigSafetyStockMax = 1000000;
+
+export const configureReorderResponseAnalysisItemConfigShelfDaysMax = 90;
+
+export const configureReorderResponseAnalysisItemConfigDailyUsageMin = 0;
+export const configureReorderResponseAnalysisItemConfigDailyUsageMax = 1000000;
+
+
+
+export const ConfigureReorderResponse = zod.object({
+  "settings": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(configureReorderResponseSettingsItemLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(configureReorderResponseSettingsItemReviewDaysMax),
+  "minOrder": zod.number().min(configureReorderResponseSettingsItemMinOrderMin).max(configureReorderResponseSettingsItemMinOrderMax),
+  "safetyStock": zod.number().min(configureReorderResponseSettingsItemSafetyStockMin).max(configureReorderResponseSettingsItemSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(configureReorderResponseSettingsItemShelfDaysMax),
+  "dailyUsage": zod.number().min(configureReorderResponseSettingsItemDailyUsageMin).max(configureReorderResponseSettingsItemDailyUsageMax).optional()
+})),
+  "plans": zod.array(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['PENDING_APPROVAL', 'EXECUTED', 'REJECTED', 'FAILED', 'SUPERSEDED']),
+  "createdAt": zod.string(),
+  "fingerprint": zod.string(),
+  "line": zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(configureReorderResponsePlansItemLineConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(configureReorderResponsePlansItemLineConfigReviewDaysMax),
+  "minOrder": zod.number().min(configureReorderResponsePlansItemLineConfigMinOrderMin).max(configureReorderResponsePlansItemLineConfigMinOrderMax),
+  "safetyStock": zod.number().min(configureReorderResponsePlansItemLineConfigSafetyStockMin).max(configureReorderResponsePlansItemLineConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(configureReorderResponsePlansItemLineConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(configureReorderResponsePlansItemLineConfigDailyUsageMin).max(configureReorderResponsePlansItemLineConfigDailyUsageMax).optional()
+})
+}),
+  "detail": zod.string(),
+  "decidedAt": zod.string().optional(),
+  "approver": zod.string().optional(),
+  "approvedQuantity": zod.number().optional(),
+  "approvedDate": zod.string().optional(),
+  "beforeQuantity": zod.number().optional(),
+  "afterQuantity": zod.number().optional(),
+  "beforeDate": zod.string().optional(),
+  "afterDate": zod.string().optional()
+})),
+  "analysis": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(configureReorderResponseAnalysisItemConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(configureReorderResponseAnalysisItemConfigReviewDaysMax),
+  "minOrder": zod.number().min(configureReorderResponseAnalysisItemConfigMinOrderMin).max(configureReorderResponseAnalysisItemConfigMinOrderMax),
+  "safetyStock": zod.number().min(configureReorderResponseAnalysisItemConfigSafetyStockMin).max(configureReorderResponseAnalysisItemConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(configureReorderResponseAnalysisItemConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(configureReorderResponseAnalysisItemConfigDailyUsageMin).max(configureReorderResponseAnalysisItemConfigDailyUsageMax).optional()
+})
+})),
+  "lastScan": zod.string().optional()
+})
+
+
+export const DecideReorderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const decideReorderBodyApproverMax = 80;
+
+export const decideReorderBodyQuantityMin = 0;
+export const decideReorderBodyQuantityMax = 1000000;
+
+
+
+export const DecideReorderBody = zod.object({
+  "decision": zod.enum(['approve', 'reject']),
+  "approver": zod.string().min(1).max(decideReorderBodyApproverMax),
+  "quantity": zod.number().min(decideReorderBodyQuantityMin).max(decideReorderBodyQuantityMax).optional(),
+  "deliveryDate": zod.string().optional()
+})
+
+export const decideReorderResponseSettingsItemLeadDaysMax = 14;
+
+export const decideReorderResponseSettingsItemReviewDaysMax = 14;
+
+export const decideReorderResponseSettingsItemMinOrderMin = 0;
+export const decideReorderResponseSettingsItemMinOrderMax = 1000000;
+
+export const decideReorderResponseSettingsItemSafetyStockMin = 0;
+export const decideReorderResponseSettingsItemSafetyStockMax = 1000000;
+
+export const decideReorderResponseSettingsItemShelfDaysMax = 90;
+
+export const decideReorderResponseSettingsItemDailyUsageMin = 0;
+export const decideReorderResponseSettingsItemDailyUsageMax = 1000000;
+
+export const decideReorderResponsePlansItemLineConfigLeadDaysMax = 14;
+
+export const decideReorderResponsePlansItemLineConfigReviewDaysMax = 14;
+
+export const decideReorderResponsePlansItemLineConfigMinOrderMin = 0;
+export const decideReorderResponsePlansItemLineConfigMinOrderMax = 1000000;
+
+export const decideReorderResponsePlansItemLineConfigSafetyStockMin = 0;
+export const decideReorderResponsePlansItemLineConfigSafetyStockMax = 1000000;
+
+export const decideReorderResponsePlansItemLineConfigShelfDaysMax = 90;
+
+export const decideReorderResponsePlansItemLineConfigDailyUsageMin = 0;
+export const decideReorderResponsePlansItemLineConfigDailyUsageMax = 1000000;
+
+export const decideReorderResponseAnalysisItemConfigLeadDaysMax = 14;
+
+export const decideReorderResponseAnalysisItemConfigReviewDaysMax = 14;
+
+export const decideReorderResponseAnalysisItemConfigMinOrderMin = 0;
+export const decideReorderResponseAnalysisItemConfigMinOrderMax = 1000000;
+
+export const decideReorderResponseAnalysisItemConfigSafetyStockMin = 0;
+export const decideReorderResponseAnalysisItemConfigSafetyStockMax = 1000000;
+
+export const decideReorderResponseAnalysisItemConfigShelfDaysMax = 90;
+
+export const decideReorderResponseAnalysisItemConfigDailyUsageMin = 0;
+export const decideReorderResponseAnalysisItemConfigDailyUsageMax = 1000000;
+
+
+
+export const DecideReorderResponse = zod.object({
+  "settings": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(decideReorderResponseSettingsItemLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(decideReorderResponseSettingsItemReviewDaysMax),
+  "minOrder": zod.number().min(decideReorderResponseSettingsItemMinOrderMin).max(decideReorderResponseSettingsItemMinOrderMax),
+  "safetyStock": zod.number().min(decideReorderResponseSettingsItemSafetyStockMin).max(decideReorderResponseSettingsItemSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(decideReorderResponseSettingsItemShelfDaysMax),
+  "dailyUsage": zod.number().min(decideReorderResponseSettingsItemDailyUsageMin).max(decideReorderResponseSettingsItemDailyUsageMax).optional()
+})),
+  "plans": zod.array(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['PENDING_APPROVAL', 'EXECUTED', 'REJECTED', 'FAILED', 'SUPERSEDED']),
+  "createdAt": zod.string(),
+  "fingerprint": zod.string(),
+  "line": zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(decideReorderResponsePlansItemLineConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(decideReorderResponsePlansItemLineConfigReviewDaysMax),
+  "minOrder": zod.number().min(decideReorderResponsePlansItemLineConfigMinOrderMin).max(decideReorderResponsePlansItemLineConfigMinOrderMax),
+  "safetyStock": zod.number().min(decideReorderResponsePlansItemLineConfigSafetyStockMin).max(decideReorderResponsePlansItemLineConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(decideReorderResponsePlansItemLineConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(decideReorderResponsePlansItemLineConfigDailyUsageMin).max(decideReorderResponsePlansItemLineConfigDailyUsageMax).optional()
+})
+}),
+  "detail": zod.string(),
+  "decidedAt": zod.string().optional(),
+  "approver": zod.string().optional(),
+  "approvedQuantity": zod.number().optional(),
+  "approvedDate": zod.string().optional(),
+  "beforeQuantity": zod.number().optional(),
+  "afterQuantity": zod.number().optional(),
+  "beforeDate": zod.string().optional(),
+  "afterDate": zod.string().optional()
+})),
+  "analysis": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "unitCost": zod.number(),
+  "expiry": zod.string(),
+  "currentStock": zod.number(),
+  "expiredQuantity": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "incomingQuantity": zod.number(),
+  "incomingDate": zod.string(),
+  "dailyUsage": zod.number(),
+  "expectedDemand": zod.number(),
+  "originalQuantity": zod.number(),
+  "recommendedQuantity": zod.number(),
+  "additionalQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "originalCost": zod.number(),
+  "proposedCost": zod.number(),
+  "potentialWasteReduction": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "explanation": zod.string(),
+  "assumptions": zod.array(zod.string()),
+  "demandAvailable": zod.boolean(),
+  "config": zod.object({
+  "ingredientId": zod.string(),
+  "leadDays": zod.number().int().min(1).max(decideReorderResponseAnalysisItemConfigLeadDaysMax),
+  "reviewDays": zod.number().int().min(1).max(decideReorderResponseAnalysisItemConfigReviewDaysMax),
+  "minOrder": zod.number().min(decideReorderResponseAnalysisItemConfigMinOrderMin).max(decideReorderResponseAnalysisItemConfigMinOrderMax),
+  "safetyStock": zod.number().min(decideReorderResponseAnalysisItemConfigSafetyStockMin).max(decideReorderResponseAnalysisItemConfigSafetyStockMax),
+  "shelfDays": zod.number().int().min(1).max(decideReorderResponseAnalysisItemConfigShelfDaysMax),
+  "dailyUsage": zod.number().min(decideReorderResponseAnalysisItemConfigDailyUsageMin).max(decideReorderResponseAnalysisItemConfigDailyUsageMax).optional()
+})
+})),
+  "lastScan": zod.string().optional()
+})
+
+
 export const UpdateAutomationBody = zod.object({
   "dailyPlanning": zod.boolean().optional(),
   "followUpHandling": zod.boolean().optional()

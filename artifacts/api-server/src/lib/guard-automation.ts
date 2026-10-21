@@ -1,5 +1,6 @@
 import { compute, today, type Stored, type State } from "./guard-model";
 import { InputError } from "./guard-follow-ups";
+import { scanReorders } from "./guard-reorder";
 
 type Workflow = State["automation"]["runs"][number]["workflow"];
 
@@ -26,7 +27,8 @@ export function runWorkflows(s: Stored, request?: Workflow | "all") {
     a.runs = a.runs.slice(0, 30);
     s.activity.unshift({ id: run.id, time: run.time, title: workflow === "daily-planning" ? "Automation: daily planning ready" : "Automation: follow-up check", detail, decision: "automation", impact: 0 });
   };
-  if (a.dailyPlanning && (request === "daily-planning" || request === "all" || !request && progress.dailyDate !== d)) {
+  if (a.dailyPlanning && (request === "daily-planning" || request === "all" || !request && (progress.dailyDate !== d || !s.reordering))) {
+    scanReorders(s);
     addRun("daily-planning", `Refreshed tomorrow's forecast: ${state.summary.predictedPortions} portions. ${state.recommendations.filter(r => r.status === "pending").length} draft recommendations await your decision; ${state.risks.filter(r => r.level !== "low").length} ingredients need expiry review. Expired ingredients excluded from preparation. This is a saved review snapshot; live recommendations continue to reflect current data. No plans approved and no orders placed.`);
     progress.dailyDate = d;
   }

@@ -41,6 +41,7 @@ export default function Dashboard() {
             </h1>
             <p className="mt-3 text-sm opacity-75 max-w-xl">Yuzu read yesterday's till and every expiry label. {s.pendingCount} decision{s.pendingCount === 1 ? '' : 's'} wait for your sign-off — nothing moves without you.</p>
             <Link href="/recommendations" className="inline-flex items-center gap-2 mt-4 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform hover:translate-x-1" data-testid="link-review">Review decisions <ArrowRight className="w-4 h-4" /></Link>
+            <Link href="/reordering" className="ml-3 inline-flex items-center gap-1 mt-4 text-xs font-semibold text-primary underline-offset-4 hover:underline" data-testid="link-reordering-today"><Truck className="w-3.5 h-3.5" />Reorder plans (owner approval)</Link>
           </div>
           <img src={guardianSrc} alt="" className="bob hidden md:block w-44" />
         </div>

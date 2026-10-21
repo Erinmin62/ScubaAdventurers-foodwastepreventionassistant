@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { BarChart3, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package } from 'lucide-react';
+import { BarChart3, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { niceDate, useGuard } from '@/lib/guard';
 import { guardianSrc } from '@/components/bits';
@@ -11,6 +11,7 @@ const nav = [
   { href: '/sales', label: 'Sales', icon: BarChart3 },
   { href: '/forecast', label: 'Tomorrow', icon: ChefHat },
   { href: '/recommendations', label: 'Decisions', icon: ClipboardCheck },
+  { href: '/reordering', label: 'Reordering', icon: Truck },
   { href: '/impact', label: 'Impact', icon: Leaf },
   { href: '/automation', label: 'Automations', icon: Bot },
   { href: '/activity', label: 'Ledger', icon: History },

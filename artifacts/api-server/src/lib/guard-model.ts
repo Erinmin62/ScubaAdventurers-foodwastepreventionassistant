@@ -2,6 +2,7 @@ import { GetGuardStateResponse } from "@workspace/api-zod";
 
 export type State = typeof GetGuardStateResponse._output;
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
+  reordering?: Omit<import("./guard-reorder").Reorders, "analysis">;
   automation?: State["automation"];
   automationProgress?: { dailyDate?: string; followUpDate?: string; reminded?: Record<string, string> };
   followUps?: State["followUps"];

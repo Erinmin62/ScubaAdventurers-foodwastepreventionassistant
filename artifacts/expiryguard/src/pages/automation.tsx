@@ -153,7 +153,7 @@ export default function Automation() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-5">
         <Panel title="When it runs" sub="Times are Kuala Lumpur (MYT)">
           <ul className="space-y-3 text-sm">
-            <li className="flex gap-3"><Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span>Daily planning runs once per Kuala Lumpur day.</span></li>
+            <li className="flex gap-3"><Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span>Daily planning runs once per Kuala Lumpur day and includes a reorder scan that drafts plans for owner approval on the Reordering page. Nothing is ordered automatically.</span></li>
             <li className="flex gap-3"><Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span>The follow-up scan runs once a day, and again when an outstanding check becomes due.</span></li>
             <li className="flex gap-3"><Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span>While the app server is running it checks every minute. If it was stopped, it catches up when the app next opens. It cannot run while the server is off.</span></li>
             <li className="flex gap-3"><ShieldCheck className="w-4 h-4 text-jade shrink-0 mt-0.5" /><span>Expiry safety checks always run, even with automations paused. Outcomes are only evaluated from observations you submit; stock and results are never invented. Older approvals get a check only when you attach one.</span></li>
