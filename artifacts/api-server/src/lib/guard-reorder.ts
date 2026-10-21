@@ -155,5 +155,8 @@ export function decideReorder(s: Stored, id: string, input: { decision: "approve
       Object.assign(plan, { decidedAt: now, approver, approvedQuantity: input.quantity ?? plan.line.recommendedQuantity, approvedDate: input.deliveryDate ?? plan.line.deliveryDate, detail: `Not executed: ${e instanceof Error ? e.message : "Simulation failed"}. Delivery and inventory unchanged. Run analysis for a fresh proposal.` });
     }
   }
-  s.activity.unshift({ id: crypto.randomUUID(), time: now, title: `Reorder ${plan.status.toLowerCase()}: ${plan.line.name}`, detail: `${plan.detail} Decision by ${approver} (self-reported demo identity).`, decision: plan.status.toLowerCase(), impact: plan.status === "EXECUTED" ? round(plan.line.originalCost - (plan.approvedQuantity ?? 0) * (s.ingredients.find(i => i.id === plan.line.ingredientId)?.cost ?? 0)) : 0 });
+  const audit = current
+    ? `Planned delivery: ${plan.beforeQuantity} → ${plan.afterQuantity} ${plan.line.unit}; delivery date: ${plan.beforeDate} → ${plan.afterDate}.`
+    : "Ingredient unavailable; no delivery changed.";
+  s.activity.unshift({ id: crypto.randomUUID(), time: now, title: `Reorder ${plan.status.toLowerCase()}: ${plan.line.name}`, detail: `Proposal ${plan.id}. ${plan.detail} ${audit} Decision by ${approver} (self-reported demo identity).`, decision: plan.status.toLowerCase(), impact: plan.status === "EXECUTED" ? round(plan.line.originalCost - (plan.approvedQuantity ?? 0) * (s.ingredients.find(i => i.id === plan.line.ingredientId)?.cost ?? 0)) : 0 });
 }

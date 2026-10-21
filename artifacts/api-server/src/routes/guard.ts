@@ -111,6 +111,9 @@ router.post("/guard/recommendations/:id/decision", async (req, res): Promise<voi
       const { decision, quantity: input, note, followUpDays = 2 } = body.data;
       if (decision === "edited" && input == null) throw new InputError("Enter an adjusted quantity.");
       const previous = s.decisions[recommendation.id];
+      // Rejection is terminal for this purchase proposal. A retry or a later
+      // approval must not turn a rejected proposal into an order update.
+      if (recommendation.type === "purchase" && previous?.decision === "rejected") return;
       const quantity = decision === "rejected" ? null : numeric(input ?? (previous?.decision === decision ? previous.quantity : null) ?? recommendation.suggested, "quantity", recommendation.type === "preparation");
       // A repeated decision is a no-op, including after its follow-up was completed.
       // Legacy approvals are deliberately not backfilled through this path.
@@ -133,7 +136,8 @@ router.post("/guard/recommendations/:id/decision", async (req, res): Promise<voi
       cancelOutstanding(s, recommendation.id, decision === "rejected" ? "Owner rejected the revised decision." : "Superseded by an owner-approved revision; previous snapshot retained.");
       const approvedAt = new Date().toISOString();
       s.decisions[recommendation.id] = { decision, quantity, original: recommendation.original, savings, approvedAt: quantity === null ? undefined : approvedAt, recommendation: structuredClone(recommendation) };
-      if (recommendation.type === "purchase" && ingredient) ingredient.deliveryQuantity = quantity ?? recommendation.original;
+      // Rejecting a revision must not restore an older, unapproved quantity.
+      if (recommendation.type === "purchase" && ingredient && quantity !== null) ingredient.deliveryQuantity = quantity;
       if (quantity !== null && (s.automation?.followUpHandling ?? true)) {
         // Completed observations belong to the old decision, never replace them.
         // Scheduling below only considers outstanding checks for this new revision.
