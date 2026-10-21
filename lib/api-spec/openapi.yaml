@@ -94,6 +94,15 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/NotificationState" }
+  /guard/monitor-status:
+    get:
+      operationId: getMonitorHeartbeatStatus
+      responses:
+        "200":
+          description: Read-only status of the latest owner workspace monitor check
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MonitorHeartbeatStatus" }
   /guard/notifications/scan:
     post:
       operationId: scanNotifications
@@ -424,6 +433,13 @@ components:
         lastScan: { type: string }
         consentAt: { type: ["string", "null"] }
         sandbox: { $ref: "#/components/schemas/SandboxNotificationState" }
+    MonitorHeartbeatStatus:
+      type: object
+      required: [status, lastAttemptAt, lastSuccessfulAt]
+      properties:
+        status: { type: string, enum: [healthy, stale, failed, not-started] }
+        lastAttemptAt: { type: ["string", "null"], format: date-time }
+        lastSuccessfulAt: { type: ["string", "null"], format: date-time }
     SandboxNotificationMessage:
       type: object
       required: [id, createdAt, status, message]

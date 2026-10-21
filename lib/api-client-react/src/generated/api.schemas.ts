@@ -243,6 +243,24 @@ export interface NotificationState {
   sandbox?: SandboxNotificationState;
 }
 
+export type MonitorHeartbeatStatusStatus = typeof MonitorHeartbeatStatusStatus[keyof typeof MonitorHeartbeatStatusStatus];
+
+
+export const MonitorHeartbeatStatusStatus = {
+  healthy: 'healthy',
+  stale: 'stale',
+  failed: 'failed',
+  'not-started': 'not-started',
+} as const;
+
+export interface MonitorHeartbeatStatus {
+  status: MonitorHeartbeatStatusStatus;
+  /** @nullable */
+  lastAttemptAt: string | null;
+  /** @nullable */
+  lastSuccessfulAt: string | null;
+}
+
 export interface NotificationReviewInput {
   /**
      * @minLength 40

@@ -29,6 +29,7 @@ import type {
   InboxState,
   InboxThresholds,
   InboxUpdateInput,
+  MonitorHeartbeatStatus,
   NotificationReview,
   NotificationReviewInput,
   NotificationSettingsInput,
@@ -538,6 +539,77 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getSaveNotificationSettingsMutationOptions(options));
     }
+
+export const getGetMonitorHeartbeatStatusUrl = () => {
+
+
+
+
+  return `/api/guard/monitor-status`
+}
+
+export const getMonitorHeartbeatStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<MonitorHeartbeatStatus> => {
+
+  return customFetch<MonitorHeartbeatStatus>(getGetMonitorHeartbeatStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMonitorHeartbeatStatusQueryKey = () => {
+    return [
+    `/api/guard/monitor-status`
+    ] as const;
+    }
+
+
+export const getGetMonitorHeartbeatStatusQueryOptions = <TData = Awaited<ReturnType<typeof getMonitorHeartbeatStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMonitorHeartbeatStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMonitorHeartbeatStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMonitorHeartbeatStatus>>> = ({ signal }) => getMonitorHeartbeatStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMonitorHeartbeatStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMonitorHeartbeatStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getMonitorHeartbeatStatus>>>
+export type GetMonitorHeartbeatStatusQueryError = ErrorType<unknown>
+
+
+
+export function useGetMonitorHeartbeatStatus<TData = Awaited<ReturnType<typeof getMonitorHeartbeatStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMonitorHeartbeatStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMonitorHeartbeatStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getScanNotificationsUrl = () => {
 

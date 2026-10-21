@@ -36,6 +36,8 @@ export * from './inboxUpdateInput';
 export * from './inboxUpdateInputAction';
 export * from './ingredient';
 export * from './menuItem';
+export * from './monitorHeartbeatStatus';
+export * from './monitorHeartbeatStatusStatus';
 export * from './notificationRecord';
 export * from './notificationRecordKind';
 export * from './notificationRecordPriority';

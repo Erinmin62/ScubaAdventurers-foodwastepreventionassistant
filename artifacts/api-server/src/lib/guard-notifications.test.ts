@@ -5,6 +5,7 @@ import { seed, shift, today } from "./guard-model";
 import { defaultNotificationSettings, notificationState, readNotificationReview, saveNotificationSettings, scanNotificationEvents } from "./guard-notifications";
 import { notificationEvents } from "./guard-notification-events";
 import { sendApprovedWhatsAppTemplate, verifyWhatsAppSignature } from "./whatsapp-cloud";
+import { MONITOR_STALE_AFTER_MS, monitorHeartbeatState, recordMonitorHeartbeat } from "./monitor-heartbeat";
 
 const now = () => `${today()}T02:00:00.000Z`;
 const later = (hours: number) => new Date(Date.parse(now()) + hours * 3_600_000).toISOString();
@@ -16,6 +17,27 @@ function fixture() {
   saveNotificationSettings(s, { ...defaultNotificationSettings(), enabled: true, phone: "+60123456789", optIn: true, recommendations: false, approvals: false }, now());
   return s;
 }
+test("monitor heartbeat distinguishes unstarted, healthy, stale, and failed checks without changing stock", () => {
+  const s = seed();
+  const ingredients = structuredClone(s.ingredients);
+  const checkedAt = "2026-10-21T12:00:00.000Z";
+  const checkedTime = Date.parse(checkedAt);
+
+  assert.equal(monitorHeartbeatState(s.monitorHeartbeat, checkedTime).status, "not-started");
+  recordMonitorHeartbeat(s, "success", checkedAt);
+  assert.equal(monitorHeartbeatState(s.monitorHeartbeat, checkedTime).status, "healthy");
+  assert.equal(monitorHeartbeatState(s.monitorHeartbeat, checkedTime + MONITOR_STALE_AFTER_MS + 1).status, "stale");
+
+  recordMonitorHeartbeat(s, "failure", new Date(checkedTime + 1000).toISOString());
+  const failed = monitorHeartbeatState(s.monitorHeartbeat, checkedTime + 1000);
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.lastSuccessfulAt?.toISOString(), checkedAt);
+
+  recordMonitorHeartbeat(s, "success", new Date(checkedTime + 2000).toISOString());
+  assert.equal(monitorHeartbeatState(s.monitorHeartbeat, checkedTime + 2000).status, "healthy");
+  assert.equal(monitorHeartbeatState(s.monitorHeartbeat, checkedTime + 2000).lastSuccessfulAt?.toISOString(), new Date(checkedTime + 2000).toISOString());
+  assert.deepEqual(s.ingredients, ingredients);
+});
 test("disabled defaults never invent sent messages or change plans", () => {
   const s = seed(), before = structuredClone(s.ingredients);
   scanNotificationEvents(s, now(), true);

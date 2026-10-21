@@ -8,7 +8,7 @@ import notificationsRouter from "../routes/guard-notifications";
 import inboxRouter from "../routes/guard-inbox";
 import { createHmac } from "node:crypto";
 import { defaultNotificationSettings } from "./guard-notifications";
-import { GetInboxResponse, GetNotificationsResponse, ReviewNotificationResponse } from "@workspace/api-zod";
+import { GetInboxResponse, GetMonitorHeartbeatStatusResponse, GetNotificationsResponse, ReviewNotificationResponse } from "@workspace/api-zod";
 import { resetWorkspace, snapshotWorkspace } from "./guard-http-fixture";
 import { seed, shift, today, compute, type State } from "./guard-model";
 import type { Reorders } from "./guard-reorder";
@@ -124,6 +124,16 @@ test("HTTP auth: anonymous access is denied and owner data, approvals, preferenc
   } finally {
     await new Promise<void>((resolve, reject) => secured.close(error => error ? reject(error) : resolve()));
   }
+});
+test("HTTP: reading monitor status reports its heartbeat without migrating or changing inventory", async () => {
+  fixture();
+  const before = snapshotWorkspace();
+  const response = await request("/guard/monitor-status");
+  assert.equal(response.status, 200);
+  const parsed = GetMonitorHeartbeatStatusResponse.parse(response.data);
+  assert.equal(parsed.status, "not-started");
+  assert.equal(parsed.lastSuccessfulAt, null);
+  assert.deepEqual(snapshotWorkspace(), before);
 });
 async function requestInbox(body?: unknown) {
   const result = await request(body ? "/guard/inbox/update" : "/guard/inbox", body);

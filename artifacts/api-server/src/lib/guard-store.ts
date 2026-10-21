@@ -28,3 +28,10 @@ export async function changeWorkspace(action: (s: Stored) => void = () => {}, au
     return state;
   });
 }
+
+/** Read the persisted workspace document without migrations, analysis, or writes. */
+export async function readWorkspace(): Promise<Stored | null> {
+  const id = currentWorkspaceId();
+  const [record] = await db.select({ data: guardWorkspace.data }).from(guardWorkspace).where(eq(guardWorkspace.id, id));
+  return record ? record.data as Stored : null;
+}

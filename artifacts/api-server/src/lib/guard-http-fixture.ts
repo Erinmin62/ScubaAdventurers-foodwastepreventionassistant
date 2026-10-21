@@ -17,6 +17,7 @@ function workspace() {
 let tail: Promise<unknown> = Promise.resolve();
 export function resetWorkspace(state: Stored, id = workspace()) { saved.set(id, structuredClone(state)); }
 export function snapshotWorkspace(id = workspace()) { return structuredClone(saved.get(id) ?? seed()); }
+export function readWorkspace() { return snapshotWorkspace(); }
 export function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun = true) {
   const id = workspace();
   const work = tail.then(() => {

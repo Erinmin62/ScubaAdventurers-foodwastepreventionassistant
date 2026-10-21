@@ -1,14 +1,19 @@
 import { Router } from "express";
-import { GetNotificationsResponse, ReviewNotificationBody, ReviewNotificationResponse, SaveNotificationSettingsBody } from "@workspace/api-zod";
-import { changeWorkspace } from "../lib/guard-store";
+import { GetMonitorHeartbeatStatusResponse, GetNotificationsResponse, ReviewNotificationBody, ReviewNotificationResponse, SaveNotificationSettingsBody } from "@workspace/api-zod";
+import { changeWorkspace, readWorkspace } from "../lib/guard-store";
 import { notificationState, notificationsFor, readNotificationReview, saveNotificationSettings, scanNotificationEvents, type Notifications } from "../lib/guard-notifications";
 import { InputError } from "../lib/guard-follow-ups";
 import { safeEqual, verifyWhatsAppSignature } from "../lib/whatsapp-cloud";
 import { runGuardMonitor } from "../lib/guard-monitor";
 import { createAuthenticatedSchedulerHandler } from "../lib/guard-scheduler";
 import { inWorkspace, LEGACY_DEMO_WORKSPACE } from "../lib/workspace-context";
+import { monitorHeartbeatState } from "../lib/monitor-heartbeat";
 
 const router = Router();
+router.get("/guard/monitor-status", async (_req, res): Promise<void> => {
+  const workspace = await readWorkspace();
+  res.json(GetMonitorHeartbeatStatusResponse.parse(monitorHeartbeatState(workspace?.monitorHeartbeat)));
+});
 router.get("/guard/notifications", async (_req, res) => {
   let state: Notifications | undefined;
   await changeWorkspace(s => { scanNotificationEvents(s); state = notificationState(s); }, false);

@@ -544,6 +544,13 @@ export const SaveNotificationSettingsResponse = zod.object({
 })
 
 
+export const GetMonitorHeartbeatStatusResponse = zod.object({
+  "status": zod.enum(['healthy', 'stale', 'failed', 'not-started']),
+  "lastAttemptAt": zod.coerce.date().nullable(),
+  "lastSuccessfulAt": zod.coerce.date().nullable()
+})
+
+
 export const scanNotificationsResponseSettingsPhoneMax = 20;
 
 export const scanNotificationsResponseSettingsReminderHoursMin = 24;

@@ -2,3 +2,4 @@
 - [Preview sessions](preview-session-verification.md) — a passing fresh screenshot does not disprove errors retained in an open development tab.
 - [SME financial priorities](sme-financial-priorities.md) — mentor feedback: lead with clearly visible financial impact without presenting estimates as realised savings.
 - [Twilio connector constraints](twilio-connector-constraints.md) — why attaching Twilio did not provide a supported Sandbox sending path; recheck capabilities before changing authentication.
+- [Read-only monitor status](monitor-status-read-path.md) — status reads must bypass workspace loading because its non-automation path still migrates and synchronizes data.
