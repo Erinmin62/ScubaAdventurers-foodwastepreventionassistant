@@ -27,7 +27,7 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
-- Automation is limited to daily planning reviews and follow-up scheduling/reminders. A server-side minute check runs while the API is active, with request-time catch-up after downtime; it is not an external guaranteed scheduler.
+- Automation is limited to daily planning reviews and follow-up scheduling/reminders. Unattended production checks require the Reserved VM deployment target; the minute monitor and authenticated `/api/guard/notifications/tick` share a single-flight runner. External schedulers must set `NOTIFICATIONS_CRON_SECRET` and send it as a bearer token. The workspace development process only runs while active.
 - Pausing automation never disables live expiry checks or deletes existing follow-ups. Automation never approves plans, places orders, or invents measured stock/waste records.
 
 - This is an intentionally shared synthetic-data demo without authentication. Add authentication and tenant isolation before accepting real business data.

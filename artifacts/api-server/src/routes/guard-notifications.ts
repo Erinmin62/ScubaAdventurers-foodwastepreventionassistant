@@ -4,7 +4,8 @@ import { changeWorkspace } from "../lib/guard-store";
 import { notificationState, notificationsFor, readNotificationReview, saveNotificationSettings, scanNotificationEvents, type Notifications } from "../lib/guard-notifications";
 import { InputError } from "../lib/guard-follow-ups";
 import { safeEqual, verifyWhatsAppSignature } from "../lib/whatsapp-cloud";
-import { runWorkflows } from "../lib/guard-automation";
+import { runGuardMonitor } from "../lib/guard-monitor";
+import { createAuthenticatedSchedulerHandler } from "../lib/guard-scheduler";
 
 const router = Router();
 router.get("/guard/notifications", async (_req, res) => {
@@ -33,13 +34,11 @@ router.post("/guard/notifications/scan", async (_req, res) => {
   await changeWorkspace(s => { scanNotificationEvents(s, undefined, true); state = notificationState(s); }, false);
   res.json(GetNotificationsResponse.parse(state));
 });
-router.post("/guard/notifications/tick", async (req, res) => {
-  const secret = process.env.NOTIFICATIONS_CRON_SECRET;
-  if (!secret) { res.sendStatus(503); return; }
-  if (!safeEqual(req.get("authorization") ?? "", `Bearer ${secret}`)) { res.sendStatus(403); return; }
-  await changeWorkspace(s => { runWorkflows(s); scanNotificationEvents(s, undefined, true); }, false);
-  res.sendStatus(204);
-});
+router.post("/guard/notifications/tick", createAuthenticatedSchedulerHandler(
+  runGuardMonitor,
+  undefined,
+  () => console.error("Authenticated scheduled monitor run failed"),
+));
 router.post("/guard/notifications/review", async (req, res) => {
   const input = ReviewNotificationBody.safeParse(req.body);
   if (!input.success) { res.status(410).json({ error: "This review link is invalid or expired. Open the app to review current data." }); return; }

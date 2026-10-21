@@ -2,7 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { changeWorkspace } from "./lib/guard-store";
 import { today } from "./lib/guard-model";
-import { runTwilioSandbox } from "./lib/guard-sandbox";
+import { runGuardMonitor } from "./lib/guard-monitor";
 
 const rawPort = process.env["PORT"];
 
@@ -25,14 +25,9 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
-  // The server performs lightweight checks while active; requests also catch up after downtime.
-  let checking = false;
   const check = async () => {
-    if (checking) return;
-    checking = true;
     try {
-      await changeWorkspace();
-      await runTwilioSandbox({ mutate: changeWorkspace });
+      await runGuardMonitor();
     }
     catch (err) {
       logger.error({ err }, "Automation check failed; will retry on the next interval or request");
@@ -49,7 +44,6 @@ app.listen(port, (err) => {
         }, false);
       } catch { logger.warn("Unable to persist workflow failure; database or analysis may be unavailable"); }
     }
-    finally { checking = false; }
   };
   void check();
   setInterval(() => void check(), 60_000).unref();

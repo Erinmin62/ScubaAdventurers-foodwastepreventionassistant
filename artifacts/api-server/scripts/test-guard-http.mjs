@@ -12,6 +12,9 @@ await build({
       build.onResolve({ filter: /(?:^|\/)guard-store$/ }, () => ({
         path: fileURLToPath(new URL("../src/lib/guard-http-fixture.ts", import.meta.url)),
       }));
+      build.onResolve({ filter: /(?:^|\/)guard-monitor$/ }, () => ({
+        path: fileURLToPath(new URL("../src/lib/guard-monitor-http-fixture.ts", import.meta.url)),
+      }));
     },
   }],
 });
