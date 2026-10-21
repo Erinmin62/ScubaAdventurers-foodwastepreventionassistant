@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { EmptyState, ErrorState, LevelPill, LoadingState, Panel, RecCard, Stat, guardianSrc } from '@/components/bits';
 import { ImpactBoard } from '@/components/money';
 import { FollowUpList } from '@/components/followups';
+import { AttentionCards } from '@/components/inbox/attention-cards';
 import type { GuardState } from '@workspace/api-client-react';
 import { addDays, fmt, niceDate, rm, useGuard } from '@/lib/guard';
 
@@ -31,6 +32,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      <AttentionCards />
       <ImpactBoard data={data} showLink />
       <section className="rise relative overflow-hidden rounded-3xl bg-ink text-[hsl(38_40%_94%)] p-6 md:p-8">
         <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-primary/40 blur-3xl" />

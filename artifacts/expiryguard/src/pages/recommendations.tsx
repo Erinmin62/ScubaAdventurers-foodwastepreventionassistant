@@ -3,6 +3,7 @@ import { EmptyState, ErrorState, LoadingState, PageHeader, Panel, RecCard, Stat 
 import { impactNumbers } from '@/components/money';
 import { rm, useGuard } from '@/lib/guard';
 import { cn } from '@/lib/utils';
+import { FocusBanner, useFocusItem, useScrollHighlight } from '@/components/focus-target';
 
 const types = [
   { k: 'all', l: 'All' }, { k: 'use-first', l: 'Use first' }, { k: 'purchase', l: 'Purchase' }, { k: 'preparation', l: 'Prep plan' },
@@ -13,6 +14,8 @@ export default function Recommendations() {
   const { data, isLoading, error, refetch } = useGuard();
   const [t, setT] = useState('all');
   const [s, setS] = useState('pending');
+  const focus = useFocusItem();
+  useScrollHighlight(focus ? 'focus-target' : null, !!data);
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
   const list = data.recommendations.filter((r) => (t === 'all' || r.type === t) && (s === 'all' || r.status === s));
@@ -24,6 +27,10 @@ export default function Recommendations() {
       <PageHeader kicker="Decisions" title="You decide. Yuzu suggests.">
         Purchasing suggestions are never sent to suppliers — approving records your intent only. Edit any amount before approving, or reject.
       </PageHeader>
+      {focus && (() => { const f = data.recommendations.find((r) => r.id === focus); return (
+        <div id="focus-target" className="scroll-mt-24"><FocusBanner found={!!f} clearHref="/recommendations" label={f ? `${f.title} (${f.status})` : ''}>
+          {f && <div className="max-w-2xl"><RecCard rec={f} /></div>}
+        </FocusBanner></div>); })()}
       <div className="grid sm:grid-cols-2 gap-3">
         <Stat label="Potential purchasing reduction" value={rm(impact.pendingPotential)} note="All pending purchase suggestions · estimate, not yet realised" tone="jade" testId="text-decisions-potential" />
         <Stat label="Approved purchasing projection" value={rm(impact.approvedProjection)} note="Already approved changes · estimate, not cash saved" tone="ink" testId="text-decisions-approved" />

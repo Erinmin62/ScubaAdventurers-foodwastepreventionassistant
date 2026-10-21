@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { InboxCentre } from '@/components/inbox/inbox-centre';
 import { cn } from '@/lib/utils';
 import { errorMessage } from '@/lib/guard';
 
@@ -243,8 +244,8 @@ export default function Notifications() {
   const scan = useScanNotifications();
   const sync = useSync();
   const { toast } = useToast();
-  if (isLoading) return <LoadingState />;
-  if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
+  if (isLoading) return <div className="space-y-6"><InboxCentre /><LoadingState /></div>;
+  if (error || !data) return <div className="space-y-6"><InboxCentre /><ErrorState error={error} onRetry={() => refetch()} /></div>;
 
   const day = (time: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }).format(new Date(time));
   const today = day(new Date().toISOString());
@@ -259,11 +260,13 @@ export default function Notifications() {
   return (
     <div className="space-y-6">
       <PageHeader kicker="Heads-up, not hands-off" title="Notifications" aside={
-        <Button onClick={doScan} disabled={scan.isPending} data-testid="button-scan-notifications"><RefreshCw className={cn('w-4 h-4 mr-2', scan.isPending && 'animate-spin')} />{scan.isPending ? 'Scanning...' : 'Scan now'}</Button>
+        <Button onClick={doScan} disabled={scan.isPending} data-testid="button-scan-notifications"><RefreshCw className={cn('w-4 h-4 mr-2', scan.isPending && 'animate-spin')} />{scan.isPending ? 'Scanning...' : 'Scan WhatsApp previews'}</Button>
       }>
-        Yuzu drafts a WhatsApp-style nudge when something needs your eyes. Messages point you back to the app; they never approve or order anything.
-        {data.lastScan && <> Last scan {ts(data.lastScan)}.</>}
+        Your in-app inbox updates automatically from stock and workflow changes. Review what needs attention here; opening a notification never approves an action or places an order.
       </PageHeader>
+
+      <InboxCentre />
+      <div className="pt-2 border-t"><div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mt-4">Messaging settings</div></div>
 
       <section className="rise rounded-2xl border border-amber/40 bg-amber/10 p-4 flex gap-3" data-testid="text-demo-warning">
         <ShieldAlert className="w-5 h-5 shrink-0 text-[hsl(32_80%_32%)]" />

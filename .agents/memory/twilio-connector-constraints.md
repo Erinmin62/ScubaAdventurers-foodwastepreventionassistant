@@ -15,3 +15,15 @@ API without exposing their personal recipient in shared settings.
 before changing providers or requesting replacement credentials. Do not assume
 a connected integration supports every API operation. Keep personal Sandbox
 testing separate from production WhatsApp Business sending.
+
+In-app attention and external message delivery are separate concerns. An owner
+must not need to supply a phone number or consent to WhatsApp to see inventory
+risks inside the app.
+
+**Why:** The original notification feature was a consent-gated messaging outbox.
+Reusing that gate for an in-app inbox would hide food-safety risks when messaging
+is disabled and could make ordinary inbox interactions trigger external sends.
+
+**How to apply:** Keep inbox read/dismiss operations independent of messaging
+preferences, delivery budgets and Sandbox consent. Label messaging-only scans
+clearly; never turn opening an alert into approval or external delivery.

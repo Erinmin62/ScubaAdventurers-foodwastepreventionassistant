@@ -5,6 +5,90 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type InboxUpdateInputAction = typeof InboxUpdateInputAction[keyof typeof InboxUpdateInputAction];
+
+
+export const InboxUpdateInputAction = {
+  read: 'read',
+  unread: 'unread',
+  dismiss: 'dismiss',
+  'read-all': 'read-all',
+} as const;
+
+export interface InboxUpdateInput {
+  action: InboxUpdateInputAction;
+  /** @minLength 1 */
+  id?: string;
+}
+
+export interface InboxThresholds {
+  /**
+     * @minimum 1
+     * @maximum 30
+     */
+  warningDays: number;
+  /**
+     * @minimum 1
+     * @maximum 90
+     */
+  upcomingDays: number;
+}
+
+export type InboxNotificationKind = typeof InboxNotificationKind[keyof typeof InboxNotificationKind];
+
+
+export const InboxNotificationKind = {
+  expiry: 'expiry',
+  recommendations: 'recommendations',
+  approvals: 'approvals',
+  failures: 'failures',
+  completed: 'completed',
+} as const;
+
+export type InboxNotificationSeverity = typeof InboxNotificationSeverity[keyof typeof InboxNotificationSeverity];
+
+
+export const InboxNotificationSeverity = {
+  critical: 'critical',
+  warning: 'warning',
+  upcoming: 'upcoming',
+  info: 'info',
+  success: 'success',
+} as const;
+
+export interface InboxNotification {
+  id: string;
+  kind: InboxNotificationKind;
+  severity: InboxNotificationSeverity;
+  title: string;
+  description: string;
+  path: string;
+  relatedId: string;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  readAt: string | null;
+  /** @nullable */
+  dismissedAt: string | null;
+  /** @nullable */
+  resolvedAt: string | null;
+}
+
+export type InboxStateCounts = {
+  critical: number;
+  approaching: number;
+  pendingApproval: number;
+  failed: number;
+};
+
+export interface InboxState {
+  items: InboxNotification[];
+  unreadCount: number;
+  checkedAt: string;
+  thresholds: InboxThresholds;
+  counts: InboxStateCounts;
+}
+
 export interface NotificationSettingsInput {
   enabled: boolean;
   /** @maxLength 20 */

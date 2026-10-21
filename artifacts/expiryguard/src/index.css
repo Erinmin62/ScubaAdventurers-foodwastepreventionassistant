@@ -191,3 +191,8 @@
   .toggle-elevate::before { content: ''; pointer-events: none; position: absolute; inset: 0; border-radius: inherit; z-index: -1; }
   .toggle-elevate.toggle-elevated::before { background-color: var(--elevate-2); }
 }
+
+.focus-flash { outline: 3px solid hsl(var(--primary)); outline-offset: 2px; background-color: hsl(var(--primary) / 0.08); border-radius: 12px; }
+@keyframes ring-bell { 0%,100% { transform: rotate(0); } 20% { transform: rotate(-14deg); } 40% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(3deg); } }
+.ring-bell { animation: ring-bell 1.1s ease-in-out 2; transform-origin: 50% 10%; }
+@media (prefers-reduced-motion: reduce) { .ring-bell, .rise, .bob { animation: none !important; } }

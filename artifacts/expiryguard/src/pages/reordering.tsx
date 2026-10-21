@@ -231,6 +231,8 @@ function ConfigRow({ cfg, name, unit }: { cfg: ReorderConfig; name: string; unit
   );
 }
 
+import { FocusBanner, useFocusItem, useScrollHighlight } from '@/components/focus-target';
+
 export default function Reordering() {
   const { data, isLoading, error, refetch } = useGetReorders({ query: { queryKey: getGetReordersQueryKey(), refetchInterval: 30000 } });
   const { data: guard } = useGuard();
@@ -238,6 +240,8 @@ export default function Reordering() {
   const invalidate = useInvalidate();
   const { toast } = useToast();
   const [tab, setTab] = useState<'plans' | 'analysis' | 'config' | 'history'>('plans');
+  const focus = useFocusItem();
+  useScrollHighlight(focus ? 'focus-target' : null, !!data);
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
   const today = guard?.today ?? new Date().toISOString().slice(0, 10);
@@ -266,6 +270,14 @@ export default function Reordering() {
         <Stat label="Modeled purchase change" value={rm(savedCost)} tone="jade" note="Original minus recommended, est." />
         <Stat label="Failed executions" value={String(failed)} tone="ink" note="See history for reasons" />
       </div>
+      {focus && (() => { const f = data.plans.find((p) => p.id === focus); return (
+        <div id="focus-target" className="scroll-mt-24"><FocusBanner found={!!f} clearHref="/reordering" label={f ? `${f.line.name} reorder plan: ${f.status.replace('_', ' ').toLowerCase()}` : ''}>
+          {f && (f.status === 'PENDING_APPROVAL' ? <PlanCard plan={f} today={today} />
+            : <div className={cn('rounded-lg border bg-card p-3 text-sm', f.status === 'FAILED' && 'border-destructive/40')} data-testid={`focus-plan-${f.id}`}>
+                <div className="flex flex-wrap items-center gap-2"><PlanStatus s={f.status} /><b>{f.line.name}</b><span className="num text-xs text-muted-foreground ml-auto">{(f.decidedAt ?? f.createdAt).replace('T', ' ').slice(0, 16)}{f.approver && ` · ${f.approver}`}</span></div>
+                {f.detail && <div className={cn('text-xs mt-1', f.status === 'FAILED' ? 'text-destructive font-semibold' : 'text-muted-foreground')}>{f.status === 'FAILED' ? 'Reason: ' : ''}{f.detail}</div>}
+              </div>)}
+        </FocusBanner></div>); })()}
       <div className="flex flex-wrap gap-1 rounded-xl bg-muted/60 p-1 w-fit">
         {tabs.map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} data-testid={`tab-${k}`} className={cn('rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors', tab === k ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{label}</button>
@@ -273,7 +285,7 @@ export default function Reordering() {
       </div>
       {tab === 'plans' && (
         <Panel title="Proposed order plans" sub="Each plan needs an explicit owner decision. Approval records a synthetic plan only.">
-          {pending.length ? <div className="space-y-3">{pending.map((p) => <PlanCard key={p.id} plan={p} today={today} />)}</div>
+          {pending.length ? <div className="space-y-3">{pending.filter((p) => p.id !== focus).map((p) => <PlanCard key={p.id} plan={p} today={today} />)}</div>
             : <EmptyState title="No plans waiting" body="Run a reorder scan to draft a plan per ingredient." />}
         </Panel>
       )}

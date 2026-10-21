@@ -4,6 +4,10 @@ import { BarChart3, BellRing, Bot, ChefHat, ClipboardCheck, History, LayoutDashb
 import { cn } from '@/lib/utils';
 import { niceDate, useGuard } from '@/lib/guard';
 import { guardianSrc } from '@/components/bits';
+import { NotificationBell } from '@/components/inbox/notification-bell';
+import { SessionSummary } from '@/components/inbox/session-summary';
+import { InboxSync } from '@/components/inbox/inbox-sync';
+import { useInbox } from '@/lib/inbox';
 
 const nav = [
   { href: '/impact', label: 'Impact', icon: Leaf },
@@ -22,6 +26,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const [loc] = useLocation();
   const { data } = useGuard();
   const pending = data?.summary.pendingCount ?? 0;
+  const { data: inbox } = useInbox();
+  const unread = inbox?.unreadCount ?? 0;
   return (
     <div className="min-h-[100dvh] md:flex">
       <aside className="md:w-60 md:fixed md:inset-y-0 bg-sidebar text-sidebar-foreground flex md:flex-col z-20">
@@ -42,6 +48,9 @@ export function Shell({ children }: { children: ReactNode }) {
                 {href === '/recommendations' && pending > 0 && (
                   <span className={cn('ml-auto num text-[10px] rounded-full px-1.5', active ? 'bg-sidebar/30' : 'bg-sidebar-primary text-sidebar-primary-foreground')}>{pending}</span>
                 )}
+                {href === '/notifications' && inbox && unread > 0 && (
+                  <span className={cn('ml-auto num text-[10px] rounded-full px-1.5', active ? 'bg-sidebar/30' : 'bg-destructive text-destructive-foreground')} aria-label={`${unread} unread`}>{unread}</span>
+                )}
               </Link>
             );
           })}
@@ -52,10 +61,15 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <div className="flex-1 md:ml-60 min-w-0">
-        <div className="sticky top-0 z-10 bg-amber/20 backdrop-blur border-b border-amber/30 px-4 md:px-8 py-1.5 text-xs flex flex-wrap gap-x-4 justify-between" data-testid="text-synthetic-banner">
+        <InboxSync />
+        <div className="sticky top-0 z-10 bg-amber/20 backdrop-blur border-b border-amber/30 px-4 md:px-8 py-1.5 text-xs flex flex-wrap items-center gap-x-4 gap-y-1 justify-between" data-testid="text-synthetic-banner">
           <span><b>Synthetic data demo</b> — all sales, stock and savings are generated estimates for illustration.</span>
-          {data && <span className="num text-muted-foreground">Today {niceDate(data.today)} · Planning {niceDate(data.tomorrow)}</span>}
+          <span className="flex items-center gap-3">
+            {data && <span className="num text-muted-foreground">Today {niceDate(data.today)} · Planning {niceDate(data.tomorrow)}</span>}
+            <NotificationBell />
+          </span>
         </div>
+        <SessionSummary />
         <main className="p-4 md:p-8 max-w-[1400px]">{children}</main>
       </div>
     </div>

@@ -11,6 +11,46 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /guard/inbox:
+    get:
+      operationId: getInbox
+      responses:
+        "200":
+          description: Persistent in-app notifications and attention counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InboxState" }
+  /guard/inbox/update:
+    post:
+      operationId: updateInbox
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InboxUpdateInput" }
+      responses:
+        "200":
+          description: Read or dismissal state saved; no action executed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InboxState" }
+        "400": { description: Invalid operation }
+        "404": { description: Notification not found }
+  /guard/inbox/thresholds:
+    patch:
+      operationId: updateInboxThresholds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InboxThresholds" }
+      responses:
+        "200":
+          description: Thresholds updated and expiry notifications reconciled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InboxState" }
+        "400": { description: Invalid thresholds }
   /guard/ingredients/{id}/batches:
     post:
       operationId: saveIngredientBatch
@@ -264,6 +304,52 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    InboxUpdateInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [read, unread, dismiss, read-all] }
+        id: { type: string, minLength: 1 }
+    InboxThresholds:
+      type: object
+      required: [warningDays, upcomingDays]
+      properties:
+        warningDays: { type: integer, minimum: 1, maximum: 30 }
+        upcomingDays: { type: integer, minimum: 1, maximum: 90 }
+    InboxNotification:
+      type: object
+      required: [id, kind, severity, title, description, path, relatedId, createdAt, updatedAt, readAt, dismissedAt, resolvedAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [expiry, recommendations, approvals, failures, completed] }
+        severity: { type: string, enum: [critical, warning, upcoming, info, success] }
+        title: { type: string }
+        description: { type: string }
+        path: { type: string }
+        relatedId: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        readAt: { type: [string, "null"] }
+        dismissedAt: { type: [string, "null"] }
+        resolvedAt: { type: [string, "null"] }
+    InboxState:
+      type: object
+      required: [items, unreadCount, counts, thresholds, checkedAt]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/InboxNotification" }
+        unreadCount: { type: integer }
+        checkedAt: { type: string }
+        thresholds: { $ref: "#/components/schemas/InboxThresholds" }
+        counts:
+          type: object
+          required: [critical, approaching, pendingApproval, failed]
+          properties:
+            critical: { type: integer }
+            approaching: { type: integer }
+            pendingApproval: { type: integer }
+            failed: { type: integer }
     NotificationSettingsInput:
       type: object
       required: [enabled, phone, optIn, expiry, recommendations, approvals, failures, completed, reminderHours, maxReminders, dailyLimit, riskThreshold]

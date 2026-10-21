@@ -5,6 +5,7 @@ import { compute, seed, type Stored } from "./guard-model";
 import { runWorkflows } from "./guard-automation";
 import { scanNotificationEvents } from "./guard-notifications";
 import { migrateBatches } from "./guard-batches";
+import { syncInbox } from "./guard-inbox";
 
 export async function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun = true) {
   await db.insert(guardWorkspace).values({ id: "demo", data: seed() }).onConflictDoNothing();
@@ -17,6 +18,7 @@ export async function changeWorkspace(action: (s: Stored) => void = () => {}, au
     action(stored);
     if (autoRun) runWorkflows(stored);
     scanNotificationEvents(stored);
+    syncInbox(stored);
     const state = GetGuardStateResponse.parse(compute(stored));
     if (JSON.stringify(stored) !== before) {
       await tx.update(guardWorkspace).set({ data: stored }).where(eq(guardWorkspace.id, "demo"));

@@ -3,6 +3,7 @@ import { safeStock, stockBatches } from "./guard-batches";
 
 export type State = typeof GetGuardStateResponse._output;
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
+  inbox?: import("./guard-inbox").InboxStore;
   notifications?: import("./guard-notifications").NotificationStore;
   reordering?: Omit<import("./guard-reorder").Reorders, "analysis">;
   automation?: State["automation"];

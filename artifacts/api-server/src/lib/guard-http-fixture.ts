@@ -6,6 +6,7 @@ import { runWorkflows } from "./guard-automation";
 import { GetGuardStateResponse } from "@workspace/api-zod";
 import { scanNotificationEvents } from "./guard-notifications";
 import { migrateBatches } from "./guard-batches";
+import { syncInbox } from "./guard-inbox";
 
 let saved: Stored = seed();
 let tail: Promise<unknown> = Promise.resolve();
@@ -18,6 +19,7 @@ export function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun 
     action(staged);
     if (autoRun) runWorkflows(staged);
     scanNotificationEvents(staged);
+    syncInbox(staged);
     const response = GetGuardStateResponse.parse(compute(staged));
     saved = staged;
     return response;

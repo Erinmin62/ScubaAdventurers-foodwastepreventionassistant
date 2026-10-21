@@ -5,9 +5,10 @@ import type { Server } from "node:http";
 import guardRouter from "../routes/guard";
 import reorderRouter from "../routes/guard-reorders";
 import notificationsRouter from "../routes/guard-notifications";
+import inboxRouter from "../routes/guard-inbox";
 import { createHmac } from "node:crypto";
 import { defaultNotificationSettings } from "./guard-notifications";
-import { GetNotificationsResponse, ReviewNotificationResponse } from "@workspace/api-zod";
+import { GetInboxResponse, GetNotificationsResponse, ReviewNotificationResponse } from "@workspace/api-zod";
 import { resetWorkspace, snapshotWorkspace } from "./guard-http-fixture";
 import { seed, shift, today, compute, type State } from "./guard-model";
 import type { Reorders } from "./guard-reorder";
@@ -16,7 +17,7 @@ let server: Server, base: string;
 before(async () => {
   const app = express();
   app.use("/guard/notifications/webhook", express.raw({ type: "application/json" }));
-  app.use(express.json(), guardRouter, reorderRouter, notificationsRouter);
+  app.use(express.json(), guardRouter, reorderRouter, notificationsRouter, inboxRouter);
   server = app.listen(0, "127.0.0.1");
   await new Promise<void>(resolve => server.once("listening", resolve));
   const address = server.address();
@@ -54,6 +55,79 @@ async function scan() {
   return (response.data as Reorders).plans.find(p => p.status === "PENDING_APPROVAL")!;
 }
 const endpoint = (id: string) => `/guard/reorders/${id}/decision`;
+async function requestInbox(body?: unknown) {
+  const result = await request(body ? "/guard/inbox/update" : "/guard/inbox", body);
+  assert.equal(result.status, 200);
+  return { ...result, data: GetInboxResponse.parse(result.data) };
+}
+
+test("HTTP: inbox read state persists, reanalysis deduplicates, invalid mutations fail without executing", async () => {
+  fixture();
+  const initial = await requestInbox();
+  assert.equal(initial.status, 200);
+  const expiry = initial.data.items.find((i: { kind: string }) => i.kind === "expiry");
+  assert.ok(expiry);
+  const before = snapshotWorkspace();
+  const read = await requestInbox({ action: "read", id: expiry.id });
+  assert.equal(read.status, 200);
+  assert.equal(read.data.unreadCount, initial.data.unreadCount - 1);
+  assert.equal(read.data.items.find(i => i.id === expiry.id)!.resolvedAt, null);
+  const reloaded = await requestInbox();
+  assert.equal(reloaded.data.unreadCount, read.data.unreadCount);
+  assert.equal(reloaded.data.items.length, initial.data.items.length);
+  assert.equal(reloaded.data.items.find(i => i.id === expiry.id)!.readAt, read.data.items.find(i => i.id === expiry.id)!.readAt);
+  for (const key of ["ingredients", "reordering", "decisions", "activity"] as const) assert.deepEqual(snapshotWorkspace()[key], before[key]);
+  assert.equal((await request("/guard/inbox/update", { action: "approve", id: expiry.id })).status, 400);
+  assert.equal((await request("/guard/inbox/update", { action: "read" })).status, 400);
+  assert.equal((await request("/guard/inbox/update", { action: "read", id: "unknown" })).status, 404);
+  const all = await requestInbox({ action: "read-all" });
+  assert.equal(all.data.unreadCount, 0);
+  assert.ok(all.data.counts.approaching > 0);
+});
+
+test("HTTP: inventory edits update/resolve alerts, threshold changes validate and persist", async () => {
+  fixture();
+  const first = await requestInbox();
+  const item = first.data.items.find((i: { kind: string }) => i.kind === "expiry");
+  assert.ok(item);
+  const ingredient = snapshotWorkspace().ingredients[0]!;
+  assert.equal((await request("/guard/records", { kind: "inventory", rows: [{ ...ingredient, quantity: 0 }] })).status, 200);
+  const resolved = await requestInbox();
+  assert.ok(resolved.data.items.find(i => i.id === item.id)!.resolvedAt);
+  assert.equal(resolved.data.counts.approaching, 0);
+  assert.equal((await request("/guard/inbox/thresholds", { warningDays: 4, upcomingDays: 9 }, "PATCH")).status, 200);
+  assert.deepEqual((await requestInbox()).data.thresholds, { warningDays: 4, upcomingDays: 9 });
+  assert.equal((await request("/guard/inbox/thresholds", { warningDays: 10, upcomingDays: 5 }, "PATCH")).status, 400);
+  assert.equal((await request("/guard/inbox/thresholds", { warningDays: 0, upcomingDays: 5 }, "PATCH")).status, 400);
+});
+
+test("HTTP: pending approval read never executes; approved/rejected/stale outcomes reconcile and remain idempotent", async () => {
+  for (const outcome of ["approve", "reject", "stale"] as const) {
+    fixture(); const plan = await scan();
+    const first = await requestInbox(), approvalId = `approval:${plan.id}`;
+    const notice = first.data.items.find((i: { id: string }) => i.id === approvalId);
+    assert.ok(notice); assert.match(notice.path, /reordering\?item=/);
+    const before = structuredClone(snapshotWorkspace().ingredients);
+    assert.equal((await request("/guard/inbox/update", { action: "dismiss", id: approvalId })).status, 400);
+    assert.equal((await request("/guard/inbox/update", { action: "read", id: approvalId })).status, 200);
+    assert.deepEqual(snapshotWorkspace().ingredients, before);
+    if (outcome === "stale") {
+      await request("/guard/records", { kind: "inventory", rows: [{ ...snapshotWorkspace().ingredients[0]!, quantity: 3 }] });
+    }
+    const decision = { decision: outcome === "reject" ? "reject" : "approve", approver: "Inbox HTTP owner" };
+    assert.equal((await request(endpoint(plan.id), decision)).status, 200);
+    const state = await requestInbox();
+    assert.ok(state.data.items.find(i => i.id === approvalId)!.resolvedAt);
+    const audit = snapshotWorkspace().activity.filter(a => a.detail.includes(`Proposal ${plan.id}.`));
+    assert.equal(audit.length, 1);
+    assert.ok(audit[0]!.time);
+    if (outcome === "approve") assert.ok(state.data.items.some((i: { id: string; severity: string }) => i.id === `completed:${plan.id}` && i.severity === "success"));
+    if (outcome === "reject") assert.deepEqual(snapshotWorkspace().ingredients, before);
+    if (outcome === "stale") assert.ok(state.data.items.some((i: { id: string; severity: string }) => i.id === `failure:${plan.id}` && i.severity === "critical"));
+    await request(endpoint(plan.id), decision);
+    assert.equal(snapshotWorkspace().activity.filter(a => a.detail.includes(`Proposal ${plan.id}.`)).length, 1);
+  }
+});
 
 test("HTTP: imported inventory feeds analysis; approval alone executes and persists one audited delivery update", async () => {
   fixture();

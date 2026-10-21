@@ -8,6 +8,133 @@
 import * as zod from 'zod';
 
 
+export const getInboxResponseThresholdsWarningDaysMax = 30;
+
+export const getInboxResponseThresholdsUpcomingDaysMax = 90;
+
+
+
+export const GetInboxResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['expiry', 'recommendations', 'approvals', 'failures', 'completed']),
+  "severity": zod.enum(['critical', 'warning', 'upcoming', 'info', 'success']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "path": zod.string(),
+  "relatedId": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "readAt": zod.string().nullable(),
+  "dismissedAt": zod.string().nullable(),
+  "resolvedAt": zod.string().nullable()
+})),
+  "unreadCount": zod.number().int(),
+  "checkedAt": zod.string(),
+  "thresholds": zod.object({
+  "warningDays": zod.number().int().min(1).max(getInboxResponseThresholdsWarningDaysMax),
+  "upcomingDays": zod.number().int().min(1).max(getInboxResponseThresholdsUpcomingDaysMax)
+}),
+  "counts": zod.object({
+  "critical": zod.number().int(),
+  "approaching": zod.number().int(),
+  "pendingApproval": zod.number().int(),
+  "failed": zod.number().int()
+})
+})
+
+
+
+
+
+export const UpdateInboxBody = zod.object({
+  "action": zod.enum(['read', 'unread', 'dismiss', 'read-all']),
+  "id": zod.string().min(1).optional()
+})
+
+export const updateInboxResponseThresholdsWarningDaysMax = 30;
+
+export const updateInboxResponseThresholdsUpcomingDaysMax = 90;
+
+
+
+export const UpdateInboxResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['expiry', 'recommendations', 'approvals', 'failures', 'completed']),
+  "severity": zod.enum(['critical', 'warning', 'upcoming', 'info', 'success']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "path": zod.string(),
+  "relatedId": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "readAt": zod.string().nullable(),
+  "dismissedAt": zod.string().nullable(),
+  "resolvedAt": zod.string().nullable()
+})),
+  "unreadCount": zod.number().int(),
+  "checkedAt": zod.string(),
+  "thresholds": zod.object({
+  "warningDays": zod.number().int().min(1).max(updateInboxResponseThresholdsWarningDaysMax),
+  "upcomingDays": zod.number().int().min(1).max(updateInboxResponseThresholdsUpcomingDaysMax)
+}),
+  "counts": zod.object({
+  "critical": zod.number().int(),
+  "approaching": zod.number().int(),
+  "pendingApproval": zod.number().int(),
+  "failed": zod.number().int()
+})
+})
+
+
+export const updateInboxThresholdsBodyWarningDaysMax = 30;
+
+export const updateInboxThresholdsBodyUpcomingDaysMax = 90;
+
+
+
+export const UpdateInboxThresholdsBody = zod.object({
+  "warningDays": zod.number().int().min(1).max(updateInboxThresholdsBodyWarningDaysMax),
+  "upcomingDays": zod.number().int().min(1).max(updateInboxThresholdsBodyUpcomingDaysMax)
+})
+
+export const updateInboxThresholdsResponseThresholdsWarningDaysMax = 30;
+
+export const updateInboxThresholdsResponseThresholdsUpcomingDaysMax = 90;
+
+
+
+export const UpdateInboxThresholdsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['expiry', 'recommendations', 'approvals', 'failures', 'completed']),
+  "severity": zod.enum(['critical', 'warning', 'upcoming', 'info', 'success']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "path": zod.string(),
+  "relatedId": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "readAt": zod.string().nullable(),
+  "dismissedAt": zod.string().nullable(),
+  "resolvedAt": zod.string().nullable()
+})),
+  "unreadCount": zod.number().int(),
+  "checkedAt": zod.string(),
+  "thresholds": zod.object({
+  "warningDays": zod.number().int().min(1).max(updateInboxThresholdsResponseThresholdsWarningDaysMax),
+  "upcomingDays": zod.number().int().min(1).max(updateInboxThresholdsResponseThresholdsUpcomingDaysMax)
+}),
+  "counts": zod.object({
+  "critical": zod.number().int(),
+  "approaching": zod.number().int(),
+  "pendingApproval": zod.number().int(),
+  "failed": zod.number().int()
+})
+})
+
+
 export const SaveIngredientBatchParams = zod.object({
   "id": zod.coerce.string()
 })

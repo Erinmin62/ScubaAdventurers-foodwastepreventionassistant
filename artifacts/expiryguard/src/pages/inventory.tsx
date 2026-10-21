@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { FocusBanner, useFocusItem, useScrollHighlight } from '@/components/focus-target';
 import { Pencil, Plus, Search, Upload } from 'lucide-react';
 import type { Ingredient } from '@workspace/api-client-react';
 import { CsvImport, EmptyState, ErrorState, LevelPill, LoadingState, PageHeader, Panel, type ImportSpec } from '@/components/bits';
@@ -55,6 +56,9 @@ export default function Inventory() {
   const [importOpen, setImportOpen] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
 
+  const focus = useFocusItem();
+  useEffect(() => { if (focus) { setQ(''); setCat('All'); } }, [focus]);
+  useScrollHighlight(focus ? `ingredient-${focus}` : null, !!data);
   const cats = useMemo(() => ['All', ...Array.from(new Set((data?.ingredients ?? []).map((i) => i.category || 'Other')))], [data]);
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
@@ -89,6 +93,8 @@ export default function Inventory() {
         Stock sorted by expiry. Expired items are excluded from forecasts and recommendations{expired.length ? ` — ${expired.length} currently expired` : ''}.
       </PageHeader>
 
+      {focus && (() => { const f = data.ingredients.find((i) => i.id === focus); const r = riskMap.get(focus); return (
+        <div className="mb-4"><FocusBanner found={!!f} clearHref="/inventory" label={f ? `${f.name}: ${fmt(f.quantity)} ${f.unit}, expires ${niceDate(f.expiry)} (${daysBetween(data.today, f.expiry)} day(s))${r ? `, ${rm(r.value)} at risk` : ''}. Highlighted in the table below.` : ''} /></div>); })()}
       <Panel>
         <div className="flex flex-col md:flex-row gap-3 mb-4">
           <div className="relative flex-1"><Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" placeholder="Search ingredients" value={q} onChange={(e) => setQ(e.target.value)} data-testid="input-search" /></div>
@@ -107,7 +113,7 @@ export default function Inventory() {
                   const days = daysBetween(data.today, i.expiry);
                   const r = riskMap.get(i.id);
                   return (
-                    <tr key={i.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors" data-testid={`row-ingredient-${i.id}`}>
+                    <tr key={i.id} id={`ingredient-${i.id}`} className="scroll-mt-24 border-b last:border-0 hover:bg-muted/40 transition-colors" data-testid={`row-ingredient-${i.id}`}>
                       <td className="py-2.5 pr-3"><div className="font-semibold">{i.name}</div><div className="text-[11px] text-muted-foreground">{i.category || 'Other'}</div><Button variant="link" size="sm" className="px-0" onClick={() => setBatchId(i.id)}>Batches / receive ({i.batches?.length ?? 1})</Button></td>
                       <td className="pr-3 num">{fmt(i.quantity)} {i.unit}</td>
                       <td className="pr-3"><div className="num text-xs">{niceDate(i.expiry)} (earliest)</div><div className={cn('text-[11px] font-semibold', days < 0 ? 'text-destructive' : days <= 1 ? 'text-primary' : 'text-muted-foreground')}>{days < 0 ? 'Expired batch excluded' : days === 0 ? 'Today' : `${days}d left`}</div></td>
