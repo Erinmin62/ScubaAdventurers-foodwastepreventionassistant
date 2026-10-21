@@ -5,7 +5,8 @@ import { seed, shift, today } from "./guard-model";
 import { defaultNotificationSettings, notificationState, readNotificationReview, saveNotificationSettings, scanNotificationEvents } from "./guard-notifications";
 import { notificationEvents } from "./guard-notification-events";
 import { sendApprovedWhatsAppTemplate, verifyWhatsAppSignature } from "./whatsapp-cloud";
-import { MONITOR_STALE_AFTER_MS, monitorHeartbeatState, recordMonitorHeartbeat } from "./monitor-heartbeat";
+import { MONITOR_FAILURE_ALERT_AFTER_MS, MONITOR_STALE_AFTER_MS, monitorHeartbeatState, recordMonitorHeartbeat } from "./monitor-heartbeat";
+import { syncInbox } from "./guard-inbox";
 
 const now = () => `${today()}T02:00:00.000Z`;
 const later = (hours: number) => new Date(Date.parse(now()) + hours * 3_600_000).toISOString();
@@ -37,6 +38,65 @@ test("monitor heartbeat distinguishes unstarted, healthy, stale, and failed chec
   assert.equal(monitorHeartbeatState(s.monitorHeartbeat, checkedTime + 2000).status, "healthy");
   assert.equal(monitorHeartbeatState(s.monitorHeartbeat, checkedTime + 2000).lastSuccessfulAt?.toISOString(), new Date(checkedTime + 2000).toISOString());
   assert.deepEqual(s.ingredients, ingredients);
+});
+test("sustained monitor failures alert once per incident, honor messaging consent, and resolve after recovery", () => {
+  const s = seed();
+  const startedAt = now();
+  const ingredients = structuredClone(s.ingredients), decisions = structuredClone(s.decisions);
+  saveNotificationSettings(s, {
+    ...defaultNotificationSettings(), enabled: true, phone: "+60123456789", optIn: true,
+    expiry: false, recommendations: false, approvals: false, failures: true,
+  }, startedAt);
+  const firstFailureAt = later(1 / 60);
+  recordMonitorHeartbeat(s, "failure", firstFailureAt);
+
+  assert.equal(notificationEvents(s, Date.parse(firstFailureAt) + MONITOR_FAILURE_ALERT_AFTER_MS - 1)
+    .some(e => e.id.startsWith("monitor:")), false);
+  const alertAt = new Date(Date.parse(firstFailureAt) + MONITOR_FAILURE_ALERT_AFTER_MS).toISOString();
+  const alert = notificationEvents(s, Date.parse(alertAt)).find(e => e.id.startsWith("monitor:"));
+  assert.ok(alert);
+  assert.match(alert.title, /monitoring has been failing/i);
+  assert.match(alert.text, /does not approve actions or change inventory/i);
+
+  scanNotificationEvents(s, alertAt, true);
+  const preview = s.notifications!.records.find(r => r.eventId === alert.id);
+  assert.ok(preview);
+  assert.equal(preview.status, "demo");
+  for (const minutesAfter of [1, 2, 3]) {
+    const tickAt = new Date(Date.parse(alertAt) + minutesAfter * 60_000).toISOString();
+    recordMonitorHeartbeat(s, "failure", tickAt);
+    scanNotificationEvents(s, tickAt, true);
+  }
+  assert.equal(s.notifications!.records.filter(r => r.eventId === alert.id).length, 1);
+
+  const recoveredAt = new Date(Date.parse(alertAt) + 4 * 60_000).toISOString();
+  recordMonitorHeartbeat(s, "success", recoveredAt);
+  scanNotificationEvents(s, recoveredAt, true);
+  assert.equal(s.notifications!.events[alert.id]!.resolvedAt, recoveredAt);
+  assert.equal(monitorHeartbeatState(s.monitorHeartbeat, Date.parse(recoveredAt)).status, "healthy");
+  assert.deepEqual(s.ingredients, ingredients);
+  assert.deepEqual(s.decisions, decisions);
+});
+test("stale monitoring alerts after the sustained threshold; inbox alert does not require WhatsApp opt-in", () => {
+  const s = seed();
+  const lastSuccess = now();
+  recordMonitorHeartbeat(s, "success", lastSuccess);
+  const beforeThreshold = Date.parse(lastSuccess) + MONITOR_FAILURE_ALERT_AFTER_MS - 1;
+  assert.equal(notificationEvents(s, beforeThreshold).some(e => e.id.startsWith("monitor:")), false);
+  const alertAt = new Date(beforeThreshold + 1).toISOString();
+  const event = notificationEvents(s, Date.parse(alertAt)).find(e => e.id.startsWith("monitor:"));
+  assert.ok(event);
+  assert.match(event.title, /overdue/i);
+  syncInbox(s, alertAt);
+  assert.ok(s.inbox!.items.some(item => item.id === event.id));
+  const failedAt = new Date(Date.parse(alertAt) + 60_000).toISOString();
+  recordMonitorHeartbeat(s, "failure", failedAt);
+  const failedEvent = notificationEvents(s, Date.parse(failedAt)).find(e => e.id.startsWith("monitor:"));
+  assert.equal(failedEvent?.id, event.id, "stale-to-failed transition stays within one alert incident");
+  syncInbox(s, failedAt);
+  assert.equal(s.inbox!.items.filter(item => item.id === event.id).length, 1);
+  scanNotificationEvents(s, alertAt, true);
+  assert.equal(s.notifications!.records.filter(r => r.eventId === event.id).length, 0);
 });
 test("disabled defaults never invent sent messages or change plans", () => {
   const s = seed(), before = structuredClone(s.ingredients);

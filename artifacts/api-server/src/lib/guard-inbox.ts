@@ -42,7 +42,7 @@ export function syncInbox(s: Stored, now = new Date().toISOString()) {
   // Malformed legacy stock must not break the inbox or create false expiry advice.
   const safe = { ...s, ingredients: s.ingredients.filter(i => validQuantity(i.quantity) && validQuantity(i.cost) && validDate(i.expiry) &&
     stockBatches(i).every(b => validQuantity(b.quantity) && validDate(b.expiry))) };
-  for (const e of notificationEvents(safe).filter(e => e.kind !== "expiry")) {
+  for (const e of notificationEvents(safe, Date.parse(now)).filter(e => e.kind !== "expiry")) {
     // Keep the failed audit record, but stop demanding attention after a later
     // replacement for the same ingredient has actually executed successfully.
     if (e.kind === "failures" && e.id.startsWith("failure:")) {

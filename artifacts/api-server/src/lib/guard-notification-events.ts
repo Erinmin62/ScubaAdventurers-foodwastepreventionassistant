@@ -1,4 +1,5 @@
 import { compute, daysBetween, round, today, type Stored } from "./guard-model";
+import { MONITOR_FAILURE_ALERT_AFTER_MS, monitorHeartbeatState } from "./monitor-heartbeat";
 
 export type NotificationKind = "expiry" | "recommendations" | "approvals" | "failures" | "completed";
 export type NotificationEvent = {
@@ -7,8 +8,36 @@ export type NotificationEvent = {
 };
 
 /** Only observes existing records; never executes or approves any action. */
-export function notificationEvents(s: Stored): NotificationEvent[] {
+export function notificationEvents(s: Stored, now = Date.now()): NotificationEvent[] {
   const state = compute(s), events: NotificationEvent[] = [], d = today();
+  const heartbeat = s.monitorHeartbeat;
+  const monitor = monitorHeartbeatState(heartbeat, now);
+  const lastSuccessTime = heartbeat?.lastSuccessfulAt ? Date.parse(heartbeat.lastSuccessfulAt) : NaN;
+  const failureStartedAt = heartbeat?.failureStartedAt ?? heartbeat?.lastFailureAt;
+  const failureTime = failureStartedAt ? Date.parse(failureStartedAt) : NaN;
+  const staleLongEnough = Number.isFinite(lastSuccessTime) && now - lastSuccessTime >= MONITOR_FAILURE_ALERT_AFTER_MS;
+  const failureLongEnough = Number.isFinite(failureTime) && now - failureTime >= MONITOR_FAILURE_ALERT_AFTER_MS;
+  if ((monitor.status === "stale" && staleLongEnough) ||
+      (monitor.status === "failed" && (staleLongEnough || failureLongEnough))) {
+    // A stale incident that later starts failing remains the same episode.
+    const incidentTime = Number.isFinite(lastSuccessTime) ? lastSuccessTime : failureTime;
+    const startedAt = new Date(incidentTime).toISOString();
+    const failed = monitor.status === "failed";
+    const lastSuccess = heartbeat?.lastSuccessfulAt
+      ? `Last successful check: ${heartbeat.lastSuccessfulAt}.`
+      : "No successful check has been recorded yet.";
+    events.push({
+      id: `monitor:incident:${startedAt}`,
+      kind: "failures",
+      priority: "critical",
+      title: failed ? "Expiry monitoring has been failing" : "Expiry monitoring check is overdue",
+      text: `${failed
+        ? "Expiry monitoring has failed continuously for at least 10 minutes."
+        : "No successful expiry monitoring check has been recorded for at least 10 minutes."} ${lastSuccess} Review current stock and monitoring status in the app. This alert does not approve actions or change inventory; it will resolve after a successful check.`,
+      path: "/notifications",
+      remind: false,
+    });
+  }
   for (const i of s.ingredients) {
     if (i.quantity <= 0) continue;
     const days = daysBetween(d, i.expiry);

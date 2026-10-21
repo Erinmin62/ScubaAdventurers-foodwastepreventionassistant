@@ -68,7 +68,7 @@ export function scanNotificationEvents(s: Stored, now = new Date().toISOString()
   if (!force && n.lastScan && Date.parse(now) - Date.parse(n.lastScan) < 60_000) return;
   n.lastScan = now;
   if (!n.settings.enabled || !n.settings.optIn || !n.settings.phone) return;
-  const events = notificationEvents(s).filter(e => n.settings[e.kind]);
+  const events = notificationEvents(s, Date.parse(now)).filter(e => n.settings[e.kind]);
   const active = new Set(events.map(e => e.id));
   for (const [id, state] of Object.entries(n.events)) if (!active.has(id)) state.resolvedAt ??= now;
   for (const r of n.records) if (!active.has(r.eventId)) r.resolvedAt ??= now;
@@ -83,6 +83,8 @@ export function scanNotificationEvents(s: Stored, now = new Date().toISOString()
     if ((event.kind === "completed" || event.kind === "failures") && plan?.decidedAt && plan.decidedAt < cutoff) continue;
     const workflow = event.id.startsWith("workflow:") ? s.activity.find(a => `workflow:${a.id}` === event.id) : undefined;
     if (workflow && workflow.time < cutoff) continue;
+    const monitorIncidentAt = /^monitor:incident:(.+)$/.exec(event.id)?.[1];
+    if (monitorIncidentAt && monitorIncidentAt < cutoff) continue;
     const previous = n.events[event.id];
     // Same event is not resurrected by repeatedly changing preferences.
     if (previous && (

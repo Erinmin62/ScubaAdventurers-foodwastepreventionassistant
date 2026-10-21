@@ -1,6 +1,7 @@
 import type { MonitorHeartbeat, Stored } from "./guard-model";
 
 export const MONITOR_STALE_AFTER_MS = 5 * 60 * 1000;
+export const MONITOR_FAILURE_ALERT_AFTER_MS = 10 * 60 * 1000;
 
 export function recordMonitorHeartbeat(s: Stored, outcome: "success" | "failure", at = new Date().toISOString()) {
   const heartbeat = s.monitorHeartbeat ??= {};
@@ -8,7 +9,9 @@ export function recordMonitorHeartbeat(s: Stored, outcome: "success" | "failure"
   if (outcome === "success") {
     heartbeat.lastSuccessfulAt = at;
     delete heartbeat.lastFailureAt;
+    delete heartbeat.failureStartedAt;
   } else {
+    heartbeat.failureStartedAt ??= at;
     heartbeat.lastFailureAt = at;
   }
 }

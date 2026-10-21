@@ -6,6 +6,7 @@ export type MonitorHeartbeat = {
   lastAttemptAt?: string;
   lastSuccessfulAt?: string;
   lastFailureAt?: string;
+  failureStartedAt?: string;
 };
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
   inbox?: import("./guard-inbox").InboxStore;
