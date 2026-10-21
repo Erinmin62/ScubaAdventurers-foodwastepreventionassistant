@@ -182,6 +182,23 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReorderState" }
+  /guard/reorders/{id}/preview:
+    post:
+      operationId: previewReorder
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReorderPreviewInput" }
+      responses:
+        "200":
+          description: Read-only comparison; no stock, delivery, decision or activity records changed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReorderPreview" }
+        "400": { description: "Invalid scenario, incomplete demand, stale or decided proposal" }
   /guard/reorders/{id}/decision:
     post:
       operationId: decideReorder
@@ -479,6 +496,40 @@ components:
         path: { type: string }
         demo: { type: boolean }
         notice: { type: string }
+    ReorderPreviewInput:
+      type: object
+      required: [quantity, deliveryDate]
+      properties:
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        deliveryDate: { type: string }
+    ReorderScenario:
+      type: object
+      required: [quantity, deliveryDate, purchaseCost, wasteQuantity, wasteCost, shortageQuantity, shortageBeforeDelivery, closingStock]
+      properties:
+        quantity: { type: number }
+        deliveryDate: { type: string }
+        purchaseCost: { type: number }
+        wasteQuantity: { type: number }
+        wasteCost: { type: number }
+        shortageQuantity: { type: number }
+        shortageBeforeDelivery: { type: number }
+        closingStock: { type: number }
+    ReorderPreview:
+      type: object
+      required: [planId, unit, dailyUsage, reviewThrough, evaluatedThrough, original, recommended, scenario, purchaseReduction, wasteReduction, approvalAllowed, warnings]
+      properties:
+        planId: { type: string }
+        unit: { type: string }
+        dailyUsage: { type: number }
+        reviewThrough: { type: string }
+        evaluatedThrough: { type: string }
+        original: { $ref: "#/components/schemas/ReorderScenario" }
+        recommended: { $ref: "#/components/schemas/ReorderScenario" }
+        scenario: { $ref: "#/components/schemas/ReorderScenario" }
+        purchaseReduction: { type: number }
+        wasteReduction: { type: number }
+        approvalAllowed: { type: boolean }
+        warnings: { type: array, items: { type: string } }
     ReorderDecisionInput:
       type: object
       required: [decision, approver]

@@ -278,6 +278,41 @@ export interface NotificationReview {
   notice: string;
 }
 
+export interface ReorderPreviewInput {
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  quantity: number;
+  deliveryDate: string;
+}
+
+export interface ReorderScenario {
+  quantity: number;
+  deliveryDate: string;
+  purchaseCost: number;
+  wasteQuantity: number;
+  wasteCost: number;
+  shortageQuantity: number;
+  shortageBeforeDelivery: number;
+  closingStock: number;
+}
+
+export interface ReorderPreview {
+  planId: string;
+  unit: string;
+  dailyUsage: number;
+  reviewThrough: string;
+  evaluatedThrough: string;
+  original: ReorderScenario;
+  recommended: ReorderScenario;
+  scenario: ReorderScenario;
+  purchaseReduction: number;
+  wasteReduction: number;
+  approvalAllowed: boolean;
+  warnings: string[];
+}
+
 export type ReorderDecisionInputDecision = typeof ReorderDecisionInputDecision[keyof typeof ReorderDecisionInputDecision];
 
 

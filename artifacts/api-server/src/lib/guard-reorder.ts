@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { GetReordersResponse } from "@workspace/api-zod";
+import { GetReordersResponse, PreviewReorderResponse } from "@workspace/api-zod";
 import { compute, today, shift, daysBetween, round, type Stored } from "./guard-model";
 import { InputError } from "./guard-follow-ups";
 import { stockBatches } from "./guard-batches";
@@ -22,8 +22,8 @@ function fingerprint(s: Stored, id: string): string {
  * Existing incoming is the target order, replaced rather than added a second time.
  * No inventory is consumed or mutated by this simulation.
  */
-function simulate(i: Ingredient, usage: number, arrival: string, quantity: number, config: Config, end: string) {
-  const d = today(), horizon = shift(arrival, config.reviewDays - 1);
+function simulate(i: Ingredient, usage: number, arrival: string, quantity: number, config: Config, end: string, reviewThrough = shift(arrival, config.reviewDays - 1)) {
+  const d = today(), horizon = reviewThrough;
   const batches = [
     ...stockBatches(i).map(b => ({ available: shift(d, 1), expiry: b.expiry, quantity: b.quantity })),
     { available: arrival, expiry: shift(arrival, config.shelfDays - 1), quantity },
@@ -117,6 +117,58 @@ export function scanReorders(s: Stored) {
   }
   s.reordering.lastScan = new Date().toISOString();
   if (count) s.activity.unshift({ id: crypto.randomUUID(), time: s.reordering.lastScan, title: "Waste-aware reorder scan", detail: `${count} simulated order proposals generated. No delivery or inventory changed; human approval required.`, decision: "automation", impact: 0 });
+}
+
+/** Read-only scenario analysis. Never execute, log, migrate, or modify a proposal. */
+export function previewReorder(s: Stored, id: string, input: { quantity: number; deliveryDate: string }): typeof PreviewReorderResponse._output {
+  const plan = s.reordering?.plans.find(p => p.id === id);
+  if (!plan) throw new InputError("Proposal not found. Run a reorder scan first.");
+  if (plan.status !== "PENDING_APPROVAL") throw new InputError("This proposal is already decided or superseded. Preview a fresh pending proposal.");
+  if (plan.fingerprint !== fingerprint(s, plan.line.ingredientId)) throw new InputError("Stock, forecast, date or settings changed. Run a reorder scan for a fresh proposal.");
+  if (!plan.line.demandAvailable) throw new InputError("Reconcile missing sales, usage or delivery information before previewing this order.");
+  const copy = structuredClone(s);
+  const ingredient = copy.ingredients.find(i => i.id === plan.line.ingredientId);
+  if (!ingredient) throw new InputError("Ingredient no longer exists.");
+  const { quantity, deliveryDate } = input, config = configFor(copy, ingredient.id);
+  if (!Number.isFinite(quantity) || quantity < 0 || quantity > 1e6) throw new InputError("Enter a quantity from 0 to 1,000,000.");
+  if (ingredient.unit === "pcs" && !Number.isInteger(quantity)) throw new InputError("Orders measured in pieces require whole quantities.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate) || !Number.isFinite(Date.parse(deliveryDate)) || new Date(deliveryDate).toISOString().slice(0, 10) !== deliveryDate || deliveryDate <= today() || deliveryDate > shift(today(), 60)) throw new InputError("Choose a valid future delivery date within 60 days.");
+  if (deliveryDate !== ingredient.deliveryDate && deliveryDate < shift(today(), config.leadDays)) throw new InputError("New or rescheduled delivery cannot arrive before supplier lead time.");
+  const line = analyzeReorders(copy).find(l => l.ingredientId === ingredient.id)!;
+  const reviewThrough = shift([line.deliveryDate, deliveryDate].sort().at(-1)!, config.reviewDays - 1);
+  const expiryEnd = [
+    reviewThrough, shift(line.deliveryDate, config.shelfDays - 1), shift(deliveryDate, config.shelfDays - 1),
+    ...stockBatches(ingredient).filter(b => b.quantity > 0).map(b => b.expiry),
+  ].sort().at(-1)!;
+  const evaluatedThrough = expiryEnd > shift(today(), 90) ? shift(today(), 90) : expiryEnd;
+  const scenarioFor = (amount: number, arrival: string) => {
+    const result = simulate(ingredient, line.dailyUsage, arrival, amount, config, evaluatedThrough, reviewThrough);
+    return {
+      quantity: amount, deliveryDate: arrival, purchaseCost: round(amount * ingredient.cost),
+      wasteQuantity: result.waste, wasteCost: round(result.waste * ingredient.cost),
+      shortageQuantity: result.shortage, shortageBeforeDelivery: result.before, closingStock: round(result.closing),
+    };
+  };
+  const original = scenarioFor(line.originalQuantity, line.deliveryDate);
+  const recommended = scenarioFor(line.recommendedQuantity, line.deliveryDate);
+  const scenario = scenarioFor(quantity, deliveryDate);
+  const approvalAllowed = quantity === 0 || quantity >= config.minOrder;
+  const warnings = [
+    "Preview only. Estimates use the same daily usage on each day, expiry-batch allocation and delivery-before-consumption assumptions. Not measured savings or a demand guarantee.",
+    "Each scenario replaces the one planned incoming delivery; it is not added to it. Received inventory and all purchase records remain unchanged.",
+  ];
+  if (!approvalAllowed) warnings.push(`Below supplier minimum of ${config.minOrder} ${ingredient.unit}. You can explore this quantity, but approval requires zero or at least the minimum.`);
+  if (scenario.shortageBeforeDelivery > 0) warnings.push(`${scenario.shortageBeforeDelivery} ${ingredient.unit} of demand may be unmet before delivery. A larger order on the same date cannot fix earlier shortages.`);
+  if (scenario.shortageQuantity > scenario.shortageBeforeDelivery) warnings.push(`${round(scenario.shortageQuantity - scenario.shortageBeforeDelivery)} ${ingredient.unit} of demand may be unmet on or after delivery; review quantity, shelf life or split deliveries.`);
+  if (scenario.wasteQuantity > original.wasteQuantity) warnings.push("This scenario increases modeled expiry waste compared with the original order.");
+  if (line.expiredQuantity > 0) warnings.push(`${line.expiredQuantity} ${ingredient.unit} is already expired, is never usable, and is included in modeled waste in every scenario.`);
+  if (scenario.closingStock < config.safetyStock) warnings.push(`Closing usable stock is below the ${config.safetyStock} ${ingredient.unit} safety-stock assumption.`);
+  if (expiryEnd > evaluatedThrough) warnings.push("Waste assessment is capped at 90 days; stock expiring later is not evaluated.");
+  return {
+    planId: id, unit: ingredient.unit, dailyUsage: line.dailyUsage, reviewThrough, evaluatedThrough,
+    original, recommended, scenario, purchaseReduction: round(original.purchaseCost - scenario.purchaseCost),
+    wasteReduction: round(original.wasteQuantity - scenario.wasteQuantity), approvalAllowed, warnings,
+  };
 }
 
 export function decideReorder(s: Stored, id: string, input: { decision: "approve" | "reject"; approver: string; quantity?: number; deliveryDate?: string }, execute?: (i: Ingredient, quantity: number, date: string) => void) {

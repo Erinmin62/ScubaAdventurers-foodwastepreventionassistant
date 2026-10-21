@@ -8,7 +8,7 @@ import notificationsRouter from "../routes/guard-notifications";
 import inboxRouter from "../routes/guard-inbox";
 import { createHmac } from "node:crypto";
 import { defaultNotificationSettings } from "./guard-notifications";
-import { GetInboxResponse, GetMonitorHeartbeatStatusResponse, GetNotificationsResponse, ReviewNotificationResponse } from "@workspace/api-zod";
+import { GetInboxResponse, GetMonitorHeartbeatStatusResponse, GetNotificationsResponse, ReviewNotificationResponse, PreviewReorderResponse } from "@workspace/api-zod";
 import { resetWorkspace, snapshotWorkspace } from "./guard-http-fixture";
 import { seed, shift, today, compute, type State } from "./guard-model";
 import type { Reorders } from "./guard-reorder";
@@ -57,6 +57,51 @@ async function scan() {
   return (response.data as Reorders).plans.find(p => p.status === "PENDING_APPROVAL")!;
 }
 const endpoint = (id: string) => `/guard/reorders/${id}/decision`;
+test("HTTP: what-if previews are validated and completely read-only; only explicit approval executes once", async () => {
+  fixture();
+  const p = await scan(), path = `/guard/reorders/${p.id}/preview`, before = snapshotWorkspace();
+  for (const quantity of [2, 20, 0, 2]) {
+    const response = await request(path, { quantity, deliveryDate: p.line.deliveryDate });
+    assert.equal(response.status, 200);
+    const result = PreviewReorderResponse.parse(response.data);
+    assert.equal(result.scenario.quantity, quantity);
+    assert.equal(result.scenario.purchaseCost, quantity * p.line.unitCost);
+    assert.deepEqual(snapshotWorkspace(), before, "preview must not change activity, proposals, inventory, deliveries or notification records");
+  }
+  for (const body of [
+    {}, { quantity: -1, deliveryDate: p.line.deliveryDate },
+    { quantity: "2", deliveryDate: p.line.deliveryDate },
+    { quantity: 2, deliveryDate: today() },
+    { quantity: 2, deliveryDate: "not-a-date" },
+  ]) {
+    assert.equal((await request(path, body)).status, 400);
+    assert.deepEqual(snapshotWorkspace(), before);
+  }
+  const approved = await request(endpoint(p.id), { decision: "approve", quantity: 2, deliveryDate: p.line.deliveryDate, approver: "What-if owner" });
+  assert.equal(approved.status, 200);
+  assert.equal((approved.data as Reorders).plans.find(x => x.id === p.id)!.status, "EXECUTED");
+  const after = snapshotWorkspace();
+  assert.equal(after.ingredients[0]!.deliveryQuantity, 2);
+  assert.equal(after.ingredients[0]!.quantity, before.ingredients[0]!.quantity);
+  assert.equal(after.activity.filter(x => x.title.startsWith("Reorder executed:")).length, 1);
+  assert.equal((await request(path, { quantity: 3, deliveryDate: p.line.deliveryDate })).status, 400);
+  assert.deepEqual(snapshotWorkspace(), after);
+  await request(endpoint(p.id), { decision: "approve", quantity: 3, approver: "Replay" });
+  assert.equal(snapshotWorkspace().ingredients[0]!.deliveryQuantity, 2);
+  assert.equal(snapshotWorkspace().activity.filter(x => x.title.startsWith("Reorder executed:")).length, 1);
+});
+
+test("HTTP: rejected proposals cannot be previewed or executed by reusing a scenario", async () => {
+  fixture();
+  const p = await scan();
+  await request(`/guard/reorders/${p.id}/preview`, { quantity: 2, deliveryDate: p.line.deliveryDate });
+  await request(endpoint(p.id), { decision: "reject", approver: "Owner" });
+  const rejected = snapshotWorkspace();
+  assert.equal((await request(`/guard/reorders/${p.id}/preview`, { quantity: 2, deliveryDate: p.line.deliveryDate })).status, 400);
+  assert.deepEqual(snapshotWorkspace(), rejected);
+  await request(endpoint(p.id), { decision: "approve", quantity: 2, approver: "Replay" });
+  assert.equal(snapshotWorkspace().ingredients[0]!.deliveryQuantity, rejected.ingredients[0]!.deliveryQuantity);
+});
 test("Auth: missing workspace context fails closed and concurrent owner contexts stay isolated", async () => {
   assert.throws(() => currentWorkspaceId(), /authenticated workspace/);
   await Promise.all(["a", "b"].map(id => inWorkspace(ownerWorkspaceId(id), async () => {
@@ -95,6 +140,7 @@ test("HTTP auth: anonymous access is denied and owner data, approvals, preferenc
     for (const [path, body, method] of [
       ["/guard/state"], ["/guard/inbox"], ["/guard/notifications"],
       ["/guard/notifications", {}, "PATCH"], ["/guard/reorders/scan", {}],
+      ["/guard/reorders/any/preview", { quantity: 2, deliveryDate: shift(today(), 2) }],
       ["/guard/recommendations/any/decision", {}], ["/guard/notifications/review", { token: "x".repeat(43) }],
     ] as const) {
       assert.equal((await call(path, undefined, body, method)).status, 401);
@@ -104,6 +150,9 @@ test("HTTP auth: anonymous access is denied and owner data, approvals, preferenc
     assert.equal((await call("/guard/state", "auth-test-a", undefined, undefined, { Origin: "https://attacker.example" })).status, 403);
     const plan = (await call("/guard/reorders/scan", "auth-test-a", {})).data.plans.find((p: { status: string }) => p.status === "PENDING_APPROVAL");
     assert.ok(plan);
+    const previewBody = { quantity: 3, deliveryDate: plan.line.deliveryDate };
+    assert.equal((await call(`/guard/reorders/${plan.id}/preview`, "auth-test-a", previewBody)).status, 200);
+    assert.equal((await call(`/guard/reorders/${plan.id}/preview`, "auth-test-b", previewBody)).status, 400);
     const bBefore = snapshotWorkspace(b);
     const crossDecision = await call(endpoint(plan.id), "auth-test-b", { decision: "approve", quantity: 3, approver: "A" });
     assert.notEqual(crossDecision.status, 200);

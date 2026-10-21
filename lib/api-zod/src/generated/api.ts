@@ -1119,6 +1119,63 @@ export const ConfigureReorderResponse = zod.object({
 })
 
 
+export const PreviewReorderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const previewReorderBodyQuantityMin = 0;
+export const previewReorderBodyQuantityMax = 1000000;
+
+
+
+export const PreviewReorderBody = zod.object({
+  "quantity": zod.number().min(previewReorderBodyQuantityMin).max(previewReorderBodyQuantityMax),
+  "deliveryDate": zod.string()
+})
+
+export const PreviewReorderResponse = zod.object({
+  "planId": zod.string(),
+  "unit": zod.string(),
+  "dailyUsage": zod.number(),
+  "reviewThrough": zod.string(),
+  "evaluatedThrough": zod.string(),
+  "original": zod.object({
+  "quantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "purchaseCost": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "shortageQuantity": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "closingStock": zod.number()
+}),
+  "recommended": zod.object({
+  "quantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "purchaseCost": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "shortageQuantity": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "closingStock": zod.number()
+}),
+  "scenario": zod.object({
+  "quantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "purchaseCost": zod.number(),
+  "wasteQuantity": zod.number(),
+  "wasteCost": zod.number(),
+  "shortageQuantity": zod.number(),
+  "shortageBeforeDelivery": zod.number(),
+  "closingStock": zod.number()
+}),
+  "purchaseReduction": zod.number(),
+  "wasteReduction": zod.number(),
+  "approvalAllowed": zod.boolean(),
+  "warnings": zod.array(zod.string())
+})
+
+
 export const DecideReorderParams = zod.object({
   "id": zod.coerce.string()
 })

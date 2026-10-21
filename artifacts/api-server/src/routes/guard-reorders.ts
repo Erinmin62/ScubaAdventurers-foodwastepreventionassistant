@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { ConfigureReorderBody, DecideReorderBody, GetReordersResponse } from "@workspace/api-zod";
-import { changeWorkspace } from "../lib/guard-store";
-import { configFor, decideReorder, reorderState, scanReorders, type Reorders } from "../lib/guard-reorder";
+import { ConfigureReorderBody, DecideReorderBody, GetReordersResponse, PreviewReorderBody, PreviewReorderResponse } from "@workspace/api-zod";
+import { changeWorkspace, readWorkspace } from "../lib/guard-store";
+import { configFor, decideReorder, previewReorder, reorderState, scanReorders, type Reorders } from "../lib/guard-reorder";
 import { InputError } from "../lib/guard-follow-ups";
 import { runWorkflows } from "../lib/guard-automation";
 
@@ -30,6 +30,16 @@ router.patch("/guard/reorders/settings", async (req, res) => {
       scanReorders(s); result = reorderState(s);
     }, false);
     res.json(GetReordersResponse.parse(result));
+  } catch (e) { if (e instanceof InputError) { res.status(400).json({ error: e.message }); return; } throw e; }
+});
+router.post("/guard/reorders/:id/preview", async (req, res) => {
+  const body = PreviewReorderBody.safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Enter a valid quantity and delivery date." }); return; }
+  try {
+    const state = await readWorkspace();
+    if (!state) { res.status(404).json({ error: "Workspace not found. Open the dashboard first." }); return; }
+    res.setHeader("Cache-Control", "no-store");
+    res.json(PreviewReorderResponse.parse(previewReorder(state, req.params.id, body.data)));
   } catch (e) { if (e instanceof InputError) { res.status(400).json({ error: e.message }); return; } throw e; }
 });
 router.post("/guard/reorders/:id/decision", async (req, res) => {

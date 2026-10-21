@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { ReorderPreviewPanel, previewKey, type PreviewStatus } from '@/components/reorder-preview';
 import { addDays, errorMessage, fmt, niceDate, rm, useGuard } from '@/lib/guard';
 
 function useInvalidate() {
@@ -53,7 +54,7 @@ function LineFacts({ l }: { l: ReorderLine }) {
       <Cell label="Incoming (1 batch)" value={`${fmt(l.incomingQuantity)} ${u} · ${niceDate(l.incomingDate)}`} />
       <Cell label="Daily usage" value={l.demandAvailable ? `${fmt(l.dailyUsage, 2)} ${u}/day` : 'Review needed'} tone={l.demandAvailable ? undefined : 'bad'} />
       <Cell label="Horizon demand" value={`${fmt(l.expectedDemand)} ${u}`} />
-      <Cell label="Original order" value={`${fmt(l.originalQuantity)} ${u} · ${rm(l.originalCost)}`} />
+      <Cell label="Original order (snapshot)" value={`${fmt(l.originalQuantity)} ${u} · ${rm(l.originalCost)}`} />
       <Cell label="Proposed total delivery" value={`${fmt(l.recommendedQuantity)} ${u} · ${rm(l.proposedCost)}`} tone="good" />
       <Cell label="Additional beyond incoming" value={`${fmt(l.additionalQuantity)} ${u}`} />
       <Cell label="Delivery date" value={niceDate(l.deliveryDate)} />
@@ -83,6 +84,8 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
   const [date, setDate] = useState(l.deliveryDate);
   const [name, setName] = useState('');
   const [reviewed, setReviewed] = useState(false);
+  const [previewStatus, setPreviewStatus] = useState<PreviewStatus>(null);
+  useEffect(() => { setReviewed(false); }, [qty, date]);
   const approveButton = useRef<HTMLButtonElement>(null);
   const rejectButton = useRef<HTMLButtonElement>(null);
   const decisionHeading = useRef<HTMLDivElement>(null);
@@ -95,7 +98,8 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
   const dateOk = !!date && (date >= minDate || keepsExisting);
   const nameOk = name.trim().length > 0 && name.trim().length <= 80;
   const delayed = date > l.deliveryDate;
-  const canApprove = l.demandAvailable && qtyOk && dateOk && nameOk && reviewed;
+  const previewOk = !!previewStatus && previewStatus.key === previewKey(plan.id, qty, date) && previewStatus.approvalAllowed;
+  const canApprove = l.demandAvailable && qtyOk && dateOk && nameOk && reviewed && previewOk;
   const pending = plan.status === 'PENDING_APPROVAL';
   useEffect(() => {
     if (mode) {
@@ -158,7 +162,7 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
       )}
       {pending && !mode && (
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button ref={approveButton} size="sm" className="min-h-11 w-full sm:w-auto font-semibold" onClick={() => { returnFocusTo.current = 'approve'; setMode('approve'); }} aria-describedby={!l.demandAvailable ? `review-required-${plan.id}` : undefined} data-testid={`button-review-${plan.id}`}><Check className="w-4 h-4 mr-1" />Review and approve</Button>
+          <Button ref={approveButton} size="sm" className="min-h-11 w-full sm:w-auto font-semibold" onClick={() => { returnFocusTo.current = 'approve'; setReviewed(false); setPreviewStatus(null); setMode('approve'); }} aria-describedby={!l.demandAvailable ? `review-required-${plan.id}` : undefined} data-testid={`button-review-${plan.id}`}><Check className="w-4 h-4 mr-1" />Review and approve</Button>
           <Button ref={rejectButton} size="sm" variant="outline" className="min-h-11 w-full sm:w-auto border-destructive/50 text-destructive hover:bg-destructive/5" onClick={() => { returnFocusTo.current = 'reject'; setMode('reject'); }} data-testid={`button-reject-${plan.id}`}><X className="w-4 h-4 mr-1" />Reject</Button>
         </div>
       )}
@@ -167,17 +171,12 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
           <div ref={decisionHeading} id={`decision-heading-${plan.id}`} tabIndex={-1} className="text-xs font-bold uppercase tracking-wider text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{mode === 'approve' ? 'Full review before approval' : 'Confirm rejection'}</div>
           <LineFacts l={l} />
           <Assumptions l={l} />
+          {mode === 'approve' && <p className="text-[11px] text-muted-foreground">Figures above are the original recommendation snapshot from the scan. The live preview below re-estimates for your quantity and date.</p>}
           {mode === 'approve' && (
             <div className="grid sm:grid-cols-2 gap-3">
               <label className="text-xs font-semibold space-y-1">Quantity ({l.unit})
                 <Input type="number" min={0} step="0.1" value={qty} onChange={(e) => setQty(e.target.value)} data-testid={`input-qty-${plan.id}`} />
-                {qtyOk && (() => { const ch = qn * l.unitCost - l.originalCost; return (
-                  <span className="block rounded-lg bg-muted/50 px-3 py-2" data-testid={`text-cost-change-${plan.id}`}>
-                    <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Cost change vs original</span>
-                    <span className={cn('block num text-2xl font-extrabold', ch < 0 ? 'text-jade' : ch > 0 ? 'text-destructive' : '')}>{ch < 0 ? '-' : ch > 0 ? '+' : ''}{rm(Math.abs(ch))}</span>
-                    <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Estimate · not yet realised</span>
-                  </span>); })()}
-                <span className="block font-normal text-muted-foreground">Edited purchasing cost {qtyOk ? rm(qn * l.unitCost) : '-'}. Positive quantities must meet minimum order {fmt(l.config.minOrder)} {l.unit} (checked by server).</span>
+                <span className="block font-normal text-muted-foreground">Positive quantities must meet minimum order {fmt(l.config.minOrder)} {l.unit} (checked by server).</span>
                 {!qtyOk && <span className="block text-destructive">Enter a number of 0 or more.</span>}
               </label>
               <label className="text-xs font-semibold space-y-1">Delivery date
@@ -188,7 +187,8 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
               </label>
             </div>
           )}
-          {mode === 'approve' && (qn !== l.recommendedQuantity || date !== l.deliveryDate) && <p className="text-xs text-muted-foreground">Waste and demand figures above describe the original recommendation, not your edited quantity/date. Edited waste impact has not been evaluated. No waste reduction is claimed for an override.</p>}
+          {mode === 'approve' && <ReorderPreviewPanel plan={plan} qty={qty} date={date} inputsValid={qtyOk && dateOk} onStatus={setPreviewStatus} onRestore={(q, d) => { setQty(q); setDate(d); }} />}
+          {mode === 'approve' && l.demandAvailable && !previewOk && <p className="text-xs text-muted-foreground" data-testid={`text-approval-needs-preview-${plan.id}`}>Approval unlocks only after a successful preview of the current quantity and date that the server allows.</p>}
           <label className="text-xs font-semibold space-y-1 block">Decision note / name (self-reported; access is restricted to your signed-in account)
             <Input maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Owner name" data-testid={`input-approver-${plan.id}`} />
           </label>

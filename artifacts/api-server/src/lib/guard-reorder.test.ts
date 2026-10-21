@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { compute, seed, shift, today, type Stored } from "./guard-model";
 import { migrateBatches, safeStock, syncStock } from "./guard-batches";
-import { analyzeReorders, decideReorder, scanReorders } from "./guard-reorder";
+import { analyzeReorders, decideReorder, previewReorder, scanReorders } from "./guard-reorder";
 import { runWorkflows } from "./guard-automation";
 
 test("legacy migration preserves quantities, unknown receipt dates, deliveries and history on repeated JSON reload", () => {
@@ -225,4 +225,102 @@ test("automated scans create drafts only and repeat scans do not duplicate uncha
   scanReorders(s);
   assert.equal(s.reordering!.plans.length, 2);
   assert.equal(s.reordering!.plans[1]!.status, "SUPERSEDED");
+});
+
+test("what-if compares original, recommended and edited orders without mutating any state", () => {
+  const s = fixture(0, 4), p = proposal(s), before = structuredClone(s);
+  const result = previewReorder(s, p.id, { quantity: 2, deliveryDate: p.line.deliveryDate });
+  assert.deepEqual(s, before);
+  assert.equal(result.original.purchaseCost, 40);
+  assert.equal(result.recommended.quantity, 4);
+  assert.equal(result.scenario.purchaseCost, 20);
+  assert.equal(result.purchaseReduction, 20);
+  assert.equal(result.original.shortageQuantity, 2);
+  assert.equal(result.scenario.shortageQuantity, 4);
+  assert.equal(result.scenario.shortageBeforeDelivery, 2);
+  assert.equal(result.scenario.wasteQuantity, 0);
+  assert.equal(result.approvalAllowed, true);
+  assert.match(result.warnings.join(" "), /unmet on or after delivery/);
+  const oversized = previewReorder(s, p.id, { quantity: 20, deliveryDate: p.line.deliveryDate });
+  assert.equal(oversized.scenario.wasteQuantity, 10);
+  assert.equal(oversized.scenario.wasteCost, 100);
+  assert.equal(oversized.purchaseReduction, -160);
+  assert.equal(oversized.wasteReduction, -10);
+  assert.deepEqual(s, before);
+});
+
+test("what-if replaces incoming stock and permits zero without double-counting", () => {
+  const s = fixture(4, 4), p = proposal(s);
+  const result = previewReorder(s, p.id, { quantity: 2, deliveryDate: p.line.deliveryDate });
+  assert.equal(result.scenario.shortageQuantity, 0);
+  assert.equal(result.scenario.closingStock, 0);
+  assert.equal(result.original.closingStock, 2);
+  const zero = previewReorder(s, p.id, { quantity: 0, deliveryDate: p.line.deliveryDate });
+  assert.equal(zero.scenario.purchaseCost, 0);
+  assert.equal(zero.scenario.shortageQuantity, 2);
+  assert.equal(zero.approvalAllowed, true);
+});
+
+test("what-if delivery-date comparisons use one common demand horizon", () => {
+  const s = fixture(0, 4), p = proposal(s);
+  const result = previewReorder(s, p.id, { quantity: 4, deliveryDate: shift(today(), 4) });
+  assert.equal(result.reviewThrough, shift(today(), 5));
+  assert.equal(result.original.shortageQuantity, 6);
+  assert.equal(result.scenario.shortageQuantity, 6);
+  assert.equal(result.original.shortageBeforeDelivery, 2);
+  assert.equal(result.scenario.shortageBeforeDelivery, 6);
+});
+
+test("what-if ignores expired stock and allocates separate batches by expiry", () => {
+  const s = fixture(8, 4), i = s.ingredients[0]!;
+  i.batches = [
+    { id: "expired", quantity: 6, expiry: shift(today(), -1), receivedDate: null },
+    { id: "usable", quantity: 2, expiry: shift(today(), 1), receivedDate: null },
+  ];
+  const p = proposal(s), before = structuredClone(s);
+  const result = previewReorder(s, p.id, { quantity: 4, deliveryDate: p.line.deliveryDate });
+  assert.equal(result.scenario.shortageQuantity, 0);
+  assert.equal(result.scenario.wasteQuantity, 6);
+  assert.match(result.warnings.join(" "), /already expired, is never usable/);
+  assert.deepEqual(s, before);
+});
+
+test("what-if allows below-minimum exploration but blocks its approval; invalid and stale requests are read-only", () => {
+  const s = fixture(0, 4);
+  s.reordering!.settings[0]!.minOrder = 5;
+  const p = proposal(s);
+  const result = previewReorder(s, p.id, { quantity: 2, deliveryDate: p.line.deliveryDate });
+  assert.equal(result.approvalAllowed, false);
+  assert.match(result.warnings.join(" "), /Below supplier minimum/);
+  assert.equal(previewReorder(s, p.id, { quantity: 0, deliveryDate: p.line.deliveryDate }).approvalAllowed, true);
+  const before = structuredClone(s);
+  for (const quantity of [-1, NaN, Infinity, 1_000_001]) {
+    assert.throws(() => previewReorder(s, p.id, { quantity, deliveryDate: p.line.deliveryDate }));
+  }
+  for (const deliveryDate of [today(), shift(today(), 1), shift(today(), 61), "2026-02-30", "invalid"]) {
+    assert.throws(() => previewReorder(s, p.id, { quantity: 5, deliveryDate }));
+  }
+  assert.throws(() => previewReorder(s, "missing", { quantity: 5, deliveryDate: p.line.deliveryDate }));
+  assert.deepEqual(s, before);
+  s.ingredients[0]!.quantity++;
+  const stale = structuredClone(s);
+  assert.throws(() => previewReorder(s, p.id, { quantity: 5, deliveryDate: p.line.deliveryDate }), /changed/);
+  assert.deepEqual(s, stale);
+  assert.equal(p.status, "PENDING_APPROVAL");
+});
+
+test("what-if requires whole pieces, known demand and a pending proposal", () => {
+  const s = fixture(0, 4);
+  s.ingredients[0]!.unit = "pcs";
+  const p = proposal(s);
+  assert.throws(() => previewReorder(s, p.id, { quantity: 2.5, deliveryDate: p.line.deliveryDate }), /whole/);
+  decideReorder(s, p.id, { decision: "reject", approver: "Owner" });
+  const rejected = structuredClone(s);
+  assert.throws(() => previewReorder(s, p.id, { quantity: 2, deliveryDate: p.line.deliveryDate }), /already decided/);
+  assert.deepEqual(s, rejected);
+  const unknown = fixture();
+  unknown.sales = [];
+  delete unknown.reordering!.settings[0]!.dailyUsage;
+  const incomplete = proposal(unknown);
+  assert.throws(() => previewReorder(unknown, incomplete.id, { quantity: 2, deliveryDate: incomplete.line.deliveryDate }), /missing sales/);
 });
