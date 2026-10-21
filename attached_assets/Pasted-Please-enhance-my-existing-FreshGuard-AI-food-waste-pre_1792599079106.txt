@@ -1,0 +1,117 @@
+Please enhance my existing **FreshGuard AI food waste prevention application** by implementing an automated email notification system for café and restaurant owners.
+
+**IMPORTANT:**
+- Modify my existing application. Do not rebuild it from scratch.
+- Inspect the current codebase, framework, database, inventory schema, and existing workflows before making changes.
+- Preserve all existing features, UI design, database records, and functionality.
+- Reuse existing inventory fields, including `id`, `name`, `quantity`, `unit`, `expiry`, `cost`, `category`, `deliveryQuantity`, and `deliveryDate`, wherever applicable.
+- Implement working functionality, not just a UI mockup.
+- If a required field or integration is missing, explain the issue and use the simplest compatible solution.
+
+### 1. Critical Expiry Email — Immediate Alert
+
+Automatically notify the owner when an ingredient:
+- Has expired.
+- Is approaching expiry within 24 hours.
+
+Requirements:
+- Send an email when a new critical condition is detected.
+- Include ingredient name, quantity, unit, expiry date, inventory value at risk, and recommended action.
+- Clearly distinguish already-expired ingredients from ingredients that will expire soon.
+- Recommend checking expired ingredients before use and prioritising safe-to-use ingredients approaching expiry.
+- Prevent duplicate emails for the same ingredient and expiry event.
+- If the ingredient's expiry date changes or the ingredient is restocked with a new batch, handle the new event appropriately.
+
+Example subject: `URGENT: FreshGuard AI — Ingredient Expiry Alert`
+
+### 2. Pending Approval Email — Action Required
+
+Notify the owner whenever an action genuinely requires approval, such as a purchase recommendation or another existing workflow action.
+
+Requirements:
+- Trigger an email when an item enters the pending-approval state.
+- Include the action requiring approval, relevant ingredient or purchase details, estimated cost, and reason for the recommendation.
+- Include a link to the relevant page in the application if a suitable route exists.
+- Send a reminder if approval remains pending for 24 hours, without sending repeated reminders unnecessarily.
+- Stop pending-approval reminders when the action is approved, rejected, or cancelled.
+- Do not invent an approval workflow if the application does not currently have one. Implement the smallest compatible workflow if necessary.
+
+Example subject: `Action Required: FreshGuard AI — Pending Approval`
+
+### 3. Approaching Expiry Email — Daily Digest
+
+Send the owner one consolidated email each day listing ingredients approaching expiry within the next 2–3 days.
+
+Requirements:
+- Include ingredient name, quantity, unit, expiry date, and estimated inventory value at risk.
+- Recommend practical actions, such as prioritising suitable ingredients in menu preparation or checking stock before placing another order.
+- Exclude ingredients already covered by a critical-expiry alert from the routine digest.
+- Avoid sending an empty digest when there are no relevant ingredients.
+- Prevent multiple copies of the same daily digest.
+
+Example subject: `Daily FreshGuard AI Digest — Ingredients Approaching Expiry`
+
+### 4. Email Configuration and Security
+
+Use a reliable email provider supported by the existing project. If no provider is configured, use a simple SMTP integration or a suitable email service compatible with the existing stack.
+
+Requirements:
+- Read email credentials and configuration from environment variables or Replit Secrets.
+- Never hardcode credentials, API keys, or passwords.
+- Provide clear setup instructions explaining exactly which environment variables I must configure.
+- Make the recipient email address configurable.
+- Include a safe test-email feature so I can verify delivery without triggering real inventory alerts.
+- Do not expose sensitive configuration values in logs, API responses, or the frontend.
+
+### 5. Automation and Reliability
+
+Implement the following behaviour:
+- Critical expiry alerts: send promptly when a new critical event is detected.
+- Pending approval alerts: send when approval becomes necessary.
+- Approaching expiry digest: run once daily.
+- Track notification status, event type, recipient, related ingredient or action, timestamp, and delivery result.
+- Implement deduplication and sensible retry handling for transient email failures.
+- Ensure scheduled jobs do not run multiple times unintentionally.
+- Do not rely solely on the browser being open for scheduled notifications.
+- If persistent background scheduling is unavailable in the current Replit deployment, explain the limitation and implement the simplest reliable alternative supported by the project.
+- Handle time zones consistently using the configured business time zone, preferably `Asia/Kuala_Lumpur`.
+
+### 6. User Interface
+
+Integrate the notification functionality into my existing FreshGuard AI interface.
+
+Add or update:
+- Notification preferences for enabling or disabling each notification type.
+- A configurable owner email address.
+- A `Test Email` button with loading, success, and error states.
+- A notification history section showing notification type, related item, timestamp, and delivery status.
+- Clear messages explaining when a notification has been sent, is pending, or has failed.
+
+Keep the existing UI style and make the new features responsive.
+
+### 7. Testing
+
+Test the following scenarios using synthetic data:
+1. An ingredient expires tomorrow and triggers a critical alert.
+2. An ingredient expires in three days and appears in the daily digest.
+3. An expired ingredient is identified correctly and is not recommended for consumption.
+4. An approval-required action triggers an email.
+5. An approved or rejected action no longer triggers pending reminders.
+6. Repeated checks do not generate duplicate emails.
+7. Email delivery failure is handled and recorded.
+8. Disabled notification preferences prevent the corresponding email from being sent.
+9. An empty inventory produces no unnecessary digest.
+10. Existing FreshGuard AI features continue to work.
+
+Use a mock email provider or test mode if live credentials are not configured. Never claim that a real email was delivered unless delivery has been verified.
+
+### 8. Final Deliverables
+
+After implementation:
+- Summarise the files and features changed.
+- Explain exactly how to configure the required Replit Secrets.
+- Explain how to run and test each notification.
+- Identify which features work locally and which require deployment or a persistent scheduler.
+- Report the tests that actually passed and any remaining limitations.
+
+Implement the critical-expiry notification first, then pending approval, then the daily digest. Verify each stage before proceeding to the next.

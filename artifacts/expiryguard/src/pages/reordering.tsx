@@ -94,7 +94,7 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
   const minDate = addDays(today, l.config.leadDays);
   const keepsExisting = date === l.deliveryDate && date > today;
   const qn = Number(qty);
-  const qtyOk = qty.trim() !== '' && Number.isFinite(qn) && qn >= 0;
+  const qtyOk = qty.trim() !== '' && Number.isFinite(qn) && qn >= 0 && (l.unit !== 'pcs' || Number.isInteger(qn));
   const dateOk = !!date && (date >= minDate || keepsExisting);
   const nameOk = name.trim().length > 0 && name.trim().length <= 80;
   const delayed = date > l.deliveryDate;
@@ -175,9 +175,9 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
           {mode === 'approve' && (
             <div className="grid sm:grid-cols-2 gap-3">
               <label className="text-xs font-semibold space-y-1">Quantity ({l.unit})
-                <Input type="number" min={0} step="0.1" value={qty} onChange={(e) => setQty(e.target.value)} data-testid={`input-qty-${plan.id}`} />
+                <Input type="number" min={0} step={l.unit === 'pcs' ? '1' : '0.1'} value={qty} onChange={(e) => setQty(e.target.value)} data-testid={`input-qty-${plan.id}`} />
                 <span className="block font-normal text-muted-foreground">Positive quantities must meet minimum order {fmt(l.config.minOrder)} {l.unit} (checked by server).</span>
-                {!qtyOk && <span className="block text-destructive">Enter a number of 0 or more.</span>}
+                {!qtyOk && <span className="block text-destructive">{l.unit === 'pcs' ? 'Enter a whole number of 0 or more.' : 'Enter a number of 0 or more.'}</span>}
               </label>
               <label className="text-xs font-semibold space-y-1">Delivery date
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} data-testid={`input-date-${plan.id}`} />
