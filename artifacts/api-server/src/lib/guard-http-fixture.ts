@@ -4,6 +4,7 @@
 import { compute, seed, type Stored } from "./guard-model";
 import { runWorkflows } from "./guard-automation";
 import { GetGuardStateResponse } from "@workspace/api-zod";
+import { scanNotificationEvents } from "./guard-notifications";
 
 let saved: Stored = seed();
 let tail: Promise<unknown> = Promise.resolve();
@@ -14,6 +15,7 @@ export function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun 
     const staged = structuredClone(saved);
     action(staged);
     if (autoRun) runWorkflows(staged);
+    scanNotificationEvents(staged);
     const response = GetGuardStateResponse.parse(compute(staged));
     saved = staged;
     return response;

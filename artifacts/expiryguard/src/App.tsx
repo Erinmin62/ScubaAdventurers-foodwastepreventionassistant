@@ -15,6 +15,8 @@ import Impact from '@/pages/impact';
 import Activity from '@/pages/activity';
 import Automation from '@/pages/automation';
 import Reordering from '@/pages/reordering';
+import Notifications from '@/pages/notifications';
+import NotificationReview from '@/pages/notification-review';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,8 @@ function Router() {
           <Route path="/impact" component={Impact} />
           <Route path="/reordering" component={Reordering} />
           <Route path="/automation" component={Automation} />
+          <Route path="/notifications" component={Notifications} />
+          <Route path="/notification-review" component={NotificationReview} />
           <Route path="/activity" component={Activity} />
           <Route component={NotFound} />
         </Switch>

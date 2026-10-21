@@ -5,6 +5,130 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface NotificationSettingsInput {
+  enabled: boolean;
+  /** @maxLength 20 */
+  phone: string;
+  optIn: boolean;
+  expiry: boolean;
+  recommendations: boolean;
+  approvals: boolean;
+  failures: boolean;
+  completed: boolean;
+  /**
+     * @minimum 24
+     * @maximum 168
+     */
+  reminderHours: number;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  maxReminders: number;
+  /**
+     * @minimum 1
+     * @maximum 20
+     */
+  dailyLimit: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  riskThreshold: number;
+}
+
+export type NotificationRecordKind = typeof NotificationRecordKind[keyof typeof NotificationRecordKind];
+
+
+export const NotificationRecordKind = {
+  expiry: 'expiry',
+  recommendations: 'recommendations',
+  approvals: 'approvals',
+  failures: 'failures',
+  completed: 'completed',
+} as const;
+
+export type NotificationRecordPriority = typeof NotificationRecordPriority[keyof typeof NotificationRecordPriority];
+
+
+export const NotificationRecordPriority = {
+  critical: 'critical',
+  warning: 'warning',
+  upcoming: 'upcoming',
+  info: 'info',
+} as const;
+
+export type NotificationRecordStatus = typeof NotificationRecordStatus[keyof typeof NotificationRecordStatus];
+
+
+export const NotificationRecordStatus = {
+  demo: 'demo',
+  queued: 'queued',
+  sending: 'sending',
+  accepted: 'accepted',
+  delivered: 'delivered',
+  read: 'read',
+  failed: 'failed',
+  unknown: 'unknown',
+  cancelled: 'cancelled',
+} as const;
+
+export interface NotificationRecord {
+  id: string;
+  eventId: string;
+  kind: NotificationRecordKind;
+  priority: NotificationRecordPriority;
+  title: string;
+  message: string;
+  createdAt: string;
+  status: NotificationRecordStatus;
+  reminderIndex: number;
+  attempts: number;
+  recipient: string;
+  reviewUrl: string;
+  expiresAt: string;
+  resolvedAt?: string;
+  providerMessageId?: string;
+  deliveredAt?: string;
+  lastError?: string;
+}
+
+export type NotificationStateMode = typeof NotificationStateMode[keyof typeof NotificationStateMode];
+
+
+export const NotificationStateMode = {
+  demo: 'demo',
+} as const;
+
+export interface NotificationState {
+  settings: NotificationSettingsInput;
+  records: NotificationRecord[];
+  mode: NotificationStateMode;
+  liveReady: boolean;
+  blockers: string[];
+  monitor: string;
+  lastScan?: string;
+  /** @nullable */
+  consentAt: string | null;
+}
+
+export interface NotificationReviewInput {
+  /**
+     * @minLength 40
+     * @maxLength 100
+     */
+  token: string;
+}
+
+export interface NotificationReview {
+  title: string;
+  message: string;
+  expiresAt: string;
+  path: string;
+  demo: boolean;
+  notice: string;
+}
+
 export type ReorderDecisionInputDecision = typeof ReorderDecisionInputDecision[keyof typeof ReorderDecisionInputDecision];
 
 

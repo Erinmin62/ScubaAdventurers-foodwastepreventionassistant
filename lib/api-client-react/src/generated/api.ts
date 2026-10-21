@@ -26,6 +26,10 @@ import type {
   FollowUpScheduleInput,
   GuardState,
   HealthStatus,
+  NotificationReview,
+  NotificationReviewInput,
+  NotificationSettingsInput,
+  NotificationState,
   OutcomeInput,
   RecordsInput,
   ReorderConfig,
@@ -59,6 +63,516 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetNotificationsUrl = () => {
+
+
+
+
+  return `/api/guard/notifications`
+}
+
+export const getNotifications = async ( options?: Parameters<typeof customFetch>[1]): Promise<NotificationState> => {
+
+  return customFetch<NotificationState>(getGetNotificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotificationsQueryKey = () => {
+    return [
+    `/api/guard/notifications`
+    ] as const;
+    }
+
+
+export const getGetNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotifications>>> = ({ signal }) => getNotifications({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof getNotifications>>>
+export type GetNotificationsQueryError = ErrorType<unknown>
+
+
+
+export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNotificationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveNotificationSettingsUrl = () => {
+
+
+
+
+  return `/api/guard/notifications`
+}
+
+export const saveNotificationSettings = async (notificationSettingsInput: NotificationSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<NotificationState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<NotificationState>(getSaveNotificationSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(notificationSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getSaveNotificationSettingsMutationKey = () => ['saveNotificationSettings'] as const;
+
+export const getSaveNotificationSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveNotificationSettings>>, TError,SaveNotificationSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveNotificationSettings>>, TError,SaveNotificationSettingsMutationVariables, TContext> => {
+
+const mutationKey = getSaveNotificationSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveNotificationSettings>>, SaveNotificationSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveNotificationSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveNotificationSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof saveNotificationSettings>>>
+    export type SaveNotificationSettingsMutationBody = BodyType<NotificationSettingsInput>
+    export type SaveNotificationSettingsMutationError = ErrorType<unknown>
+    export type SaveNotificationSettingsMutationVariables = {data: BodyType<NotificationSettingsInput>}
+
+    export const useSaveNotificationSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveNotificationSettings>>, TError,SaveNotificationSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveNotificationSettings>>,
+        TError,
+        SaveNotificationSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveNotificationSettingsMutationOptions(options));
+    }
+
+export const getScanNotificationsUrl = () => {
+
+
+
+
+  return `/api/guard/notifications/scan`
+}
+
+export const scanNotifications = async ( options?: Parameters<typeof customFetch>[1]): Promise<NotificationState> => {
+
+  return customFetch<NotificationState>(getScanNotificationsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getScanNotificationsMutationKey = () => ['scanNotifications'] as const;
+
+export const getScanNotificationsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scanNotifications>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof scanNotifications>>, TError,void, TContext> => {
+
+const mutationKey = getScanNotificationsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scanNotifications>>, void> = () => {
+
+
+          return  scanNotifications(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScanNotificationsMutationResult = NonNullable<Awaited<ReturnType<typeof scanNotifications>>>
+
+    export type ScanNotificationsMutationError = ErrorType<unknown>
+
+
+    export const useScanNotifications = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scanNotifications>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof scanNotifications>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getScanNotificationsMutationOptions(options));
+    }
+
+export const getRunNotificationTickUrl = () => {
+
+
+
+
+  return `/api/guard/notifications/tick`
+}
+
+export const runNotificationTick = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRunNotificationTickUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRunNotificationTickMutationKey = () => ['runNotificationTick'] as const;
+
+export const getRunNotificationTickMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runNotificationTick>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runNotificationTick>>, TError,void, TContext> => {
+
+const mutationKey = getRunNotificationTickMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runNotificationTick>>, void> = () => {
+
+
+          return  runNotificationTick(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunNotificationTickMutationResult = NonNullable<Awaited<ReturnType<typeof runNotificationTick>>>
+
+    export type RunNotificationTickMutationError = ErrorType<void>
+
+
+    export const useRunNotificationTick = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runNotificationTick>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runNotificationTick>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunNotificationTickMutationOptions(options));
+    }
+
+export const getReviewNotificationUrl = () => {
+
+
+
+
+  return `/api/guard/notifications/review`
+}
+
+export const reviewNotification = async (notificationReviewInput: NotificationReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<NotificationReview> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<NotificationReview>(getReviewNotificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(notificationReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReviewNotificationMutationKey = () => ['reviewNotification'] as const;
+
+export const getReviewNotificationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewNotification>>, TError,ReviewNotificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewNotification>>, TError,ReviewNotificationMutationVariables, TContext> => {
+
+const mutationKey = getReviewNotificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewNotification>>, ReviewNotificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  reviewNotification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewNotificationMutationResult = NonNullable<Awaited<ReturnType<typeof reviewNotification>>>
+    export type ReviewNotificationMutationBody = BodyType<NotificationReviewInput>
+    export type ReviewNotificationMutationError = ErrorType<void>
+    export type ReviewNotificationMutationVariables = {data: BodyType<NotificationReviewInput>}
+
+    export const useReviewNotification = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewNotification>>, TError,ReviewNotificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewNotification>>,
+        TError,
+        ReviewNotificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReviewNotificationMutationOptions(options));
+    }
+
+export const getVerifyWhatsAppWebhookUrl = () => {
+
+
+
+
+  return `/api/guard/notifications/webhook`
+}
+
+export const verifyWhatsAppWebhook = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getVerifyWhatsAppWebhookUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getVerifyWhatsAppWebhookQueryKey = () => {
+    return [
+    `/api/guard/notifications/webhook`
+    ] as const;
+    }
+
+
+export const getVerifyWhatsAppWebhookQueryOptions = <TData = Awaited<ReturnType<typeof verifyWhatsAppWebhook>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof verifyWhatsAppWebhook>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getVerifyWhatsAppWebhookQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof verifyWhatsAppWebhook>>> = ({ signal }) => verifyWhatsAppWebhook({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof verifyWhatsAppWebhook>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type VerifyWhatsAppWebhookQueryResult = NonNullable<Awaited<ReturnType<typeof verifyWhatsAppWebhook>>>
+export type VerifyWhatsAppWebhookQueryError = ErrorType<void>
+
+
+
+export function useVerifyWhatsAppWebhook<TData = Awaited<ReturnType<typeof verifyWhatsAppWebhook>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof verifyWhatsAppWebhook>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getVerifyWhatsAppWebhookQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReceiveWhatsAppWebhookUrl = () => {
+
+
+
+
+  return `/api/guard/notifications/webhook`
+}
+
+export const receiveWhatsAppWebhook = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getReceiveWhatsAppWebhookUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReceiveWhatsAppWebhookMutationKey = () => ['receiveWhatsAppWebhook'] as const;
+
+export const getReceiveWhatsAppWebhookMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveWhatsAppWebhook>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof receiveWhatsAppWebhook>>, TError,void, TContext> => {
+
+const mutationKey = getReceiveWhatsAppWebhookMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof receiveWhatsAppWebhook>>, void> = () => {
+
+
+          return  receiveWhatsAppWebhook(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReceiveWhatsAppWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof receiveWhatsAppWebhook>>>
+
+    export type ReceiveWhatsAppWebhookMutationError = ErrorType<void>
+
+
+    export const useReceiveWhatsAppWebhook = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveWhatsAppWebhook>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof receiveWhatsAppWebhook>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getReceiveWhatsAppWebhookMutationOptions(options));
+    }
 
 export const getGetReordersUrl = () => {
 

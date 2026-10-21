@@ -8,6 +8,238 @@
 import * as zod from 'zod';
 
 
+export const getNotificationsResponseSettingsPhoneMax = 20;
+
+export const getNotificationsResponseSettingsReminderHoursMin = 24;
+export const getNotificationsResponseSettingsReminderHoursMax = 168;
+
+export const getNotificationsResponseSettingsMaxRemindersMin = 0;
+export const getNotificationsResponseSettingsMaxRemindersMax = 3;
+
+export const getNotificationsResponseSettingsDailyLimitMax = 20;
+
+export const getNotificationsResponseSettingsRiskThresholdMin = 0;
+export const getNotificationsResponseSettingsRiskThresholdMax = 1000000;
+
+
+
+export const GetNotificationsResponse = zod.object({
+  "settings": zod.object({
+  "enabled": zod.boolean(),
+  "phone": zod.string().max(getNotificationsResponseSettingsPhoneMax),
+  "optIn": zod.boolean(),
+  "expiry": zod.boolean(),
+  "recommendations": zod.boolean(),
+  "approvals": zod.boolean(),
+  "failures": zod.boolean(),
+  "completed": zod.boolean(),
+  "reminderHours": zod.number().int().min(getNotificationsResponseSettingsReminderHoursMin).max(getNotificationsResponseSettingsReminderHoursMax),
+  "maxReminders": zod.number().int().min(getNotificationsResponseSettingsMaxRemindersMin).max(getNotificationsResponseSettingsMaxRemindersMax),
+  "dailyLimit": zod.number().int().min(1).max(getNotificationsResponseSettingsDailyLimitMax),
+  "riskThreshold": zod.number().min(getNotificationsResponseSettingsRiskThresholdMin).max(getNotificationsResponseSettingsRiskThresholdMax)
+}),
+  "records": zod.array(zod.object({
+  "id": zod.string(),
+  "eventId": zod.string(),
+  "kind": zod.enum(['expiry', 'recommendations', 'approvals', 'failures', 'completed']),
+  "priority": zod.enum(['critical', 'warning', 'upcoming', 'info']),
+  "title": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['demo', 'queued', 'sending', 'accepted', 'delivered', 'read', 'failed', 'unknown', 'cancelled']),
+  "reminderIndex": zod.number().int(),
+  "attempts": zod.number().int(),
+  "recipient": zod.string(),
+  "reviewUrl": zod.string(),
+  "expiresAt": zod.string(),
+  "resolvedAt": zod.string().optional(),
+  "providerMessageId": zod.string().optional(),
+  "deliveredAt": zod.string().optional(),
+  "lastError": zod.string().optional()
+})),
+  "mode": zod.enum(['demo']),
+  "liveReady": zod.boolean(),
+  "blockers": zod.array(zod.string()),
+  "monitor": zod.string(),
+  "lastScan": zod.string().optional(),
+  "consentAt": zod.string().nullable()
+})
+
+
+export const saveNotificationSettingsBodyPhoneMax = 20;
+
+export const saveNotificationSettingsBodyReminderHoursMin = 24;
+export const saveNotificationSettingsBodyReminderHoursMax = 168;
+
+export const saveNotificationSettingsBodyMaxRemindersMin = 0;
+export const saveNotificationSettingsBodyMaxRemindersMax = 3;
+
+export const saveNotificationSettingsBodyDailyLimitMax = 20;
+
+export const saveNotificationSettingsBodyRiskThresholdMin = 0;
+export const saveNotificationSettingsBodyRiskThresholdMax = 1000000;
+
+
+
+export const SaveNotificationSettingsBody = zod.object({
+  "enabled": zod.boolean(),
+  "phone": zod.string().max(saveNotificationSettingsBodyPhoneMax),
+  "optIn": zod.boolean(),
+  "expiry": zod.boolean(),
+  "recommendations": zod.boolean(),
+  "approvals": zod.boolean(),
+  "failures": zod.boolean(),
+  "completed": zod.boolean(),
+  "reminderHours": zod.number().int().min(saveNotificationSettingsBodyReminderHoursMin).max(saveNotificationSettingsBodyReminderHoursMax),
+  "maxReminders": zod.number().int().min(saveNotificationSettingsBodyMaxRemindersMin).max(saveNotificationSettingsBodyMaxRemindersMax),
+  "dailyLimit": zod.number().int().min(1).max(saveNotificationSettingsBodyDailyLimitMax),
+  "riskThreshold": zod.number().min(saveNotificationSettingsBodyRiskThresholdMin).max(saveNotificationSettingsBodyRiskThresholdMax)
+})
+
+export const saveNotificationSettingsResponseSettingsPhoneMax = 20;
+
+export const saveNotificationSettingsResponseSettingsReminderHoursMin = 24;
+export const saveNotificationSettingsResponseSettingsReminderHoursMax = 168;
+
+export const saveNotificationSettingsResponseSettingsMaxRemindersMin = 0;
+export const saveNotificationSettingsResponseSettingsMaxRemindersMax = 3;
+
+export const saveNotificationSettingsResponseSettingsDailyLimitMax = 20;
+
+export const saveNotificationSettingsResponseSettingsRiskThresholdMin = 0;
+export const saveNotificationSettingsResponseSettingsRiskThresholdMax = 1000000;
+
+
+
+export const SaveNotificationSettingsResponse = zod.object({
+  "settings": zod.object({
+  "enabled": zod.boolean(),
+  "phone": zod.string().max(saveNotificationSettingsResponseSettingsPhoneMax),
+  "optIn": zod.boolean(),
+  "expiry": zod.boolean(),
+  "recommendations": zod.boolean(),
+  "approvals": zod.boolean(),
+  "failures": zod.boolean(),
+  "completed": zod.boolean(),
+  "reminderHours": zod.number().int().min(saveNotificationSettingsResponseSettingsReminderHoursMin).max(saveNotificationSettingsResponseSettingsReminderHoursMax),
+  "maxReminders": zod.number().int().min(saveNotificationSettingsResponseSettingsMaxRemindersMin).max(saveNotificationSettingsResponseSettingsMaxRemindersMax),
+  "dailyLimit": zod.number().int().min(1).max(saveNotificationSettingsResponseSettingsDailyLimitMax),
+  "riskThreshold": zod.number().min(saveNotificationSettingsResponseSettingsRiskThresholdMin).max(saveNotificationSettingsResponseSettingsRiskThresholdMax)
+}),
+  "records": zod.array(zod.object({
+  "id": zod.string(),
+  "eventId": zod.string(),
+  "kind": zod.enum(['expiry', 'recommendations', 'approvals', 'failures', 'completed']),
+  "priority": zod.enum(['critical', 'warning', 'upcoming', 'info']),
+  "title": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['demo', 'queued', 'sending', 'accepted', 'delivered', 'read', 'failed', 'unknown', 'cancelled']),
+  "reminderIndex": zod.number().int(),
+  "attempts": zod.number().int(),
+  "recipient": zod.string(),
+  "reviewUrl": zod.string(),
+  "expiresAt": zod.string(),
+  "resolvedAt": zod.string().optional(),
+  "providerMessageId": zod.string().optional(),
+  "deliveredAt": zod.string().optional(),
+  "lastError": zod.string().optional()
+})),
+  "mode": zod.enum(['demo']),
+  "liveReady": zod.boolean(),
+  "blockers": zod.array(zod.string()),
+  "monitor": zod.string(),
+  "lastScan": zod.string().optional(),
+  "consentAt": zod.string().nullable()
+})
+
+
+export const scanNotificationsResponseSettingsPhoneMax = 20;
+
+export const scanNotificationsResponseSettingsReminderHoursMin = 24;
+export const scanNotificationsResponseSettingsReminderHoursMax = 168;
+
+export const scanNotificationsResponseSettingsMaxRemindersMin = 0;
+export const scanNotificationsResponseSettingsMaxRemindersMax = 3;
+
+export const scanNotificationsResponseSettingsDailyLimitMax = 20;
+
+export const scanNotificationsResponseSettingsRiskThresholdMin = 0;
+export const scanNotificationsResponseSettingsRiskThresholdMax = 1000000;
+
+
+
+export const ScanNotificationsResponse = zod.object({
+  "settings": zod.object({
+  "enabled": zod.boolean(),
+  "phone": zod.string().max(scanNotificationsResponseSettingsPhoneMax),
+  "optIn": zod.boolean(),
+  "expiry": zod.boolean(),
+  "recommendations": zod.boolean(),
+  "approvals": zod.boolean(),
+  "failures": zod.boolean(),
+  "completed": zod.boolean(),
+  "reminderHours": zod.number().int().min(scanNotificationsResponseSettingsReminderHoursMin).max(scanNotificationsResponseSettingsReminderHoursMax),
+  "maxReminders": zod.number().int().min(scanNotificationsResponseSettingsMaxRemindersMin).max(scanNotificationsResponseSettingsMaxRemindersMax),
+  "dailyLimit": zod.number().int().min(1).max(scanNotificationsResponseSettingsDailyLimitMax),
+  "riskThreshold": zod.number().min(scanNotificationsResponseSettingsRiskThresholdMin).max(scanNotificationsResponseSettingsRiskThresholdMax)
+}),
+  "records": zod.array(zod.object({
+  "id": zod.string(),
+  "eventId": zod.string(),
+  "kind": zod.enum(['expiry', 'recommendations', 'approvals', 'failures', 'completed']),
+  "priority": zod.enum(['critical', 'warning', 'upcoming', 'info']),
+  "title": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['demo', 'queued', 'sending', 'accepted', 'delivered', 'read', 'failed', 'unknown', 'cancelled']),
+  "reminderIndex": zod.number().int(),
+  "attempts": zod.number().int(),
+  "recipient": zod.string(),
+  "reviewUrl": zod.string(),
+  "expiresAt": zod.string(),
+  "resolvedAt": zod.string().optional(),
+  "providerMessageId": zod.string().optional(),
+  "deliveredAt": zod.string().optional(),
+  "lastError": zod.string().optional()
+})),
+  "mode": zod.enum(['demo']),
+  "liveReady": zod.boolean(),
+  "blockers": zod.array(zod.string()),
+  "monitor": zod.string(),
+  "lastScan": zod.string().optional(),
+  "consentAt": zod.string().nullable()
+})
+
+
+export const RunNotificationTickResponse = zod.void()
+
+
+export const reviewNotificationBodyTokenMin = 40;
+export const reviewNotificationBodyTokenMax = 100;
+
+
+
+export const ReviewNotificationBody = zod.object({
+  "token": zod.string().min(reviewNotificationBodyTokenMin).max(reviewNotificationBodyTokenMax)
+})
+
+export const ReviewNotificationResponse = zod.object({
+  "title": zod.string(),
+  "message": zod.string(),
+  "expiresAt": zod.string(),
+  "path": zod.string(),
+  "demo": zod.boolean(),
+  "notice": zod.string()
+})
+
+
+export const VerifyWhatsAppWebhookResponse = zod.unknown()
+
+
+export const ReceiveWhatsAppWebhookResponse = zod.unknown()
+
+
 export const getReordersResponseSettingsItemLeadDaysMax = 14;
 
 export const getReordersResponseSettingsItemReviewDaysMax = 14;

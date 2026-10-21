@@ -1,0 +1,87 @@
+Please enhance my existing ExpiryGuard AI app by adding an **automated WhatsApp notification and reminder system** for SME owners.
+
+Important: I want the system to automatically send WhatsApp messages when specific inventory or workflow events occur. Do not rebuild my app or remove existing features.
+
+## 1. Integrate WhatsApp messaging
+
+Inspect my existing application and choose a suitable official integration, preferably the WhatsApp Business Platform Cloud API.
+
+- Send WhatsApp messages from secure server-side code.
+- Store API credentials, access tokens and phone number IDs in Replit Secrets or environment variables.
+- Never expose credentials in frontend code or commit them to GitHub.
+- Provide a settings page where the business owner can configure their WhatsApp-enabled phone number and notification preferences.
+- Follow WhatsApp's applicable opt-in, approved-template and messaging-window requirements.
+- If credentials or access are unavailable, implement a clearly labelled demo mode and explain the setup steps. Never pretend a message was actually sent.
+
+## 2. Automatically trigger WhatsApp notifications
+
+Connect WhatsApp notifications to the existing inventory analysis and AI workflow.
+
+Send appropriate alerts for:
+
+**A. Stock approaching expiry**
+- Critical: expires today or is already expired.
+- Warning: expires within 3 days.
+- Upcoming: expires within 7 days.
+
+Include the inventory item, quantity, expiry date, estimated cost at risk when available, and recommended next step.
+
+Never recommend consuming or selling expired food.
+
+**B. AI recommendations requiring attention**
+When ExpiryGuard AI identifies a significant food waste risk and prepares a prevention recommendation, notify the owner.
+
+**C. Pending approvals**
+When a proposed supplier order adjustment or another consequential action requires owner approval, send a WhatsApp reminder with a secure link to review it in the app.
+
+**D. Workflow failures**
+Notify the owner when an important automated workflow fails or requires manual intervention.
+
+**E. Completed actions**
+Optionally send a short confirmation after an approved action has successfully completed.
+
+## 3. Implement automated background monitoring
+
+- Create a scheduled server-side inventory scan, preferably daily, if supported by the deployment environment.
+- Detect new expiry risks and unresolved pending approvals without requiring the owner to open the app.
+- Automatically send WhatsApp messages when configured conditions are met.
+- Prevent duplicate messages for the same unresolved event.
+- Apply sensible reminder intervals and limits to avoid spamming the owner.
+- Track notification status, timestamps, related event IDs and provider delivery results where available.
+- Handle API errors and expired credentials safely.
+- Do not depend on a frontend timer, because it cannot reliably run when the app is closed.
+- If scheduled execution is unavailable, explain the deployment requirements and provide the appropriate alternative.
+
+## 4. WhatsApp message examples
+
+Expiry alert:
+
+"⚠️ ExpiryGuard AI Alert
+
+8 cartons of milk are approaching expiry on 24 October.
+
+Estimated inventory value at risk: RM48.00.
+
+Recommended action: Prioritise safe use of this stock and review upcoming replenishment.
+
+Review your inventory: [secure app link]"
+
+Pending approval:
+
+"📋 ExpiryGuard AI — Approval Required
+
+Your inventory analysis recommends reducing the next milk order from 20 cartons to 8 cartons because current usable stock and incoming deliveries may be sufficient.
+
+Please review the recommendation before any purchase order is changed.
+
+Review and approve or reject: [secure app link]"
+
+These are examples only. Populate messages using actual application data and clearly label financial figures as estimates.
+
+## 5. Human approval and security
+
+- WhatsApp notifications must not automatically approve purchase orders or execute consequential actions.
+- The owner should open the app to review, edit, approve or reject a proposed action.
+- Validate approval requests securely on the server.
+- Prevent duplicate execution.
+- Record approved

@@ -11,6 +11,71 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /guard/notifications:
+    get:
+      operationId: getNotifications
+      responses:
+        "200":
+          description: Notification preferences and demo delivery history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationState" }
+    patch:
+      operationId: saveNotificationSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationSettingsInput" }
+      responses:
+        "200":
+          description: Settings saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationState" }
+  /guard/notifications/scan:
+    post:
+      operationId: scanNotifications
+      responses:
+        "200":
+          description: Scan completed without approving any action
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationState" }
+  /guard/notifications/tick:
+    post:
+      operationId: runNotificationTick
+      responses:
+        "204": { description: Authorized server-side planning and notification scan completed; demo previews only }
+        "403": { description: Invalid scheduler credential }
+        "503": { description: Scheduler credential not configured }
+  /guard/notifications/review:
+    post:
+      operationId: reviewNotification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationReviewInput" }
+      responses:
+        "200":
+          description: Read-only review, token never approves actions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationReview" }
+        "410":
+          description: Link expired, resolved or invalid
+  /guard/notifications/webhook:
+    get:
+      operationId: verifyWhatsAppWebhook
+      responses:
+        "200": { description: Meta verification challenge }
+        "403": { description: Verification rejected }
+    post:
+      operationId: receiveWhatsAppWebhook
+      responses:
+        "200": { description: Verified provider status processed }
+        "403": { description: Signature verification rejected }
   /guard/reorders:
     get:
       operationId: getReorders
@@ -183,6 +248,74 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    NotificationSettingsInput:
+      type: object
+      required: [enabled, phone, optIn, expiry, recommendations, approvals, failures, completed, reminderHours, maxReminders, dailyLimit, riskThreshold]
+      properties:
+        enabled: { type: boolean }
+        phone: { type: string, maxLength: 20 }
+        optIn: { type: boolean }
+        expiry: { type: boolean }
+        recommendations: { type: boolean }
+        approvals: { type: boolean }
+        failures: { type: boolean }
+        completed: { type: boolean }
+        reminderHours: { type: integer, minimum: 24, maximum: 168 }
+        maxReminders: { type: integer, minimum: 0, maximum: 3 }
+        dailyLimit: { type: integer, minimum: 1, maximum: 20 }
+        riskThreshold: { type: number, minimum: 0, maximum: 1000000 }
+    NotificationRecord:
+      type: object
+      required: [id, eventId, kind, priority, title, message, createdAt, status, reminderIndex, attempts, recipient, reviewUrl, expiresAt]
+      properties:
+        id: { type: string }
+        eventId: { type: string }
+        kind: { type: string, enum: [expiry, recommendations, approvals, failures, completed] }
+        priority: { type: string, enum: [critical, warning, upcoming, info] }
+        title: { type: string }
+        message: { type: string }
+        createdAt: { type: string }
+        status: { type: string, enum: [demo, queued, sending, accepted, delivered, read, failed, unknown, cancelled] }
+        reminderIndex: { type: integer }
+        attempts: { type: integer }
+        recipient: { type: string }
+        reviewUrl: { type: string }
+        expiresAt: { type: string }
+        resolvedAt: { type: string }
+        providerMessageId: { type: string }
+        deliveredAt: { type: string }
+        lastError: { type: string }
+    NotificationState:
+      type: object
+      required: [settings, records, mode, liveReady, blockers, monitor, consentAt]
+      properties:
+        settings: { $ref: "#/components/schemas/NotificationSettingsInput" }
+        records:
+          type: array
+          items: { $ref: "#/components/schemas/NotificationRecord" }
+        mode: { type: string, enum: [demo] }
+        liveReady: { type: boolean }
+        blockers:
+          type: array
+          items: { type: string }
+        monitor: { type: string }
+        lastScan: { type: string }
+        consentAt: { type: ["string", "null"] }
+    NotificationReviewInput:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 40, maxLength: 100 }
+    NotificationReview:
+      type: object
+      required: [title, message, expiresAt, path, demo, notice]
+      properties:
+        title: { type: string }
+        message: { type: string }
+        expiresAt: { type: string }
+        path: { type: string }
+        demo: { type: boolean }
+        notice: { type: string }
     ReorderDecisionInput:
       type: object
       required: [decision, approver]

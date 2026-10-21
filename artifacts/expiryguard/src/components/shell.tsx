@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { BarChart3, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Truck } from 'lucide-react';
+import { BarChart3, BellRing, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { niceDate, useGuard } from '@/lib/guard';
 import { guardianSrc } from '@/components/bits';
@@ -14,6 +14,7 @@ const nav = [
   { href: '/reordering', label: 'Reordering', icon: Truck },
   { href: '/impact', label: 'Impact', icon: Leaf },
   { href: '/automation', label: 'Automations', icon: Bot },
+  { href: '/notifications', label: 'Notifications', icon: BellRing },
   { href: '/activity', label: 'Ledger', icon: History },
 ];
 
@@ -31,7 +32,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex md:flex-col gap-1 px-2 md:px-3 py-2 overflow-x-auto w-full">
           {nav.map(({ href, label, icon: Icon }) => {
-            const active = href === '/' ? loc === '/' : loc.startsWith(href);
+            const active = href === '/' ? loc === '/' : (loc === href || loc.startsWith(href + '/'));
             return (
               <Link key={href} href={href} data-testid={`link-${label.toLowerCase()}`}
                 className={cn('group flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',

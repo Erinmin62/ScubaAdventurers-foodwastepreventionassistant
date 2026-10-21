@@ -26,6 +26,8 @@ app.use(
   }),
 );
 app.use(cors());
+// Preserve exact signed bytes; only the Meta webhook bypasses JSON parsing.
+app.use("/api/guard/notifications/webhook", express.raw({ type: "application/json", limit: "256kb" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -157,6 +157,7 @@ export default function Automation() {
             <li className="flex gap-3"><Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span>The follow-up scan runs once a day, and again when an outstanding check becomes due.</span></li>
             <li className="flex gap-3"><Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span>While the app server is running it checks every minute. If it was stopped, it catches up when the app next opens. It cannot run while the server is off.</span></li>
             <li className="flex gap-3"><ShieldCheck className="w-4 h-4 text-jade shrink-0 mt-0.5" /><span>Expiry safety checks always run, even with automations paused. Outcomes are only evaluated from observations you submit; stock and results are never invented. Older approvals get a check only when you attach one.</span></li>
+            <li className="flex gap-3"><ArrowRight className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span>Want a nudge when something needs you? <Link href="/notifications" className="font-semibold text-primary" data-testid="link-automation-notifications">Set up WhatsApp notifications (demo)</Link>.</span></li>
           </ul>
         </Panel>
         <Panel title="Run history" sub={`Newest first · last ${a.runs.length} of up to 30`}>
