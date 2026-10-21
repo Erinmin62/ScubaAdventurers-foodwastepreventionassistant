@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { SavingsBadge } from '@/components/money';
 import { addDays, downloadCsv, errorMessage, fmt, niceDate, parseCsv, rm, useGuard, useGuardMutations, type FollowDays } from '@/lib/guard';
 
 export const guardianSrc = `${import.meta.env.BASE_URL}guardian.png`;
@@ -119,6 +120,9 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
   const [qty, setQty] = useState(String(rec.approvedQuantity ?? rec.suggested));
   const [note, setNote] = useState('');
   const pending = rec.status === 'pending';
+  const unitCost = rec.type === 'purchase' ? data?.ingredients.find((i) => i.id === rec.targetId)?.cost : undefined;
+  const qn = Number(qty);
+  const previewOk = editing && unitCost !== undefined && qty !== '' && Number.isFinite(qn) && qn >= 0;
   const busy = decide.isPending || attach.isPending;
 
   const send = (decision: 'approved' | 'edited' | 'rejected', quantity?: number) => {
@@ -145,9 +149,9 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
         <div className="text-right shrink-0">
           <div className="num text-lg font-semibold">{fmt(rec.approvedQuantity ?? rec.suggested)} <span className="text-xs text-muted-foreground">{rec.unit}</span></div>
           <div className="num text-[11px] text-muted-foreground">was {fmt(rec.original)} {rec.unit}</div>
-          {rec.savings > 0 && <div className="num text-xs text-jade font-semibold">saves {rm(rec.savings)} est.</div>}
         </div>
       </div>
+      {rec.savings > 0 && <div className="mt-3"><SavingsBadge amount={rec.savings} status={rec.status} id={rec.id} /></div>}
       {(editing || pending) && !attaching && today && autoFollow && (
         <DaySelect value={days} onChange={setDays} today={today} id={rec.id} />
       )}
@@ -174,6 +178,12 @@ export function RecCard({ rec, compact }: { rec: Recommendation; compact?: boole
             <Button size="sm" disabled={busy || qty === '' || !Number.isFinite(Number(qty)) || Number(qty) < 0} onClick={() => send('edited', Number(qty))} data-testid={`button-save-edit-${rec.id}`}><Check className="w-4 h-4 mr-1" />Approve edit</Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
           </div>
+          {previewOk && (() => { const d = (rec.original - qn) * (unitCost ?? 0); return (
+            <div className="sm:col-span-3 rounded-xl border bg-muted/40 px-3 py-2" data-testid={`text-edit-preview-${rec.id}`}>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Purchasing change vs original {fmt(rec.original)} {rec.unit}</div>
+              <div className={cn('num text-2xl font-extrabold', d > 0 ? 'text-jade' : d < 0 ? 'text-destructive' : '')}>{d > 0 ? '-' : d < 0 ? '+' : ''}{rm(Math.abs(d))}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Preview estimate at {rm(unitCost ?? 0)}/{rec.unit} · not yet realised</div>
+            </div>); })()}
         </div>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">

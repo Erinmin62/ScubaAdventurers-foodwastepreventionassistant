@@ -120,6 +120,7 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
         <div className="text-right num">
           <div className="text-lg font-semibold">{fmt(l.recommendedQuantity)} <span className="text-xs text-muted-foreground">{l.unit}</span></div>
           <div className="text-[11px] text-muted-foreground">was {fmt(l.originalQuantity)} {l.unit} · {rm(l.originalCost)}</div>
+          {l.originalCost - l.proposedCost > 0 && <div className="mt-1 text-jade"><div className="text-2xl font-extrabold">{rm(l.originalCost - l.proposedCost)}</div><div className="text-[10px] font-bold uppercase tracking-wider">less purchasing · est., not realised</div></div>}
         </div>
       </div>
       {!l.demandAvailable && <div className="flex gap-2 text-xs rounded-lg border border-destructive/30 bg-destructive/5 p-2"><AlertTriangle className="w-4 h-4 text-destructive shrink-0" />Review required before approval: demand history, delivery receipt/date or planning horizon needs attention. Expand the explanation below for the specific issue. You can still reject.</div>}
@@ -151,7 +152,13 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
             <div className="grid sm:grid-cols-2 gap-3">
               <label className="text-xs font-semibold space-y-1">Quantity ({l.unit})
                 <Input type="number" min={0} step="0.1" value={qty} onChange={(e) => setQty(e.target.value)} data-testid={`input-qty-${plan.id}`} />
-                <span className="block font-normal text-muted-foreground">Edited purchasing cost {qtyOk ? rm(qn * l.unitCost) : '-'}; change versus original {qtyOk ? rm(qn * l.unitCost - l.originalCost) : '-'}. Positive quantities must meet minimum order {fmt(l.config.minOrder)} {l.unit} (checked by server).</span>
+                {qtyOk && (() => { const ch = qn * l.unitCost - l.originalCost; return (
+                  <span className="block rounded-lg bg-muted/50 px-3 py-2" data-testid={`text-cost-change-${plan.id}`}>
+                    <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Cost change vs original</span>
+                    <span className={cn('block num text-2xl font-extrabold', ch < 0 ? 'text-jade' : ch > 0 ? 'text-destructive' : '')}>{ch < 0 ? '-' : ch > 0 ? '+' : ''}{rm(Math.abs(ch))}</span>
+                    <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Estimate · not yet realised</span>
+                  </span>); })()}
+                <span className="block font-normal text-muted-foreground">Edited purchasing cost {qtyOk ? rm(qn * l.unitCost) : '-'}. Positive quantities must meet minimum order {fmt(l.config.minOrder)} {l.unit} (checked by server).</span>
                 {!qtyOk && <span className="block text-destructive">Enter a number of 0 or more.</span>}
               </label>
               <label className="text-xs font-semibold space-y-1">Delivery date

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CsvImport, EmptyState, ErrorState, LoadingState, PageHeader, Panel, Stat, type ImportSpec } from '@/components/bits';
+import { ImpactBoard } from '@/components/money';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,13 +66,14 @@ export default function Impact() {
 
   return (
     <div className="space-y-5">
-      <PageHeader kicker="Impact" title="Less in the bin, measured.">
+      <PageHeader kicker="Impact" title="What waste prevention is worth">
         Synthetic baseline: seven days. Recent waste: the last seven calendar days including today; unrecorded results are not counted. This demo comparison does not prove savings. Projected purchasing savings reflect approved changes, not supplier orders.
       </PageHeader>
+      <ImpactBoard data={data} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Recorded waste, baseline" value={rm(s.baselineWasteCost)} note={`${fmt(s.baselineWasteKg)} kg`} tone="amber" />
         <Stat label="Recorded waste, recent" value={rm(s.actualWasteCost)} note={`${fmt(s.actualWasteKg)} kg`} tone="primary" />
-        <Stat label="Recorded change" value={`${delta >= 0 ? '-' : '+'}${rm(Math.abs(delta))}`} note={delta >= 0 ? 'less waste than baseline' : 'more waste than baseline'} tone="jade" testId="text-waste-delta" />
+        <Stat label="Recorded change" value={`${Math.abs(delta) < 0.005 ? '' : delta > 0 ? '-' : '+'}${rm(Math.abs(delta))}`} note={Math.abs(delta) < 0.005 ? 'no change' : delta > 0 ? 'less waste than baseline' : 'more waste than baseline'} tone="jade" />
         <Stat label="Projected savings" value={rm(s.estimatedSavings)} note="estimate, not yet realised" tone="ink" />
       </div>
       <div className="grid lg:grid-cols-[1.2fr_1fr] gap-5">

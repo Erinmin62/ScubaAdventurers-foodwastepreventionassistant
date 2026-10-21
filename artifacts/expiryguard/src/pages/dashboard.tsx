@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { ArrowRight, Bot, Truck } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { EmptyState, ErrorState, LevelPill, LoadingState, Panel, RecCard, Stat, guardianSrc } from '@/components/bits';
+import { ImpactBoard } from '@/components/money';
 import { FollowUpList } from '@/components/followups';
 import type { GuardState } from '@workspace/api-client-react';
 import { addDays, fmt, niceDate, rm, useGuard } from '@/lib/guard';
@@ -30,6 +31,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      <ImpactBoard data={data} showLink />
       <section className="rise relative overflow-hidden rounded-3xl bg-ink text-[hsl(38_40%_94%)] p-6 md:p-8">
         <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-primary/40 blur-3xl" />
         <div className="relative grid md:grid-cols-[1fr_auto] items-center gap-4">
@@ -51,7 +53,7 @@ export default function Dashboard() {
         <Stat label="Predicted portions" value={fmt(s.predictedPortions, 0)} note={`for ${niceDate(data.tomorrow)}`} tone="primary" testId="text-predicted" />
         <Stat label="Stock value at risk" value={rm(s.riskValue)} note={`${data.risks.filter(r => r.level !== 'low').length} ingredients flagged`} tone="amber" testId="text-risk" />
         <Stat label="Pending decisions" value={String(s.pendingCount)} note="human approval required" tone="ink" testId="text-pending" />
-        <Stat label="Projected savings" value={rm(s.estimatedSavings)} note="from approved purchasing changes" tone="jade" testId="text-savings" />
+        <Stat label="Approved projection" value={rm(s.estimatedSavings)} note="estimate, not yet realised" tone="jade" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">

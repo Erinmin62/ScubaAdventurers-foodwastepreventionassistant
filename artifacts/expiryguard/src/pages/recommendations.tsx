@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { EmptyState, ErrorState, LoadingState, PageHeader, Panel, RecCard } from '@/components/bits';
+import { EmptyState, ErrorState, LoadingState, PageHeader, Panel, RecCard, Stat } from '@/components/bits';
+import { impactNumbers } from '@/components/money';
 import { rm, useGuard } from '@/lib/guard';
 import { cn } from '@/lib/utils';
 
@@ -16,12 +17,17 @@ export default function Recommendations() {
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
   const list = data.recommendations.filter((r) => (t === 'all' || r.type === t) && (s === 'all' || r.status === s));
   const count = (st: string) => data.recommendations.filter((r) => (t === 'all' || r.type === t) && (st === 'all' || r.status === st)).length;
+  const impact = impactNumbers(data);
 
   return (
     <div className="space-y-5">
       <PageHeader kicker="Decisions" title="You decide. Yuzu suggests.">
         Purchasing suggestions are never sent to suppliers — approving records your intent only. Edit any amount before approving, or reject.
       </PageHeader>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Stat label="Potential purchasing reduction" value={rm(impact.pendingPotential)} note="All pending purchase suggestions · estimate, not yet realised" tone="jade" testId="text-decisions-potential" />
+        <Stat label="Approved purchasing projection" value={rm(impact.approvedProjection)} note="Already approved changes · estimate, not cash saved" tone="ink" testId="text-decisions-approved" />
+      </div>
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex gap-1 rounded-full bg-muted p-1">{types.map((x) => (
           <button key={x.k} onClick={() => setT(x.k)} className={cn('rounded-full px-3 py-1 text-xs font-semibold transition-all', t === x.k ? 'bg-card shadow-sm' : 'text-muted-foreground')} data-testid={`button-type-${x.k}`}>{x.l}</button>
@@ -30,7 +36,7 @@ export default function Recommendations() {
           <button key={x} onClick={() => setS(x)} className={cn('rounded-full border px-3 py-1 text-xs font-semibold capitalize transition-colors', s === x ? 'bg-ink text-background border-ink' : 'hover:bg-muted')} data-testid={`button-status-${x}`}>{x} <span className="num opacity-70">{count(x)}</span></button>
         ))}</div>
       </div>
-      <Panel title={`${list.length} recommendation${list.length === 1 ? '' : 's'}`} sub={`Projected savings if all pending are approved: ${rm(data.summary.estimatedSavings)} (estimate)`}>
+      <Panel title={`${list.length} recommendation${list.length === 1 ? '' : 's'}`} sub="Each saving below is an estimate for that decision. Review the amount before approving.">
         {list.length === 0 ? <EmptyState title={s === 'pending' ? 'Inbox zero' : 'Nothing here'} body="No recommendations match these filters." /> : (
           <div className="grid lg:grid-cols-2 gap-3">{list.map((r) => <RecCard key={r.id} rec={r} />)}</div>
         )}

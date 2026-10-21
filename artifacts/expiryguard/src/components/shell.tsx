@@ -6,13 +6,13 @@ import { niceDate, useGuard } from '@/lib/guard';
 import { guardianSrc } from '@/components/bits';
 
 const nav = [
+  { href: '/impact', label: 'Impact', icon: Leaf },
   { href: '/', label: 'Today', icon: LayoutDashboard },
   { href: '/inventory', label: 'Pantry', icon: Package },
   { href: '/sales', label: 'Sales', icon: BarChart3 },
   { href: '/forecast', label: 'Tomorrow', icon: ChefHat },
   { href: '/recommendations', label: 'Decisions', icon: ClipboardCheck },
   { href: '/reordering', label: 'Reordering', icon: Truck },
-  { href: '/impact', label: 'Impact', icon: Leaf },
   { href: '/automation', label: 'Automations', icon: Bot },
   { href: '/notifications', label: 'Notifications', icon: BellRing },
   { href: '/activity', label: 'Ledger', icon: History },
