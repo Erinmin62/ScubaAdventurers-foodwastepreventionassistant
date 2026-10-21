@@ -46,7 +46,7 @@ function LineFacts({ l }: { l: ReorderLine }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       <Cell label="Current stock (1 batch)" value={`${fmt(l.currentStock)} ${u}`} />
-      <Cell label="Current stock expiry" value={niceDate(l.expiry)} />
+      <Cell label="Earliest received batch expiry" value={niceDate(l.expiry)} />
       <Cell label="Expiry risk" value={`${fmt(l.wasteQuantity)} ${u} · ${rm(l.wasteCost)}`} tone={l.wasteQuantity > 0 ? 'bad' : undefined} />
       <Cell label="Already expired" value={`${fmt(l.expiredQuantity)} ${u}`} tone={l.expiredQuantity > 0 ? 'bad' : undefined} />
       <Cell label="Incoming (1 batch)" value={`${fmt(l.incomingQuantity)} ${u} · ${niceDate(l.incomingDate)}`} />
@@ -271,7 +271,7 @@ export default function Reordering() {
         </Panel>
       )}
       {tab === 'analysis' && (
-        <Panel title="Live ingredient analysis" sub="Current stock and incoming are each treated as a single batch.">
+        <Panel title="Live ingredient analysis" sub="Received batches are allocated by earliest expiry. The incoming delivery is a separate plan, not received stock.">
           {data.analysis.length ? <div className="space-y-4">{data.analysis.map((l) => (
             <div key={l.ingredientId} className="rounded-xl border p-4 space-y-3" data-testid={`card-analysis-${l.ingredientId}`}>
               <div className="flex items-center gap-2 font-semibold"><Truck className="w-4 h-4 text-primary" />{l.name}</div>

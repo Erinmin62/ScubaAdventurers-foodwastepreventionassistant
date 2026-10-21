@@ -8,6 +8,235 @@
 import * as zod from 'zod';
 
 
+export const SaveIngredientBatchParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const saveIngredientBatchBodyQuantityMin = 0;
+export const saveIngredientBatchBodyQuantityMax = 1000000;
+
+
+
+export const SaveIngredientBatchBody = zod.object({
+  "id": zod.string().optional(),
+  "quantity": zod.number().min(saveIngredientBatchBodyQuantityMin).max(saveIngredientBatchBodyQuantityMax),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})
+
+export const saveIngredientBatchResponseIngredientsItemQuantityMin = 0;
+
+export const saveIngredientBatchResponseIngredientsItemCostMin = 0;
+
+export const saveIngredientBatchResponseIngredientsItemDeliveryQuantityMin = 0;
+
+export const saveIngredientBatchResponseIngredientsItemBatchesItemQuantityMin = 0;
+
+export const saveIngredientBatchResponseSalesItemPortionsMin = 0;
+
+export const saveIngredientBatchResponseResultsItemPreparedMin = 0;
+
+export const saveIngredientBatchResponseResultsItemSoldMin = 0;
+
+export const saveIngredientBatchResponseResultsItemLeftoverMin = 0;
+
+export const saveIngredientBatchResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
+
+export const saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
+export const saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
+
+export const saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin = 0;
+export const saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax = 1000000;
+
+
+
+export const SaveIngredientBatchResponse = zod.object({
+  "today": zod.string(),
+  "tomorrow": zod.string(),
+  "cafeName": zod.string(),
+  "synthetic": zod.boolean(),
+  "automation": zod.object({
+  "dailyPlanning": zod.boolean(),
+  "followUpHandling": zod.boolean(),
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "workflow": zod.enum(['daily-planning', 'follow-ups']),
+  "trigger": zod.enum(['automatic', 'manual']),
+  "time": zod.string(),
+  "date": zod.string(),
+  "detail": zod.string(),
+  "draftCount": zod.number().int(),
+  "riskCount": zod.number().int(),
+  "dueCount": zod.number().int(),
+  "overdueCount": zod.number().int(),
+  "predictedPortions": zod.number().int()
+}))
+}),
+  "ingredients": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quantity": zod.number().min(saveIngredientBatchResponseIngredientsItemQuantityMin),
+  "unit": zod.string(),
+  "expiry": zod.string(),
+  "cost": zod.number().min(saveIngredientBatchResponseIngredientsItemCostMin),
+  "category": zod.string(),
+  "deliveryQuantity": zod.number().min(saveIngredientBatchResponseIngredientsItemDeliveryQuantityMin),
+  "deliveryDate": zod.string(),
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(saveIngredientBatchResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
+})),
+  "sales": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "portions": zod.number().int().min(saveIngredientBatchResponseSalesItemPortionsMin)
+})),
+  "results": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "prepared": zod.number().int().min(saveIngredientBatchResponseResultsItemPreparedMin),
+  "sold": zod.number().int().min(saveIngredientBatchResponseResultsItemSoldMin),
+  "leftover": zod.number().int().min(saveIngredientBatchResponseResultsItemLeftoverMin)
+})),
+  "menu": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "price": zod.number(),
+  "cost": zod.number(),
+  "recipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number()
+}))
+})),
+  "forecasts": zod.array(zod.object({
+  "menuId": zod.string(),
+  "name": zod.string(),
+  "predicted": zod.number().int(),
+  "capacity": zod.number().int(),
+  "suggested": zod.number().int(),
+  "confidence": zod.string(),
+  "reason": zod.string()
+})),
+  "risks": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "daysLeft": zod.number().int(),
+  "level": zod.string(),
+  "expectedUse": zod.number(),
+  "atRisk": zod.number(),
+  "value": zod.number(),
+  "message": zod.string()
+})),
+  "recommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+})),
+  "activity": zod.array(zod.object({
+  "id": zod.string(),
+  "time": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "decision": zod.string(),
+  "impact": zod.number()
+})),
+  "summary": zod.object({
+  "predictedPortions": zod.number().int(),
+  "riskValue": zod.number(),
+  "pendingCount": zod.number().int(),
+  "estimatedSavings": zod.number(),
+  "baselineWasteCost": zod.number(),
+  "actualWasteCost": zod.number(),
+  "baselinePurchaseCost": zod.number(),
+  "plannedPurchaseCost": zod.number(),
+  "baselineWasteKg": zod.number(),
+  "actualWasteKg": zod.number()
+}),
+  "followUps": zod.array(zod.object({
+  "id": zod.string(),
+  "recommendationId": zod.string(),
+  "recommendation": zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}),
+  "approvedAction": zod.string(),
+  "approvedQuantity": zod.number(),
+  "approvedAt": zod.string().nullable(),
+  "snapshotAt": zod.string(),
+  "startingDate": zod.string(),
+  "scheduledDate": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['outstanding', 'completed', 'cancelled']),
+  "cancellationReason": zod.string().nullable(),
+  "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(saveIngredientBatchResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "startingQuantity": zod.number(),
+  "expiry": zod.string(),
+  "deliveryQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "expectedUsage": zod.number(),
+  "expectedRemaining": zod.number()
+})),
+  "outcome": zod.union([zod.object({
+  "observationDate": zod.string(),
+  "actionTaken": zod.string(),
+  "recordedAt": zod.string(),
+  "rows": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "remaining": zod.number().min(saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin).max(saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax),
+  "wasted": zod.number().min(saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin).max(saveIngredientBatchResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax)
+}).and(zod.object({
+  "assessment": zod.string(),
+  "nextAction": zod.string(),
+  "inventoryUpdate": zod.string()
+})))
+}),zod.null()])
+})),
+  "approvedRecommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}))
+})
+
+
 export const getNotificationsResponseSettingsPhoneMax = 20;
 
 export const getNotificationsResponseSettingsReminderHoursMin = 24;
@@ -880,6 +1109,8 @@ export const updateAutomationResponseIngredientsItemCostMin = 0;
 
 export const updateAutomationResponseIngredientsItemDeliveryQuantityMin = 0;
 
+export const updateAutomationResponseIngredientsItemBatchesItemQuantityMin = 0;
+
 export const updateAutomationResponseSalesItemPortionsMin = 0;
 
 export const updateAutomationResponseResultsItemPreparedMin = 0;
@@ -887,6 +1118,8 @@ export const updateAutomationResponseResultsItemPreparedMin = 0;
 export const updateAutomationResponseResultsItemSoldMin = 0;
 
 export const updateAutomationResponseResultsItemLeftoverMin = 0;
+
+export const updateAutomationResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
 
 export const updateAutomationResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
 export const updateAutomationResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
@@ -928,7 +1161,13 @@ export const UpdateAutomationResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(updateAutomationResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
-  "measuredDate": zod.string().nullish()
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(updateAutomationResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
 })),
   "sales": zod.array(zod.object({
   "date": zod.string(),
@@ -1030,6 +1269,12 @@ export const UpdateAutomationResponse = zod.object({
   "status": zod.enum(['outstanding', 'completed', 'cancelled']),
   "cancellationReason": zod.string().nullable(),
   "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(updateAutomationResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
   "ingredientId": zod.string(),
   "name": zod.string(),
   "unit": zod.string(),
@@ -1081,6 +1326,8 @@ export const runAutomationResponseIngredientsItemCostMin = 0;
 
 export const runAutomationResponseIngredientsItemDeliveryQuantityMin = 0;
 
+export const runAutomationResponseIngredientsItemBatchesItemQuantityMin = 0;
+
 export const runAutomationResponseSalesItemPortionsMin = 0;
 
 export const runAutomationResponseResultsItemPreparedMin = 0;
@@ -1088,6 +1335,8 @@ export const runAutomationResponseResultsItemPreparedMin = 0;
 export const runAutomationResponseResultsItemSoldMin = 0;
 
 export const runAutomationResponseResultsItemLeftoverMin = 0;
+
+export const runAutomationResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
 
 export const runAutomationResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
 export const runAutomationResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
@@ -1129,7 +1378,13 @@ export const RunAutomationResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(runAutomationResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
-  "measuredDate": zod.string().nullish()
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(runAutomationResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
 })),
   "sales": zod.array(zod.object({
   "date": zod.string(),
@@ -1231,6 +1486,12 @@ export const RunAutomationResponse = zod.object({
   "status": zod.enum(['outstanding', 'completed', 'cancelled']),
   "cancellationReason": zod.string().nullable(),
   "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(runAutomationResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
   "ingredientId": zod.string(),
   "name": zod.string(),
   "unit": zod.string(),
@@ -1278,6 +1539,8 @@ export const getGuardStateResponseIngredientsItemCostMin = 0;
 
 export const getGuardStateResponseIngredientsItemDeliveryQuantityMin = 0;
 
+export const getGuardStateResponseIngredientsItemBatchesItemQuantityMin = 0;
+
 export const getGuardStateResponseSalesItemPortionsMin = 0;
 
 export const getGuardStateResponseResultsItemPreparedMin = 0;
@@ -1285,6 +1548,8 @@ export const getGuardStateResponseResultsItemPreparedMin = 0;
 export const getGuardStateResponseResultsItemSoldMin = 0;
 
 export const getGuardStateResponseResultsItemLeftoverMin = 0;
+
+export const getGuardStateResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
 
 export const getGuardStateResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
 export const getGuardStateResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
@@ -1326,7 +1591,13 @@ export const GetGuardStateResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(getGuardStateResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
-  "measuredDate": zod.string().nullish()
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(getGuardStateResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
 })),
   "sales": zod.array(zod.object({
   "date": zod.string(),
@@ -1428,6 +1699,12 @@ export const GetGuardStateResponse = zod.object({
   "status": zod.enum(['outstanding', 'completed', 'cancelled']),
   "cancellationReason": zod.string().nullable(),
   "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(getGuardStateResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
   "ingredientId": zod.string(),
   "name": zod.string(),
   "unit": zod.string(),
@@ -1484,6 +1761,8 @@ export const addGuardRecordsResponseIngredientsItemCostMin = 0;
 
 export const addGuardRecordsResponseIngredientsItemDeliveryQuantityMin = 0;
 
+export const addGuardRecordsResponseIngredientsItemBatchesItemQuantityMin = 0;
+
 export const addGuardRecordsResponseSalesItemPortionsMin = 0;
 
 export const addGuardRecordsResponseResultsItemPreparedMin = 0;
@@ -1491,6 +1770,8 @@ export const addGuardRecordsResponseResultsItemPreparedMin = 0;
 export const addGuardRecordsResponseResultsItemSoldMin = 0;
 
 export const addGuardRecordsResponseResultsItemLeftoverMin = 0;
+
+export const addGuardRecordsResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
 
 export const addGuardRecordsResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
 export const addGuardRecordsResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
@@ -1532,7 +1813,13 @@ export const AddGuardRecordsResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(addGuardRecordsResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
-  "measuredDate": zod.string().nullish()
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(addGuardRecordsResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
 })),
   "sales": zod.array(zod.object({
   "date": zod.string(),
@@ -1634,6 +1921,12 @@ export const AddGuardRecordsResponse = zod.object({
   "status": zod.enum(['outstanding', 'completed', 'cancelled']),
   "cancellationReason": zod.string().nullable(),
   "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(addGuardRecordsResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
   "ingredientId": zod.string(),
   "name": zod.string(),
   "unit": zod.string(),
@@ -1698,6 +1991,8 @@ export const decideRecommendationResponseIngredientsItemCostMin = 0;
 
 export const decideRecommendationResponseIngredientsItemDeliveryQuantityMin = 0;
 
+export const decideRecommendationResponseIngredientsItemBatchesItemQuantityMin = 0;
+
 export const decideRecommendationResponseSalesItemPortionsMin = 0;
 
 export const decideRecommendationResponseResultsItemPreparedMin = 0;
@@ -1705,6 +2000,8 @@ export const decideRecommendationResponseResultsItemPreparedMin = 0;
 export const decideRecommendationResponseResultsItemSoldMin = 0;
 
 export const decideRecommendationResponseResultsItemLeftoverMin = 0;
+
+export const decideRecommendationResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
 
 export const decideRecommendationResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
 export const decideRecommendationResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
@@ -1746,7 +2043,13 @@ export const DecideRecommendationResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(decideRecommendationResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
-  "measuredDate": zod.string().nullish()
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(decideRecommendationResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
 })),
   "sales": zod.array(zod.object({
   "date": zod.string(),
@@ -1848,6 +2151,12 @@ export const DecideRecommendationResponse = zod.object({
   "status": zod.enum(['outstanding', 'completed', 'cancelled']),
   "cancellationReason": zod.string().nullable(),
   "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(decideRecommendationResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
   "ingredientId": zod.string(),
   "name": zod.string(),
   "unit": zod.string(),
@@ -1905,6 +2214,8 @@ export const attachFollowUpResponseIngredientsItemCostMin = 0;
 
 export const attachFollowUpResponseIngredientsItemDeliveryQuantityMin = 0;
 
+export const attachFollowUpResponseIngredientsItemBatchesItemQuantityMin = 0;
+
 export const attachFollowUpResponseSalesItemPortionsMin = 0;
 
 export const attachFollowUpResponseResultsItemPreparedMin = 0;
@@ -1912,6 +2223,8 @@ export const attachFollowUpResponseResultsItemPreparedMin = 0;
 export const attachFollowUpResponseResultsItemSoldMin = 0;
 
 export const attachFollowUpResponseResultsItemLeftoverMin = 0;
+
+export const attachFollowUpResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
 
 export const attachFollowUpResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
 export const attachFollowUpResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
@@ -1953,7 +2266,13 @@ export const AttachFollowUpResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(attachFollowUpResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
-  "measuredDate": zod.string().nullish()
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(attachFollowUpResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
 })),
   "sales": zod.array(zod.object({
   "date": zod.string(),
@@ -2055,6 +2374,12 @@ export const AttachFollowUpResponse = zod.object({
   "status": zod.enum(['outstanding', 'completed', 'cancelled']),
   "cancellationReason": zod.string().nullable(),
   "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(attachFollowUpResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
   "ingredientId": zod.string(),
   "name": zod.string(),
   "unit": zod.string(),
@@ -2128,6 +2453,8 @@ export const recordFollowUpOutcomeResponseIngredientsItemCostMin = 0;
 
 export const recordFollowUpOutcomeResponseIngredientsItemDeliveryQuantityMin = 0;
 
+export const recordFollowUpOutcomeResponseIngredientsItemBatchesItemQuantityMin = 0;
+
 export const recordFollowUpOutcomeResponseSalesItemPortionsMin = 0;
 
 export const recordFollowUpOutcomeResponseResultsItemPreparedMin = 0;
@@ -2135,6 +2462,8 @@ export const recordFollowUpOutcomeResponseResultsItemPreparedMin = 0;
 export const recordFollowUpOutcomeResponseResultsItemSoldMin = 0;
 
 export const recordFollowUpOutcomeResponseResultsItemLeftoverMin = 0;
+
+export const recordFollowUpOutcomeResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
 
 export const recordFollowUpOutcomeResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
 export const recordFollowUpOutcomeResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
@@ -2176,7 +2505,13 @@ export const RecordFollowUpOutcomeResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(recordFollowUpOutcomeResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
-  "measuredDate": zod.string().nullish()
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(recordFollowUpOutcomeResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
 })),
   "sales": zod.array(zod.object({
   "date": zod.string(),
@@ -2278,6 +2613,12 @@ export const RecordFollowUpOutcomeResponse = zod.object({
   "status": zod.enum(['outstanding', 'completed', 'cancelled']),
   "cancellationReason": zod.string().nullable(),
   "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(recordFollowUpOutcomeResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
   "ingredientId": zod.string(),
   "name": zod.string(),
   "unit": zod.string(),

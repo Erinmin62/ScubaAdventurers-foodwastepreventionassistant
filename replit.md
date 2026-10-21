@@ -45,7 +45,7 @@ Use synthetic data. The user requested cute Genshin Impact-like characters while
 
 ## Gotchas
 
-- Waste-aware reordering updates only the single simulated incoming delivery after explicit approval; it never changes on-hand stock or places supplier orders. Supplier terms and delivered shelf life are editable assumptions, not verified data.
+- Waste-aware reordering uses all received expiry batches but updates only the single simulated incoming delivery after explicit approval; it never changes on-hand stock or places supplier orders. Supplier terms and delivered shelf life are editable assumptions, not verified data.
 - See `docs/waste-aware-reordering.md` for calculations, safeguards, test commands and the hackathon walkthrough. Daily planning includes reorder drafts; future order dates/receipt uncertainties require owner reconciliation.
 
 - Follow-up forecasts exclude unconfirmed deliveries and are not a stock ledger. Comparisons do not establish consumption or causal waste reduction. Ingredient discards are not added to prepared-food leftover totals.

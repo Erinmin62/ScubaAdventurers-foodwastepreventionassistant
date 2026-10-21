@@ -152,7 +152,8 @@ function OutcomeForm({ f, data, onDone }: { f: FollowUp; data: GuardState; onDon
             <div key={i.ingredientId} className="rounded-xl border p-3 grid gap-2 md:grid-cols-[1fr_130px_130px] items-end">
               <div className="text-xs">
                 <div className="font-semibold text-sm">{i.name}</div>
-                <div className="num text-muted-foreground">Start {fmt(i.startingQuantity)} {i.unit} · expiry {niceDate(i.expiry)}</div>
+                <div className="num text-muted-foreground">Start {fmt(i.startingQuantity)} {i.unit} · earliest expiry {niceDate(i.expiry)}</div>
+                {i.batches && i.batches.length > 1 && <div className="text-muted-foreground">Saved batches: {i.batches.map(b => `${fmt(b.quantity)} ${i.unit} expires ${b.expiry}`).join('; ')}. Correct current counts per batch in Pantry; this total observation will not overwrite them.</div>}
                 <div className="num text-muted-foreground">Saved forecast at {niceDate(f.scheduledDate)}: <b>{fmt(i.expectedRemaining)} {i.unit}</b> remaining (usage {fmt(i.expectedUsage)})</div>
                 {i.deliveryQuantity > 0 && <div className="num text-muted-foreground">Delivery {fmt(i.deliveryQuantity)} {i.unit} on {niceDate(i.deliveryDate)} — excluded unless confirmed</div>}
               </div>
@@ -197,7 +198,7 @@ export function FollowUpDetail({ f }: { f: FollowUp }) {
         <div className="mt-2 space-y-1">
           <p>{f.recommendation.title} — {f.recommendation.description}</p>
           <p>Original amount {fmt(f.recommendation.original)} {f.recommendation.unit}; suggested {fmt(f.recommendation.suggested)} {f.recommendation.unit}. Starting point {niceDate(f.startingDate)}.</p>
-          {f.ingredients.map((i) => <p key={i.ingredientId}>{i.name}: start {fmt(i.startingQuantity)} {i.unit}, expires {niceDate(i.expiry)}; forecast usage {fmt(i.expectedUsage)} {i.unit}, remaining estimate {fmt(i.expectedRemaining)} {i.unit} at {niceDate(f.scheduledDate)}. Planned delivery {fmt(i.deliveryQuantity)} {i.unit} on {niceDate(i.deliveryDate)} (not assumed received).</p>)}
+          {f.ingredients.map((i) => <p key={i.ingredientId}>{i.name}: start {fmt(i.startingQuantity)} {i.unit}, earliest expiry {niceDate(i.expiry)}; forecast usage {fmt(i.expectedUsage)} {i.unit}, remaining estimate {fmt(i.expectedRemaining)} {i.unit} at {niceDate(f.scheduledDate)}. Planned delivery {fmt(i.deliveryQuantity)} {i.unit} on {niceDate(i.deliveryDate)} (not assumed received). {i.batches && `Saved batches: ${i.batches.map(b => `${fmt(b.quantity)} ${i.unit}, expiry ${b.expiry}, received ${b.receivedDate ?? 'unknown'}`).join('; ')}.`}</p>)}
         </div>
       </details>
       {f.cancellationReason && <div className="text-sm">Cancelled: {f.cancellationReason}</div>}

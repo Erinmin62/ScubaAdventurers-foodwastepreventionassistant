@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetGuardStateQueryKey,
+  getGetReordersQueryKey,
   useAddGuardRecords,
   useAttachFollowUp,
   useRecordFollowUpOutcome,
@@ -16,7 +17,10 @@ export function useGuard() {
 
 export function useGuardMutations() {
   const qc = useQueryClient();
-  const onSuccess = () => qc.invalidateQueries({ queryKey: getGetGuardStateQueryKey() });
+  const onSuccess = () => {
+    qc.invalidateQueries({ queryKey: getGetGuardStateQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetReordersQueryKey() });
+  };
   const add = useAddGuardRecords({ mutation: { onSuccess } });
   const decide = useDecideRecommendation({ mutation: { onSuccess } });
   const attach = useAttachFollowUp({ mutation: { onSuccess } });

@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StockBatch } from './stockBatch';
 
 export interface FollowUpIngredient {
+  batches?: StockBatch[];
   ingredientId: string;
   name: string;
   unit: string;

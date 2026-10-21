@@ -1,4 +1,5 @@
 import { GetGuardStateResponse } from "@workspace/api-zod";
+import { safeStock, stockBatches } from "./guard-batches";
 
 export type State = typeof GetGuardStateResponse._output;
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
@@ -60,7 +61,7 @@ export function seed(): Stored {
 export function compute(s: Stored): State {
   const d = today(), tomorrow = shift(d, 1);
   const weekday = new Date(`${tomorrow}T00:00Z`).getUTCDay();
-  const available = Object.fromEntries(s.ingredients.map(i => [i.id, i.expiry >= tomorrow ? i.quantity : 0]));
+  const available = Object.fromEntries(s.ingredients.map(i => [i.id, safeStock(i, tomorrow)]));
   const forecasts: State["forecasts"] = s.menu.map(m => {
     const history = s.sales.filter(r => r.menuId === m.id && r.date <= d && r.date >= shift(d, -6));
     const avg = history.length ? history.reduce((n, r) => n + r.portions, 0) / history.length : 0;
@@ -75,7 +76,13 @@ export function compute(s: Stored): State {
   const risks: State["risks"] = s.ingredients.map(i => {
     const daysLeft = daysBetween(d, i.expiry);
     const expectedUse = round(dailyUse(i.id) * Math.max(0, daysLeft));
-    const atRisk = round(Math.max(0, i.quantity - expectedUse));
+    let demandUsed = 0;
+    const atRisk = round([...stockBatches(i)].sort((a, b) => a.expiry.localeCompare(b.expiry)).reduce((waste, b) => {
+      const usableDemand = Math.max(0, dailyUse(i.id) * Math.max(0, daysBetween(d, b.expiry)) - demandUsed);
+      const used = Math.min(b.quantity, usableDemand);
+      demandUsed += used;
+      return waste + b.quantity - used;
+    }, 0));
     const level = daysLeft < 0 ? "expired" : daysLeft <= 1 && atRisk > 0 ? "critical" : atRisk > 0 && daysLeft <= 4 ? "high" : daysLeft <= 3 ? "watch" : "low";
     return { ingredientId: i.id, name: i.name, daysLeft, level, expectedUse, atRisk, value: round(atRisk * i.cost), message: daysLeft < 0 ? "Expired — isolate and discard safely. Never use in preparation." : daysLeft === 0 ? "Expires today. Do not use in tomorrow's plan." : atRisk > 0 ? `${atRisk} ${i.unit} may remain unused before expiry. Prioritize safe stock first.` : "Expected demand covers stock before expiry." };
   });
@@ -88,12 +95,17 @@ export function compute(s: Stored): State {
   for (const i of s.ingredients) {
     const daily = dailyUse(i.id);
     const leadDays = Math.max(1, daysBetween(d, i.deliveryDate));
-    const remainingAtDelivery = i.expiry >= i.deliveryDate ? Math.max(0, i.quantity - daily * Math.max(0, leadDays - 1)) : 0;
+    let remainingDemand = daily * Math.max(0, leadDays - 1);
+    const remainingAtDelivery = [...stockBatches(i)].sort((a, b) => a.expiry.localeCompare(b.expiry)).reduce((remaining, b) => {
+      const used = Math.min(b.quantity, remainingDemand, daily * Math.max(0, daysBetween(d, b.expiry)));
+      remainingDemand -= used;
+      return remaining + (b.expiry >= i.deliveryDate ? b.quantity - used : 0);
+    }, 0);
     const need = round(Math.max(0, daily * 2 - remainingAtDelivery));
     const purchaseId = `${tomorrow}:purchase:${i.id}`;
     if (i.deliveryQuantity > 0 || need > 0 || s.decisions[purchaseId]) add({ id: purchaseId, type: "purchase", targetId: i.id, title: need < i.deliveryQuantity ? `Reduce the next ${i.name.toLowerCase()} order` : `Review ${i.name.toLowerCase()} purchasing`, description: `Current stock: ${i.quantity} ${i.unit}. Forecast use: ${round(daily)} ${i.unit}/day. Plan ${need} ${i.unit} for the ${i.deliveryDate} delivery and following day, considering expiry. This only changes your internal purchasing plan.`, original: i.deliveryQuantity, suggested: need, unit: i.unit, savings: round(Math.max(0, i.deliveryQuantity - need) * i.cost) });
     const risk = risks.find(r => r.ingredientId === i.id)!;
-    if (risk.daysLeft >= 1 && risk.daysLeft <= 3) add({ id: `${tomorrow}:first:${i.id}`, type: "use-first", targetId: i.id, title: `Use ${i.name.toLowerCase()} first`, description: `${risk.message} Use first-expiring safe stock in compatible menu recipes. Do not exceed forecast portions to use up stock.`, original: i.quantity, suggested: round(Math.min(i.quantity, daily)), unit: i.unit, savings: 0 });
+    if (stockBatches(i).some(b => b.quantity > 0 && b.expiry >= tomorrow && b.expiry <= shift(d, 3))) add({ id: `${tomorrow}:first:${i.id}`, type: "use-first", targetId: i.id, title: `Use ${i.name.toLowerCase()} first`, description: "Use first-expiring safe batches in compatible menu recipes. Isolate expired batches; do not exceed forecast portions to use up stock.", original: safeStock(i, tomorrow), suggested: round(Math.min(safeStock(i, tomorrow), daily)), unit: i.unit, savings: 0 });
   }
   const recent = s.results.filter(r => r.date >= shift(d, -6) && r.date <= d);
   const actualWasteCost = round(recent.reduce((n, r) => n + r.leftover * (s.menu.find(m => m.id === r.menuId)?.cost ?? 0), 0));

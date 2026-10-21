@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { GetReordersResponse } from "@workspace/api-zod";
 import { compute, today, shift, daysBetween, round, type Stored } from "./guard-model";
 import { InputError } from "./guard-follow-ups";
+import { stockBatches } from "./guard-batches";
 
 export type Reorders = typeof GetReordersResponse._output;
 type Config = Reorders["settings"][number];
@@ -24,7 +25,7 @@ function fingerprint(s: Stored, id: string): string {
 function simulate(i: Ingredient, usage: number, arrival: string, quantity: number, config: Config, end: string) {
   const d = today(), horizon = shift(arrival, config.reviewDays - 1);
   const batches = [
-    { available: shift(d, 1), expiry: i.expiry, quantity: i.quantity },
+    ...stockBatches(i).map(b => ({ available: shift(d, 1), expiry: b.expiry, quantity: b.quantity })),
     { available: arrival, expiry: shift(arrival, config.shelfDays - 1), quantity },
   ];
   let waste = 0, shortage = 0, before = 0, eligibleShortage = 0, closing = 0;
@@ -65,7 +66,7 @@ export function analyzeReorders(s: Stored): Line[] {
     const bounded = horizonDays <= 60;
     const overdue = i.deliveryQuantity > 0 && i.deliveryDate < tomorrow;
     const demandAvailable = (config.dailyUsage !== undefined || historyComplete) && bounded && !overdue;
-    const end = [horizon, i.expiry, shift(arrival, config.shelfDays - 1)].sort().at(-1)!;
+    const end = [horizon, ...stockBatches(i).filter(b => b.quantity > 0).map(b => b.expiry), shift(arrival, config.shelfDays - 1)].sort().at(-1)!;
     const evaluationEnd = end > shift(d, 90) ? shift(d, 90) : end;
     const safeEnd = bounded ? evaluationEnd : shift(d, 60);
     const empty = simulate(i, usage, arrival, 0, config, safeEnd);
@@ -78,7 +79,7 @@ export function analyzeReorders(s: Stored): Line[] {
       "Synthetic shared demo. Closing stock today; consumption starts tomorrow. Deterministic rules, not evaluated machine learning.",
       config.dailyUsage !== undefined ? `Owner-entered usage assumption: ${usage} ${i.unit}/day.` : `Repeat tomorrow's recipe-based seven-day sales forecast: ${usage} ${i.unit}/day; not a multi-day predictive model.`,
       `${s.reordering?.settings.some(c => c.ingredientId === i.id) ? "Owner-entered assumptions" : "Synthetic defaults (not verified supplier terms)"}: lead ${config.leadDays} days, review ${config.reviewDays} days, minimum ${config.minOrder} ${i.unit}, safety ${config.safetyStock} ${i.unit}, delivered shelf life ${config.shelfDays} days.`,
-      "Current inventory is one expiry batch. Incoming quantity is one planned delivery, not already in current stock. Delivery arrives before that day's demand; use FEFO, never expired stock.",
+      "Received stock uses separate expiry batches with FEFO. Incoming quantity is one planned delivery, never already in received stock. Delivery arrives before that day's demand; never use expired stock.",
       `Waste modeled through ${safeEnd}; current stock beyond 90 days is not assessed. Reductions are estimates, not measured outcomes.`,
     ];
     if (!historyComplete && config.dailyUsage === undefined) assumptions.push("Missing recent menu sales or recipe mapping. Configure daily usage before approval; zero demand is not evidence of no demand.");
@@ -87,7 +88,7 @@ export function analyzeReorders(s: Stored): Line[] {
     if (config.shelfDays < config.reviewDays) assumptions.push("Delivered shelf life is shorter than the review period. Split/repeat deliveries may be needed; a single order cannot cover later days safely.");
     if (proposed.shortage > proposed.before) assumptions.push(`Residual forecast shortage after arrival: ${round(proposed.shortage - proposed.before)} ${i.unit}; review shelf life, minimums or arrange split deliveries.`);
     if (proposed.waste > baseline.waste) assumptions.push(`The proposed minimum/safety quantity increases modeled expiry waste to ${proposed.waste} ${i.unit} (${round(proposed.waste * i.cost)} RM). Consider a smaller supplier minimum, split delivery, or reviewing safety stock before approving.`);
-    const expired = i.expiry < d ? i.quantity : 0;
+    const expired = round(stockBatches(i).filter(b => b.expiry < d).reduce((n, b) => n + b.quantity, 0));
     return {
       ingredientId: i.id, name: i.name, unit: i.unit, unitCost: i.cost, expiry: i.expiry, currentStock: i.quantity, expiredQuantity: expired,
       wasteQuantity: baseline.waste, wasteCost: round(baseline.waste * i.cost),

@@ -55,4 +55,6 @@ export * from './reorderState';
 export * from './result';
 export * from './risk';
 export * from './sale';
+export * from './stockBatch';
+export * from './stockBatchInput';
 export * from './summary';

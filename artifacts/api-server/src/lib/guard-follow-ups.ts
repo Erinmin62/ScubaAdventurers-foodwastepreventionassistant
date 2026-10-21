@@ -1,4 +1,5 @@
 import { type State, type Stored, compute, daysBetween, round, shift, today } from "./guard-model";
+import { stockBatches } from "./guard-batches";
 
 export class InputError extends Error {}
 type FollowUp = State["followUps"][number];
@@ -35,9 +36,22 @@ export function scheduleFollowUp(s: Stored, recommendation: State["recommendatio
     const dishForecast = dish ? state.forecasts.find(f => f.menuId === dish.id)?.predicted ?? 0 : 0;
     const recipeAmount = dish?.recipe.find(r => r.ingredientId === id)?.amount ?? 0;
     const safeDays = Math.max(0, Math.min(days, daysBetween(startingDate, stock.expiry)));
-    const usage = Math.max(0, daily * safeDays + (safeDays > 0 ? (dish ? (quantity - dishForecast) * recipeAmount : recommendation.type === "use-first" ? quantity - daily : 0) : 0));
+    let usage = Math.max(0, daily * safeDays + (safeDays > 0 ? (dish ? (quantity - dishForecast) * recipeAmount : recommendation.type === "use-first" ? quantity - daily : 0) : 0));
+    if (stockBatches(stock).length > 1) {
+      const batches = structuredClone(stockBatches(stock)).sort((a, b) => a.expiry.localeCompare(b.expiry));
+      usage = 0;
+      for (let day = 1; day <= days; day++) {
+        let need = Math.max(0, daily + (day === 1 ? dish ? (quantity - dishForecast) * recipeAmount : recommendation.type === "use-first" ? quantity - daily : 0 : 0));
+        for (const b of batches) {
+          if (b.expiry < shift(startingDate, day)) continue;
+          const used = Math.min(need, b.quantity);
+          b.quantity -= used; need -= used; usage += used;
+        }
+      }
+    }
     return {
       ingredientId: id, name: stock.name, unit: stock.unit, startingQuantity: stock.quantity, expiry: stock.expiry,
+      batches: structuredClone(stockBatches(stock)),
       deliveryQuantity: stock.deliveryQuantity, deliveryDate: stock.deliveryDate,
       expectedUsage: round(usage), expectedRemaining: round(Math.max(0, stock.quantity - usage)),
     };
@@ -74,7 +88,8 @@ export function completeFollowUp(s: Stored, id: string, input: OutcomeInput) {
     const i = f.ingredients.find(i => i.ingredientId === row.ingredientId)!;
     const stock = s.ingredients.find(i => i.id === row.ingredientId);
     let assessment: string, nextAction: string;
-    if (row.remaining > 0 && i.expiry < observationDate) {
+    const latestExpiry = i.batches?.filter(b => b.quantity > 0).map(b => b.expiry).sort().at(-1) ?? i.expiry;
+    if (row.remaining > 0 && latestExpiry < observationDate) {
       assessment = "expired stock requiring safe disposal";
       nextAction = "Isolate and safely discard expired stock. Never use it in dishes. Review the next delivery with owner approval.";
     } else if (observationDate !== f.scheduledDate) {
@@ -92,8 +107,10 @@ export function completeFollowUp(s: Stored, id: string, input: OutcomeInput) {
       if (!stock || stock.unit !== i.unit) inventoryUpdate = "Not updated: ingredient missing or unit changed.";
       else if (stock.measuredDate && observationDate <= stock.measuredDate) inventoryUpdate = `Not updated: current measurement is dated ${stock.measuredDate} (same day or newer).`;
       else if (!stock.measuredDate && observationDate < today()) inventoryUpdate = "Not updated: current measurement date is unknown; historical observation retained only.";
+      else if (stock.batches && stock.batches.length > 1) inventoryUpdate = "Not updated: multiple expiry batches require individual batch counts in Pantry. Observation retained.";
       else {
         stock.quantity = row.remaining;
+        if (stock.batches?.length === 1) stock.batches[0]!.quantity = row.remaining;
         stock.measuredDate = observationDate;
         inventoryUpdate = `Updated current measured stock to ${row.remaining} ${i.unit} as observed ${observationDate}.`;
       }

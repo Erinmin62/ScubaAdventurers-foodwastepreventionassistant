@@ -11,6 +11,22 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /guard/ingredients/{id}/batches:
+    post:
+      operationId: saveIngredientBatch
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StockBatchInput" }
+      responses:
+        "200":
+          description: Received stock saved, planned delivery unchanged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
   /guard/notifications:
     get:
       operationId: getNotifications
@@ -425,6 +441,22 @@ components:
         runs:
           type: array
           items: { $ref: "#/components/schemas/AutomationRun" }
+    StockBatchInput:
+      type: object
+      required: [quantity, expiry, receivedDate]
+      properties:
+        id: { type: string }
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        expiry: { type: string }
+        receivedDate: { type: ["string", "null"] }
+    StockBatch:
+      type: object
+      required: [id, quantity, expiry, receivedDate]
+      properties:
+        id: { type: string }
+        quantity: { type: number, minimum: 0 }
+        expiry: { type: string }
+        receivedDate: { type: ["string", "null"] }
     Ingredient:
       type: object
       required: [id, name, quantity, unit, expiry, cost, category, deliveryQuantity, deliveryDate]
@@ -439,6 +471,9 @@ components:
         deliveryQuantity: { type: number, minimum: 0 }
         deliveryDate: { type: string }
         measuredDate: { type: ["string", "null"] }
+        batches:
+          type: array
+          items: { $ref: "#/components/schemas/StockBatch" }
     Sale:
       type: object
       required: [date, menuId, portions]
@@ -582,6 +617,9 @@ components:
       type: object
       required: [ingredientId, name, unit, startingQuantity, expiry, deliveryQuantity, deliveryDate, expectedUsage, expectedRemaining]
       properties:
+        batches:
+          type: array
+          items: { $ref: "#/components/schemas/StockBatch" }
         ingredientId: { type: string }
         name: { type: string }
         unit: { type: string }
@@ -678,4 +716,3 @@ components:
           type: string
       required:
         - status
-

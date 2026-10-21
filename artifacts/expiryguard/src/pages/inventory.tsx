@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { addDays, daysBetween, errorMessage, fmt, isDate, isNum, niceDate, rm, useGuard, useGuardMutations } from '@/lib/guard';
 import { cn } from '@/lib/utils';
+import { StockBatches } from '@/components/stock-batches';
 
 const spec: ImportSpec = {
   kind: 'inventory',
@@ -52,6 +53,7 @@ export default function Inventory() {
   const [cat, setCat] = useState('All');
   const [form, setForm] = useState<FormState | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [batchId, setBatchId] = useState<string | null>(null);
 
   const cats = useMemo(() => ['All', ...Array.from(new Set((data?.ingredients ?? []).map((i) => i.category || 'Other')))], [data]);
   if (isLoading) return <LoadingState />;
@@ -62,6 +64,8 @@ export default function Inventory() {
     .filter((i) => (cat === 'All' || (i.category || 'Other') === cat) && i.name.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => a.expiry.localeCompare(b.expiry));
   const expired = data.ingredients.filter((i) => daysBetween(data.today, i.expiry) < 0);
+  const batchIngredient = data.ingredients.find(i => i.id === batchId);
+  const multiBatch = (data.ingredients.find(i => i.id === form?.id)?.batches?.length ?? 0) > 1;
 
   const open = (i?: Ingredient) => setForm(i ? { id: i.id, name: i.name, quantity: String(i.quantity), unit: i.unit, expiry: i.expiry.slice(0, 10), cost: String(i.cost), category: i.category, deliveryQuantity: String(i.deliveryQuantity || ''), deliveryDate: i.deliveryDate?.slice(0, 10) ?? '' }
     : { name: '', quantity: '', unit: 'kg', expiry: addDays(data.today, 3), cost: '', category: '', deliveryQuantity: '', deliveryDate: '' });
@@ -103,10 +107,10 @@ export default function Inventory() {
                   const days = daysBetween(data.today, i.expiry);
                   const r = riskMap.get(i.id);
                   return (
-                    <tr key={i.id} className={cn('border-b last:border-0 hover:bg-muted/40 transition-colors', days < 0 && 'opacity-55')} data-testid={`row-ingredient-${i.id}`}>
-                      <td className="py-2.5 pr-3"><div className="font-semibold">{i.name}</div><div className="text-[11px] text-muted-foreground">{i.category || 'Other'}</div></td>
+                    <tr key={i.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors" data-testid={`row-ingredient-${i.id}`}>
+                      <td className="py-2.5 pr-3"><div className="font-semibold">{i.name}</div><div className="text-[11px] text-muted-foreground">{i.category || 'Other'}</div><Button variant="link" size="sm" className="px-0" onClick={() => setBatchId(i.id)}>Batches / receive ({i.batches?.length ?? 1})</Button></td>
                       <td className="pr-3 num">{fmt(i.quantity)} {i.unit}</td>
-                      <td className="pr-3"><div className="num text-xs">{niceDate(i.expiry)}</div><div className={cn('text-[11px] font-semibold', days < 0 ? 'text-destructive' : days <= 1 ? 'text-primary' : 'text-muted-foreground')}>{days < 0 ? 'Expired, excluded' : days === 0 ? 'Today' : `${days}d left`}</div></td>
+                      <td className="pr-3"><div className="num text-xs">{niceDate(i.expiry)} (earliest)</div><div className={cn('text-[11px] font-semibold', days < 0 ? 'text-destructive' : days <= 1 ? 'text-primary' : 'text-muted-foreground')}>{days < 0 ? 'Expired batch excluded' : days === 0 ? 'Today' : `${days}d left`}</div></td>
                       <td className="pr-3">{days < 0 ? <LevelPill level="expired" /> : r ? <div className="flex items-center gap-2"><LevelPill level={r.level} /><span className="num text-xs">{rm(r.value)}</span></div> : <span className="text-xs text-muted-foreground">Clear</span>}</td>
                       <td className="pr-3 num text-right">{rm(i.cost)}</td>
                       <td className="pr-3 num text-xs">{i.deliveryQuantity > 0 ? `${fmt(i.deliveryQuantity)} ${i.unit} · ${niceDate(i.deliveryDate)}` : '—'}</td>
@@ -126,9 +130,10 @@ export default function Inventory() {
           {form && (
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2"><Label>Name</Label><Input value={form.name} onChange={set('name')} data-testid="input-name" /></div>
-              <div><Label>Quantity</Label><Input type="number" min={0} step="0.1" value={form.quantity} onChange={set('quantity')} data-testid="input-quantity" /></div>
-              <div><Label>Unit</Label><Input value={form.unit} onChange={set('unit')} data-testid="input-unit" /></div>
-              <div><Label>Expiry</Label><Input type="date" value={form.expiry} onChange={set('expiry')} data-testid="input-expiry" /></div>
+              {multiBatch && <p className="col-span-2 text-sm">Multiple expiry batches: use Batches / receive to correct stock quantities and dates. These totals are read-only.</p>}
+              <div><Label>Quantity</Label><Input disabled={multiBatch} type="number" min={0} step="0.1" value={form.quantity} onChange={set('quantity')} data-testid="input-quantity" /></div>
+              <div><Label>Unit</Label><Input disabled={multiBatch} value={form.unit} onChange={set('unit')} data-testid="input-unit" /></div>
+              <div><Label>Expiry</Label><Input disabled={multiBatch} type="date" value={form.expiry} onChange={set('expiry')} data-testid="input-expiry" /></div>
               <div><Label>Cost per unit (RM)</Label><Input type="number" min={0} step="0.01" value={form.cost} onChange={set('cost')} data-testid="input-cost" /></div>
               <div className="col-span-2"><Label>Category</Label><Input value={form.category} onChange={set('category')} data-testid="input-category" /></div>
               <div><Label>Delivery quantity</Label><Input type="number" min={0} value={form.deliveryQuantity} onChange={set('deliveryQuantity')} data-testid="input-delivery-qty" /></div>
@@ -141,8 +146,9 @@ export default function Inventory() {
       </Dialog>
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="max-w-xl"><DialogHeader><DialogTitle>Import inventory CSV</DialogTitle></DialogHeader><CsvImport spec={spec} /></DialogContent>
+        <DialogContent className="max-w-xl"><DialogHeader><DialogTitle>Import inventory CSV</DialogTitle></DialogHeader><p className="text-sm">Legacy stock-count format. For multiple receipts, use Batches / receive. Imports cannot replace the total quantity or earliest expiry of multi-batch stock.</p><CsvImport spec={spec} /></DialogContent>
       </Dialog>
+      {batchIngredient && <StockBatches key={batchIngredient.id} ingredient={batchIngredient} today={data.today} onClose={() => setBatchId(null)} />}
     </div>
   );
 }

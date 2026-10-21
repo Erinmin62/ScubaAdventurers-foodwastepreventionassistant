@@ -28,7 +28,38 @@ delivery—not physical stock.
 Some original sample deliveries may now be dated today or earlier. Their receipt
 is unknown: the reordering feature deliberately blocks their approval rather than
 counting them as stock or silently overwriting them. Reconcile stock and delivery
-dates using the existing Pantry editor/import before continuing.
+dates using the Pantry batch editor and separate planned-delivery fields before continuing.
+
+## Received batches
+
+In **Pantry**, choose **Batches / receive** for an ingredient. Record each actual
+receipt with its quantity, receipt date and expiry date. Future receipt dates are
+rejected: a planned delivery is not stock. Edit a batch to correct its remaining
+quantity or dates; use zero quantity for depleted/discarded stock. Entries remain
+visible so their identity is retained. Current quantities are owner-reported
+counts, not an automatically consumed stock ledger.
+
+Existing workspace documents migrate inside the normal locked transaction.
+Each old ingredient count becomes one stable legacy batch with its original
+quantity and expiry and an **unknown** receipt date. No historical receipt or
+measurement date is invented; old sales, approvals and follow-ups remain intact.
+Repeated reads/reloads do not duplicate batches. Ingredient quantity is the sum
+of received batches; its summary expiry is the earliest positive batch expiry.
+
+Receipt recording/corrections never modify the planned delivery. If a receipt
+corresponds to that plan, explicitly reconcile its remaining quantity/date in the
+ingredient editor so the simulation does not also count it as incoming stock.
+Reorder approvals still change only the planned delivery and still require owner
+review. There remains one target planned delivery per ingredient, not a schedule
+of multiple future orders.
+
+Legacy inventory CSVs and ingredient edits remain supported for single-batch
+stock. For multiple batches, quantity, expiry and unit cannot be replaced with an
+aggregate edit/import; edit each batch instead. Other ingredient and delivery
+fields remain editable. Imports are transactional: an invalid row saves nothing.
+New follow-ups save immutable batch snapshots and use safe batches for usage
+estimates. Aggregate outcome observations cannot overwrite multiple batch counts;
+the observation is retained and directs the owner to Pantry for individual counts.
 
 ## Calculation
 
@@ -41,7 +72,7 @@ dates using the existing Pantry editor/import before continuing.
   approval unless an explicit daily usage override is supplied.
 - The simulator allocates available batches by earliest expiry first. Expired
   batches cannot satisfy demand; future deliveries cannot satisfy earlier demand.
-  It uses the current stock batch plus **one** incoming batch.
+  It uses all received stock batches plus **one** separate incoming batch.
 - To size the proposed delivery, simulate with the target incoming batch removed.
   Sum uncovered demand after arrival, while that delivered batch remains safe.
   Add any unmet safety-stock target at the review horizon (only when delivered

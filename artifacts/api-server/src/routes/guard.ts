@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
-import { AddGuardRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody } from "@workspace/api-zod";
+import { AddGuardRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody } from "@workspace/api-zod";
 import { compute, today, round } from "../lib/guard-model";
 import { changeWorkspace as change } from "../lib/guard-store";
 import { runWorkflows } from "../lib/guard-automation";
 import { InputError, cancelOutstanding, completeFollowUp, scheduleFollowUp } from "../lib/guard-follow-ups";
+import { safeStock, stockBatches, syncStock } from "../lib/guard-batches";
 
 const router: IRouter = Router();
 const requiredString = (v: unknown, field: string): string => {
@@ -21,6 +22,34 @@ const date = (v: unknown, field: string) => {
 };
 router.get("/guard/state", async (_req, res): Promise<void> => {
   res.json(await change());
+});
+router.post("/guard/ingredients/:id/batches", async (req, res): Promise<void> => {
+  const parsed = SaveIngredientBatchBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Provide quantity, expiry and receipt date." }); return; }
+  try {
+    res.json(await change(s => {
+      const i = s.ingredients.find(i => i.id === req.params.id);
+      if (!i) throw new InputError("Ingredient not found.");
+      const input = parsed.data;
+      i.batches ??= stockBatches(i);
+      const existing = input.id ? i.batches.find(b => b.id === input.id) : undefined;
+      if (input.id && !existing) throw new InputError("Batch not found. Refresh the pantry.");
+      const expiry = date(input.expiry, "expiry");
+      const receivedDate = input.receivedDate === null ? null : date(input.receivedDate, "receivedDate");
+      if (receivedDate === null && (!existing || existing.receivedDate !== null)) throw new InputError("A new receipt needs its actual receipt date.");
+      if (receivedDate && (receivedDate > today() || expiry < receivedDate)) throw new InputError("Receipt date cannot be in the future or after expiry.");
+      const quantity = numeric(input.quantity, "quantity", i.unit === "pcs");
+      const batch = { id: existing?.id ?? crypto.randomUUID(), quantity, expiry, receivedDate };
+      if (existing) Object.assign(existing, batch); else i.batches.push(batch);
+      syncStock(i);
+      i.measuredDate = today();
+      if (s.automationProgress) s.automationProgress.dailyDate = undefined;
+      s.activity.unshift({ id: crypto.randomUUID(), time: new Date().toISOString(), title: `${existing ? "Batch corrected" : "Receipt recorded"}: ${i.name}`, detail: `${existing ? "Remaining quantity set to" : "Received"} ${quantity} ${i.unit}, expiry ${expiry}, receipt ${receivedDate ?? "unknown (legacy stock)"}. Planned delivery unchanged; reconcile it separately to avoid double-counting. No supplier order placed.`, decision: "input", impact: 0 });
+    }));
+  } catch (err) {
+    if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
+    throw err;
+  }
 });
 router.patch("/guard/automation", async (req, res): Promise<void> => {
   const body = UpdateAutomationBody.safeParse(req.body);
@@ -68,8 +97,16 @@ router.post("/guard/records", async (req, res): Promise<void> => {
               measuredDate: today(),
             };
             if (!["kg", "L", "pcs"].includes(ingredient.unit)) throw new InputError("unit must be kg, L, or pcs.");
+            if (existing?.batches && existing.batches.length > 1 &&
+                (ingredient.quantity !== existing.quantity || ingredient.expiry !== existing.expiry || ingredient.unit !== existing.unit)) throw new InputError("This ingredient has multiple batches. Edit individual batches instead of replacing total stock or expiry.");
             if (existing && ingredient.unit !== existing.unit && s.menu.some(m => m.recipe.some(r => r.ingredientId === existing.id))) throw new InputError("Cannot change a recipe ingredient's unit.");
-            if (existing) Object.assign(existing, ingredient); else s.ingredients.push(ingredient);
+            if (existing) {
+              if (existing.batches?.length === 1 && (ingredient.quantity !== existing.quantity || ingredient.expiry !== existing.expiry)) {
+                if (existing.batches[0]!.receivedDate && ingredient.expiry < existing.batches[0]!.receivedDate!) throw new InputError("Expiry cannot precede the batch receipt date.");
+                Object.assign(existing.batches[0]!, { quantity: ingredient.quantity, expiry: ingredient.expiry });
+              }
+              Object.assign(existing, ingredient);
+            } else s.ingredients.push({ ...ingredient, batches: [{ id: crypto.randomUUID(), quantity: ingredient.quantity, expiry: ingredient.expiry, receivedDate: null }] });
           } else {
             const menuId = requiredString(row.menuId, "menuId");
             if (!s.menu.some(m => m.id === menuId)) throw new InputError(`Unknown menuId '${menuId}'. Select an existing menu item.`);
@@ -122,14 +159,14 @@ router.post("/guard/recommendations/:id/decision", async (req, res): Promise<voi
         const menu = s.menu.find(m => m.id === recommendation.targetId)!;
         for (const recipe of menu.recipe) {
           const stock = s.ingredients.find(i => i.id === recipe.ingredientId);
-          const usable = stock && stock.expiry >= computed.tomorrow ? stock.quantity : 0;
+          const usable = stock ? safeStock(stock, computed.tomorrow) : 0;
           const allocated = computed.recommendations.filter(r => r.type === "preparation" && r.id !== recommendation.id && r.approvedQuantity !== null).reduce((n, r) => n + r.approvedQuantity! * (s.menu.find(m => m.id === r.targetId)?.recipe.find(v => v.ingredientId === recipe.ingredientId)?.amount ?? 0), 0);
           if (recipe.amount * quantity + allocated > usable + 0.000001) throw new InputError(`Not enough safe ${stock?.name ?? recipe.ingredientId} for tomorrow after other approved plans. Reduce portions or update stock. Expired stock is excluded.`);
         }
       }
       if (quantity !== null && recommendation.type === "use-first") {
         const stock = s.ingredients.find(i => i.id === recommendation.targetId)!;
-        if (stock.expiry < computed.tomorrow || quantity > stock.quantity) throw new InputError("Use-first quantity must be within safe stock available tomorrow.");
+        if (quantity > safeStock(stock, computed.tomorrow)) throw new InputError("Use-first quantity must be within safe stock available tomorrow.");
       }
       const ingredient = s.ingredients.find(i => i.id === recommendation.targetId);
       const savings = recommendation.type === "purchase" && quantity !== null ? round((recommendation.original - quantity) * (ingredient?.cost ?? 0)) : 0;

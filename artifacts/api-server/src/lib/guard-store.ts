@@ -4,6 +4,7 @@ import { GetGuardStateResponse } from "@workspace/api-zod";
 import { compute, seed, type Stored } from "./guard-model";
 import { runWorkflows } from "./guard-automation";
 import { scanNotificationEvents } from "./guard-notifications";
+import { migrateBatches } from "./guard-batches";
 
 export async function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun = true) {
   await db.insert(guardWorkspace).values({ id: "demo", data: seed() }).onConflictDoNothing();
@@ -12,6 +13,7 @@ export async function changeWorkspace(action: (s: Stored) => void = () => {}, au
     if (!record) throw new Error("Workspace unavailable.");
     const stored = record.data as Stored;
     const before = JSON.stringify(stored);
+    migrateBatches(stored);
     action(stored);
     if (autoRun) runWorkflows(stored);
     scanNotificationEvents(stored);

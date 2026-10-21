@@ -2,6 +2,30 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { compute, seed, shift, today, type Stored } from "./guard-model";
 import { cancelOutstanding, completeFollowUp, scheduleFollowUp } from "./guard-follow-ups";
+import { syncStock } from "./guard-batches";
+
+test("multi-batch follow-ups preserve expiry snapshots and cannot flatten batch counts", () => {
+  const s = seed(), i = s.ingredients[0]!;
+  i.batches = [
+    { id: "expired", quantity: 5, expiry: shift(today(), -1), receivedDate: null },
+    { id: "safe", quantity: 10, expiry: shift(today(), 5), receivedDate: today() },
+  ];
+  syncStock(i);
+  const rec = compute(s).recommendations.find(r => r.type === "purchase" && r.targetId === i.id)!;
+  scheduleFollowUp(s, rec, rec.suggested, 2, null);
+  const f = s.followUps![0]!;
+  assert.ok(f.ingredients[0]!.expectedUsage > 0, "expired first batch must not hide safe later stock");
+  assert.ok(f.ingredients[0]!.expectedUsage <= 10);
+  assert.deepEqual(f.ingredients[0]!.batches, i.batches);
+  const snapshot = structuredClone(f.ingredients);
+  i.batches[1]!.expiry = shift(today(), 10);
+  i.measuredDate = shift(today(), -1);
+  const before = structuredClone(i);
+  completeFollowUp(s, f.id, { ...outcome(f), updateInventory: true });
+  assert.deepEqual(i, before);
+  assert.match(f.outcome!.rows[0]!.inventoryUpdate, /multiple expiry batches/);
+  assert.deepEqual(f.ingredients, snapshot);
+});
 
 function setup(type = "purchase", targetId = "tomato", days: 1 | 2 = 2) {
   const s = seed();

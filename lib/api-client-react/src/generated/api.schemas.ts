@@ -303,6 +303,27 @@ export interface AutomationState {
   runs: AutomationRun[];
 }
 
+export interface StockBatchInput {
+  id?: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  quantity: number;
+  expiry: string;
+  /** @nullable */
+  receivedDate: string | null;
+}
+
+export interface StockBatch {
+  id: string;
+  /** @minimum 0 */
+  quantity: number;
+  expiry: string;
+  /** @nullable */
+  receivedDate: string | null;
+}
+
 export interface Ingredient {
   id: string;
   name: string;
@@ -318,6 +339,7 @@ export interface Ingredient {
   deliveryDate: string;
   /** @nullable */
   measuredDate?: string | null;
+  batches?: StockBatch[];
 }
 
 export interface Sale {
@@ -419,6 +441,7 @@ export const FollowUpStatus = {
 } as const;
 
 export interface FollowUpIngredient {
+  batches?: StockBatch[];
   ingredientId: string;
   name: string;
   unit: string;

@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StockBatch } from './stockBatch';
 
 export interface Ingredient {
   id: string;
@@ -21,4 +22,5 @@ export interface Ingredient {
   deliveryDate: string;
   /** @nullable */
   measuredDate?: string | null;
+  batches?: StockBatch[];
 }

@@ -1,8 +1,73 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seed, shift, today, type Stored } from "./guard-model";
+import { compute, seed, shift, today, type Stored } from "./guard-model";
+import { migrateBatches, safeStock, syncStock } from "./guard-batches";
 import { analyzeReorders, decideReorder, scanReorders } from "./guard-reorder";
 import { runWorkflows } from "./guard-automation";
+
+test("legacy migration preserves quantities, unknown receipt dates, deliveries and history on repeated JSON reload", () => {
+  const s = seed(), before = structuredClone(s);
+  s.ingredients[0]!.quantity = 1.2345;
+  migrateBatches(s);
+  assert.equal(s.ingredients[0]!.quantity, 1.2345);
+  for (const i of s.ingredients) {
+    assert.equal(i.batches!.length, 1);
+    assert.equal(i.batches![0]!.receivedDate, null);
+    assert.equal(i.batches![0]!.quantity, i.quantity);
+    assert.equal(i.deliveryQuantity, before.ingredients.find(v => v.id === i.id)!.deliveryQuantity);
+    assert.equal(i.measuredDate, undefined);
+  }
+  const reloaded = JSON.parse(JSON.stringify(s));
+  migrateBatches(reloaded);
+  assert.deepEqual(reloaded, s);
+  assert.deepEqual(s.activity, before.activity);
+});
+
+test("mixed expiry batches use FEFO regardless of input order and do not consume future stock early", () => {
+  const s = fixture(0, 0), i = s.ingredients[0]!;
+  i.batches = [
+    { id: "later", quantity: 4, expiry: shift(today(), 10), receivedDate: today() },
+    { id: "expired", quantity: 3, expiry: shift(today(), -1), receivedDate: null },
+    { id: "early", quantity: 2, expiry: shift(today(), 1), receivedDate: today() },
+  ];
+  syncStock(i);
+  const before = structuredClone(i), analysis = line(s);
+  assert.equal(i.quantity, 9);
+  assert.equal(safeStock(i, shift(today(), 1)), 6);
+  assert.equal(analysis.expiredQuantity, 3);
+  assert.equal(analysis.recommendedQuantity, 0, "6 safe units cover three days at 2/day");
+  assert.equal(analysis.wasteQuantity, 3, "only expired units are wasted when early stock is consumed first");
+  assert.equal(analysis.shortageBeforeDelivery, 0);
+  assert.deepEqual(i, before, "simulations never alter stock");
+  i.batches.reverse();
+  assert.deepEqual(line(s), analysis);
+  i.batches.find(b => b.id === "early")!.expiry = today();
+  syncStock(i);
+  assert.equal(line(s).recommendedQuantity, 2, "today-expiring stock cannot cover tomorrow");
+  assert.equal(line(s).shortageBeforeDelivery, 0);
+});
+
+test("batch-only expiry corrections invalidate owner approvals even with unchanged aggregate stock", () => {
+  const s = fixture(0, 4), i = s.ingredients[0]!;
+  migrateBatches(s);
+  scanReorders(s);
+  const plan = s.reordering!.plans[0]!;
+  i.batches!.push({ id: "later", quantity: 0, expiry: shift(today(), 20), receivedDate: today() });
+  decideReorder(s, plan.id, { decision: "approve", approver: "Demo owner" });
+  assert.equal(plan.status, "FAILED");
+  assert.equal(i.deliveryQuantity, 4);
+});
+
+test("tomorrow capacity includes later safe batches even when the earliest batch is expired", () => {
+  const s = seed(), i = s.ingredients.find(i => i.id === "avocado")!;
+  i.batches = [
+    { id: "old", quantity: 30, expiry: shift(today(), -1), receivedDate: null },
+    { id: "safe", quantity: 0.9, expiry: shift(today(), 2), receivedDate: today() },
+  ];
+  syncStock(i);
+  assert.equal(compute(s).forecasts.find(f => f.menuId === "avo-toast")!.capacity, 10);
+  assert.equal(safeStock(i, shift(today(), 1)), 0.9);
+});
 
 function fixture(quantity = 0, incoming = 0, usage = 2): Stored {
   const s = seed();

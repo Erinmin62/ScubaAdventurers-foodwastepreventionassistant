@@ -9,7 +9,7 @@ import { createHmac } from "node:crypto";
 import { defaultNotificationSettings } from "./guard-notifications";
 import { GetNotificationsResponse, ReviewNotificationResponse } from "@workspace/api-zod";
 import { resetWorkspace, snapshotWorkspace } from "./guard-http-fixture";
-import { seed, shift, today, compute } from "./guard-model";
+import { seed, shift, today, compute, type State } from "./guard-model";
 import type { Reorders } from "./guard-reorder";
 
 let server: Server, base: string;
@@ -217,6 +217,9 @@ test("HTTP: scheduler scan requires a server bearer credential and never execute
     assert.equal((await tick()).status, 503);
     process.env.NOTIFICATIONS_CRON_SECRET = "test-scheduler-only";
     assert.equal((await tick("wrong")).status, 403);
+    // First load performs the backward-compatible batch migration. Compare
+    // scheduler behavior against that current workspace shape, not legacy JSON.
+    assert.equal((await request("/guard/state")).status, 200);
     const before = snapshotWorkspace().ingredients;
     assert.equal((await tick("test-scheduler-only")).status, 204);
     assert.deepEqual(snapshotWorkspace().ingredients, before);
@@ -225,4 +228,53 @@ test("HTTP: scheduler scan requires a server bearer credential and never execute
     if (original === undefined) delete process.env.NOTIFICATIONS_CRON_SECRET;
     else process.env.NOTIFICATIONS_CRON_SECRET = original;
   }
+});
+
+test("HTTP: receipts and corrections persist as independent batches without changing planned deliveries", async () => {
+  fixture();
+  const path = "/guard/ingredients/tomato/batches";
+  const receipt = { quantity: 5, expiry: shift(today(), 8), receivedDate: today() };
+  const response = await request(path, receipt);
+  assert.equal(response.status, 200);
+  let i = (response.data as State).ingredients[0]!;
+  assert.equal(i.quantity, 6);
+  assert.ok(i.batches);
+  assert.equal(i.batches.length, 2);
+  assert.equal(i.batches[0]!.receivedDate, null);
+  assert.equal(i.deliveryQuantity, 4);
+  const id = i.batches[1]!.id;
+  assert.equal((await request(path, { ...receipt, id, quantity: 2 })).status, 200);
+  const reload = await request("/guard/state");
+  i = (reload.data as State).ingredients[0]!;
+  assert.equal(i.quantity, 3);
+  assert.equal(i.batches!.length, 2);
+  assert.equal(i.batches![1]!.id, id);
+  assert.equal(i.deliveryQuantity, 4);
+  assert.equal((await request(path, { ...receipt, id, quantity: 0 })).status, 200);
+  i = snapshotWorkspace().ingredients[0]!;
+  assert.equal(i.quantity, 1);
+  assert.equal(i.batches!.length, 2, "retain depleted batch identity");
+});
+
+test("HTTP: invalid receipts and destructive multi-batch imports are atomic failures", async () => {
+  fixture();
+  const path = "/guard/ingredients/tomato/batches";
+  const receipt = { quantity: 2, expiry: shift(today(), 8), receivedDate: today() };
+  await request(path, receipt);
+  const before = snapshotWorkspace();
+  for (const input of [
+    { ...receipt, quantity: -1 }, { ...receipt, quantity: "2" },
+    { ...receipt, expiry: "2026-02-30" }, { ...receipt, receivedDate: shift(today(), 1) },
+    { ...receipt, receivedDate: null }, { ...receipt, id: "missing" },
+    { ...receipt, expiry: shift(today(), -1) },
+  ]) {
+    assert.equal((await request(path, input)).status, 400);
+    assert.deepEqual(snapshotWorkspace(), before);
+  }
+  const ingredient = before.ingredients[0]!;
+  const imported = await request("/guard/records", { kind: "inventory", rows: [{ ...ingredient, quantity: 999 }] });
+  assert.equal(imported.status, 400);
+  assert.deepEqual(snapshotWorkspace(), before);
+  assert.equal((await request("/guard/records", { kind: "inventory", rows: [{ ...ingredient, deliveryQuantity: 0 }] })).status, 200);
+  assert.deepEqual(snapshotWorkspace().ingredients[0]!.batches, ingredient.batches);
 });

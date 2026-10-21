@@ -34,7 +34,8 @@ import type {
   RecordsInput,
   ReorderConfig,
   ReorderDecisionInput,
-  ReorderState
+  ReorderState,
+  StockBatchInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -63,6 +64,89 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getSaveIngredientBatchUrl = (id: string,) => {
+
+
+
+
+  return `/api/guard/ingredients/${id}/batches`
+}
+
+export const saveIngredientBatch = async (id: string,
+    stockBatchInput: StockBatchInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getSaveIngredientBatchUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(stockBatchInput)
+  }
+);}
+
+
+
+
+
+export const getSaveIngredientBatchMutationKey = () => ['saveIngredientBatch'] as const;
+
+export const getSaveIngredientBatchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveIngredientBatch>>, TError,SaveIngredientBatchMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveIngredientBatch>>, TError,SaveIngredientBatchMutationVariables, TContext> => {
+
+const mutationKey = getSaveIngredientBatchMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveIngredientBatch>>, SaveIngredientBatchMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  saveIngredientBatch(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveIngredientBatchMutationResult = NonNullable<Awaited<ReturnType<typeof saveIngredientBatch>>>
+    export type SaveIngredientBatchMutationBody = BodyType<StockBatchInput>
+    export type SaveIngredientBatchMutationError = ErrorType<unknown>
+    export type SaveIngredientBatchMutationVariables = {id: string;data: BodyType<StockBatchInput>}
+
+    export const useSaveIngredientBatch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveIngredientBatch>>, TError,SaveIngredientBatchMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveIngredientBatch>>,
+        TError,
+        SaveIngredientBatchMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveIngredientBatchMutationOptions(options));
+    }
 
 export const getGetNotificationsUrl = () => {
 
