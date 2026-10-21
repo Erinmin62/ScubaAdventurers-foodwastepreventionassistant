@@ -100,6 +100,52 @@ export const NotificationStateMode = {
   demo: 'demo',
 } as const;
 
+export type SandboxNotificationStateStatus = typeof SandboxNotificationStateStatus[keyof typeof SandboxNotificationStateStatus];
+
+
+export const SandboxNotificationStateStatus = {
+  'not-configured': 'not-configured',
+  checking: 'checking',
+  'waiting-for-opt-in': 'waiting-for-opt-in',
+  ready: 'ready',
+  'window-closed': 'window-closed',
+  paused: 'paused',
+  error: 'error',
+  'daily-limit': 'daily-limit',
+} as const;
+
+export type SandboxNotificationMessageStatus = typeof SandboxNotificationMessageStatus[keyof typeof SandboxNotificationMessageStatus];
+
+
+export const SandboxNotificationMessageStatus = {
+  sending: 'sending',
+  accepted: 'accepted',
+  delivered: 'delivered',
+  read: 'read',
+  failed: 'failed',
+  unknown: 'unknown',
+} as const;
+
+export interface SandboxNotificationMessage {
+  id: string;
+  createdAt: string;
+  status: SandboxNotificationMessageStatus;
+  message: string;
+  providerMessageId?: string;
+  lastError?: string;
+}
+
+export interface SandboxNotificationState {
+  configured: boolean;
+  status: SandboxNotificationStateStatus;
+  notice: string;
+  checkedAt?: string;
+  windowExpiresAt?: string;
+  dailyLimit: number;
+  usedToday: number;
+  messages: SandboxNotificationMessage[];
+}
+
 export interface NotificationState {
   settings: NotificationSettingsInput;
   records: NotificationRecord[];
@@ -110,6 +156,7 @@ export interface NotificationState {
   lastScan?: string;
   /** @nullable */
   consentAt: string | null;
+  sandbox?: SandboxNotificationState;
 }
 
 export interface NotificationReviewInput {

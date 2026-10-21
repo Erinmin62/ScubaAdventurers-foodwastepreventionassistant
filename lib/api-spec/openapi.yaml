@@ -317,6 +317,31 @@ components:
         monitor: { type: string }
         lastScan: { type: string }
         consentAt: { type: ["string", "null"] }
+        sandbox: { $ref: "#/components/schemas/SandboxNotificationState" }
+    SandboxNotificationMessage:
+      type: object
+      required: [id, createdAt, status, message]
+      properties:
+        id: { type: string }
+        createdAt: { type: string }
+        status: { type: string, enum: [sending, accepted, delivered, read, failed, unknown] }
+        message: { type: string }
+        providerMessageId: { type: string }
+        lastError: { type: string }
+    SandboxNotificationState:
+      type: object
+      required: [configured, status, notice, dailyLimit, usedToday, messages]
+      properties:
+        configured: { type: boolean }
+        status: { type: string, enum: [not-configured, checking, waiting-for-opt-in, ready, window-closed, paused, error, daily-limit] }
+        notice: { type: string }
+        checkedAt: { type: string }
+        windowExpiresAt: { type: string }
+        dailyLimit: { type: integer }
+        usedToday: { type: integer }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/SandboxNotificationMessage" }
     NotificationReviewInput:
       type: object
       required: [token]

@@ -3,6 +3,7 @@ import { GetNotificationsResponse, SaveNotificationSettingsBody } from "@workspa
 import { notificationEvents } from "./guard-notification-events";
 import { type Stored } from "./guard-model";
 import { InputError } from "./guard-follow-ups";
+import { publicSandboxState, type SandboxStore } from "./twilio-sandbox";
 
 export type Notifications = typeof GetNotificationsResponse._output;
 type Settings = Notifications["settings"];
@@ -11,6 +12,7 @@ type StoredRecord = Record & { tokenHash: string; path: string };
 export type NotificationStore = {
   settings: Settings; records: StoredRecord[]; consentAt: string | null; lastScan?: string;
   events: { [key: string]: { count: number; lastAt: string; resolvedAt?: string } };
+  sandbox?: SandboxStore;
 };
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 export const defaultNotificationSettings = (): Settings => ({
@@ -26,8 +28,9 @@ export function notificationState(s: Stored): Notifications {
   return {
     settings: n.settings, records: n.records.map(({ tokenHash: _hash, path: _path, ...r }) => r),
     consentAt: n.consentAt, lastScan: n.lastScan, mode: "demo", liveReady: false,
+    sandbox: publicSandboxState(n.sandbox),
     blockers: [
-      "Live sending is locked: the WhatsApp Business integration is not connected to this notification service.",
+      "Production WhatsApp Business sending is not enabled. Twilio Sandbox test sending is a separate, server-configured channel.",
       "Owner authentication/authorization is not implemented in this shared demo. Public settings must not control live messaging.",
       "Live activation also requires an approved Meta message template, protected credentials, and a verified published HTTPS review URL.",
     ],

@@ -8,6 +8,7 @@
 import type { NotificationRecord } from './notificationRecord';
 import type { NotificationSettingsInput } from './notificationSettingsInput';
 import type { NotificationStateMode } from './notificationStateMode';
+import type { SandboxNotificationState } from './sandboxNotificationState';
 
 export interface NotificationState {
   settings: NotificationSettingsInput;
@@ -19,4 +20,5 @@ export interface NotificationState {
   lastScan?: string;
   /** @nullable */
   consentAt: string | null;
+  sandbox?: SandboxNotificationState;
 }

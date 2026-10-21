@@ -291,7 +291,24 @@ export const GetNotificationsResponse = zod.object({
   "blockers": zod.array(zod.string()),
   "monitor": zod.string(),
   "lastScan": zod.string().optional(),
-  "consentAt": zod.string().nullable()
+  "consentAt": zod.string().nullable(),
+  "sandbox": zod.object({
+  "configured": zod.boolean(),
+  "status": zod.enum(['not-configured', 'checking', 'waiting-for-opt-in', 'ready', 'window-closed', 'paused', 'error', 'daily-limit']),
+  "notice": zod.string(),
+  "checkedAt": zod.string().optional(),
+  "windowExpiresAt": zod.string().optional(),
+  "dailyLimit": zod.number().int(),
+  "usedToday": zod.number().int(),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['sending', 'accepted', 'delivered', 'read', 'failed', 'unknown']),
+  "message": zod.string(),
+  "providerMessageId": zod.string().optional(),
+  "lastError": zod.string().optional()
+}))
+}).optional()
 })
 
 
@@ -379,7 +396,24 @@ export const SaveNotificationSettingsResponse = zod.object({
   "blockers": zod.array(zod.string()),
   "monitor": zod.string(),
   "lastScan": zod.string().optional(),
-  "consentAt": zod.string().nullable()
+  "consentAt": zod.string().nullable(),
+  "sandbox": zod.object({
+  "configured": zod.boolean(),
+  "status": zod.enum(['not-configured', 'checking', 'waiting-for-opt-in', 'ready', 'window-closed', 'paused', 'error', 'daily-limit']),
+  "notice": zod.string(),
+  "checkedAt": zod.string().optional(),
+  "windowExpiresAt": zod.string().optional(),
+  "dailyLimit": zod.number().int(),
+  "usedToday": zod.number().int(),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['sending', 'accepted', 'delivered', 'read', 'failed', 'unknown']),
+  "message": zod.string(),
+  "providerMessageId": zod.string().optional(),
+  "lastError": zod.string().optional()
+}))
+}).optional()
 })
 
 
@@ -437,7 +471,24 @@ export const ScanNotificationsResponse = zod.object({
   "blockers": zod.array(zod.string()),
   "monitor": zod.string(),
   "lastScan": zod.string().optional(),
-  "consentAt": zod.string().nullable()
+  "consentAt": zod.string().nullable(),
+  "sandbox": zod.object({
+  "configured": zod.boolean(),
+  "status": zod.enum(['not-configured', 'checking', 'waiting-for-opt-in', 'ready', 'window-closed', 'paused', 'error', 'daily-limit']),
+  "notice": zod.string(),
+  "checkedAt": zod.string().optional(),
+  "windowExpiresAt": zod.string().optional(),
+  "dailyLimit": zod.number().int(),
+  "usedToday": zod.number().int(),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['sending', 'accepted', 'delivered', 'read', 'failed', 'unknown']),
+  "message": zod.string(),
+  "providerMessageId": zod.string().optional(),
+  "lastError": zod.string().optional()
+}))
+}).optional()
 })
 
 

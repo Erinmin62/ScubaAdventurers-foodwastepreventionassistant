@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { changeWorkspace } from "./lib/guard-store";
 import { today } from "./lib/guard-model";
+import { runTwilioSandbox } from "./lib/guard-sandbox";
 
 const rawPort = process.env["PORT"];
 
@@ -29,7 +30,10 @@ app.listen(port, (err) => {
   const check = async () => {
     if (checking) return;
     checking = true;
-    try { await changeWorkspace(); }
+    try {
+      await changeWorkspace();
+      await runTwilioSandbox({ mutate: changeWorkspace });
+    }
     catch (err) {
       logger.error({ err }, "Automation check failed; will retry on the next interval or request");
       // Persist a bounded operational event if storage still works. Never
