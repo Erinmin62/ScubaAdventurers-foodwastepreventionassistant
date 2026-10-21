@@ -112,7 +112,7 @@ export function scanReorders(s: Stored) {
     const hash = fingerprint(s, line.ingredientId);
     if (s.reordering.plans.some(p => p.line.ingredientId === line.ingredientId && p.fingerprint === hash && p.status !== "FAILED")) continue;
     for (const p of s.reordering.plans) if (p.line.ingredientId === line.ingredientId && p.status === "PENDING_APPROVAL") p.status = "SUPERSEDED";
-    s.reordering.plans.unshift({ id: crypto.randomUUID(), createdAt: new Date().toISOString(), status: "PENDING_APPROVAL", fingerprint: hash, line, detail: "Awaiting explicit owner approval. No simulated delivery changed." });
+    s.reordering.plans.unshift({ id: crypto.randomUUID(), createdAt: new Date().toISOString(), status: "PENDING_APPROVAL", fingerprint: hash, line, detail: "" });
     count++;
   }
   s.reordering.lastScan = new Date().toISOString();

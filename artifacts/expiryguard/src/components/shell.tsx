@@ -10,8 +10,8 @@ import { InboxSync } from '@/components/inbox/inbox-sync';
 import { useInbox } from '@/lib/inbox';
 
 const nav = [
-  { href: '/impact', label: 'Impact', icon: Leaf },
   { href: '/', label: 'Today', icon: LayoutDashboard },
+  { href: '/impact', label: 'Impact', icon: Leaf },
   { href: '/inventory', label: 'Pantry', icon: Package },
   { href: '/sales', label: 'Sales', icon: BarChart3 },
   { href: '/forecast', label: 'Tomorrow', icon: ChefHat },

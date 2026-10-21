@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Check, RefreshCw, Settings2, Truck, X } from 'lucide-react';
 import {
@@ -28,6 +28,7 @@ const statusCls: Record<string, string> = {
   FAILED: 'bg-destructive/12 text-destructive border-destructive/30',
   SUPERSEDED: 'bg-muted text-muted-foreground border-border line-through',
 };
+const pendingPlanPlaceholder = 'Awaiting explicit owner approval. No simulated delivery changed.';
 function PlanStatus({ s }: { s: string }) {
   return <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider', statusCls[s] ?? statusCls.REJECTED)} data-testid="status-plan">{s.replace('_', ' ').toLowerCase()}</span>;
 }
@@ -82,6 +83,11 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
   const [date, setDate] = useState(l.deliveryDate);
   const [name, setName] = useState('');
   const [reviewed, setReviewed] = useState(false);
+  const approveButton = useRef<HTMLButtonElement>(null);
+  const rejectButton = useRef<HTMLButtonElement>(null);
+  const decisionHeading = useRef<HTMLDivElement>(null);
+  const planTitle = useRef<HTMLHeadingElement>(null);
+  const returnFocusTo = useRef<'approve' | 'reject' | null>(null);
   const minDate = addDays(today, l.config.leadDays);
   const keepsExisting = date === l.deliveryDate && date > today;
   const qn = Number(qty);
@@ -91,6 +97,19 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
   const delayed = date > l.deliveryDate;
   const canApprove = l.demandAvailable && qtyOk && dateOk && nameOk && reviewed;
   const pending = plan.status === 'PENDING_APPROVAL';
+  useEffect(() => {
+    if (mode) {
+      decisionHeading.current?.focus();
+      return;
+    }
+    const returnTo = returnFocusTo.current;
+    if (!returnTo) return;
+    returnFocusTo.current = null;
+    const target = pending
+      ? returnTo === 'approve' ? approveButton.current : rejectButton.current
+      : planTitle.current;
+    target?.focus();
+  }, [mode, pending]);
 
   const submit = (decision: 'approve' | 'reject') => {
     decide.mutate(
@@ -115,7 +134,7 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2"><PlanStatus s={plan.status} /><span className="num text-[11px] text-muted-foreground">drafted {niceDate(plan.createdAt.slice(0, 10))}</span></div>
-          <div className="font-semibold text-lg mt-1">{l.name}</div>
+          <h3 ref={planTitle} tabIndex={-1} className="font-semibold text-lg mt-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{l.name}</h3>
         </div>
         <div className="text-right num">
           <div className="text-lg font-semibold">{fmt(l.recommendedQuantity)} <span className="text-xs text-muted-foreground">{l.unit}</span></div>
@@ -123,13 +142,13 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
           {l.originalCost - l.proposedCost > 0 && <div className="mt-1 text-jade"><div className="text-2xl font-extrabold">{rm(l.originalCost - l.proposedCost)}</div><div className="text-[10px] font-bold uppercase tracking-wider">less purchasing · est., not realised</div></div>}
         </div>
       </div>
-      {!l.demandAvailable && <div className="flex gap-2 text-xs rounded-lg border border-destructive/30 bg-destructive/5 p-2"><AlertTriangle className="w-4 h-4 text-destructive shrink-0" />Review required before approval: demand history, delivery receipt/date or planning horizon needs attention. Expand the explanation below for the specific issue. You can still reject.</div>}
+      {!l.demandAvailable && <div id={`review-required-${plan.id}`} role="status" className="flex gap-2 text-xs rounded-lg border border-destructive/30 bg-destructive/5 p-2"><AlertTriangle className="w-4 h-4 text-destructive shrink-0" />Review available. Approval stays disabled until the missing demand, delivery or planning information is resolved. You can still reject.</div>}
       {!mode && <details className="rounded-lg border bg-muted/20 p-3 text-xs">
         <summary className="cursor-pointer font-semibold">Review quantities, explanation and assumptions</summary>
         <div className="mt-3 space-y-3"><LineFacts l={l} /><Assumptions l={l} /></div>
       </details>}
       {l.shortageBeforeDelivery > 0 && <div className="flex gap-2 text-xs rounded-lg border border-amber/40 bg-amber/10 p-2" data-testid={`text-shortfall-${plan.id}`}><AlertTriangle className="w-4 h-4 shrink-0" />Expected shortfall of {fmt(l.shortageBeforeDelivery)} {l.unit} before delivery on {niceDate(l.deliveryDate)}.</div>}
-      {plan.detail && <p className={cn('text-xs', plan.status === 'FAILED' ? 'text-destructive font-semibold' : 'text-muted-foreground')} data-testid={`text-detail-${plan.id}`}>{plan.status === 'FAILED' ? 'Failure reason: ' : ''}{plan.detail}</p>}
+      {plan.detail && plan.detail !== pendingPlanPlaceholder && <p className={cn('text-xs', plan.status === 'FAILED' ? 'text-destructive font-semibold' : 'text-muted-foreground')} data-testid={`text-detail-${plan.id}`}>{plan.status === 'FAILED' ? 'Failure reason: ' : ''}{plan.detail}</p>}
       {plan.decidedAt && (
         <div className="num text-[11px] text-muted-foreground">
           Decided {plan.decidedAt.replace('T', ' ').slice(0, 16)} by {plan.approver ?? 'unknown'} (self-reported)
@@ -138,14 +157,14 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
         </div>
       )}
       {pending && !mode && (
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => setMode('approve')} disabled={!l.demandAvailable} data-testid={`button-review-${plan.id}`}><Check className="w-4 h-4 mr-1" />Review and approve</Button>
-          <Button size="sm" variant="ghost" onClick={() => setMode('reject')} data-testid={`button-reject-${plan.id}`}><X className="w-4 h-4 mr-1" />Reject</Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button ref={approveButton} size="sm" className="min-h-11 w-full sm:w-auto font-semibold" onClick={() => { returnFocusTo.current = 'approve'; setMode('approve'); }} aria-describedby={!l.demandAvailable ? `review-required-${plan.id}` : undefined} data-testid={`button-review-${plan.id}`}><Check className="w-4 h-4 mr-1" />Review and approve</Button>
+          <Button ref={rejectButton} size="sm" variant="outline" className="min-h-11 w-full sm:w-auto border-destructive/50 text-destructive hover:bg-destructive/5" onClick={() => { returnFocusTo.current = 'reject'; setMode('reject'); }} data-testid={`button-reject-${plan.id}`}><X className="w-4 h-4 mr-1" />Reject</Button>
         </div>
       )}
       {pending && mode && (
-        <div className="rounded-xl border bg-card p-4 space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-primary">{mode === 'approve' ? 'Full review before approval' : 'Confirm rejection'}</div>
+        <div className="rounded-xl border bg-card p-4 space-y-3" role="region" aria-labelledby={`decision-heading-${plan.id}`}>
+          <div ref={decisionHeading} id={`decision-heading-${plan.id}`} tabIndex={-1} className="text-xs font-bold uppercase tracking-wider text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{mode === 'approve' ? 'Full review before approval' : 'Confirm rejection'}</div>
           <LineFacts l={l} />
           <Assumptions l={l} />
           {mode === 'approve' && (
@@ -179,11 +198,11 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
               I reviewed original and proposed quantity, date, purchase cost, estimated waste and assumptions. This records a synthetic plan only; no supplier is contacted.
             </label>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {mode === 'approve'
-              ? <Button size="sm" disabled={!canApprove || decide.isPending} onClick={() => submit('approve')} data-testid={`button-confirm-approve-${plan.id}`}>{decide.isPending ? 'Saving...' : 'Confirm approval'}</Button>
-              : <Button size="sm" variant="destructive" disabled={!nameOk || decide.isPending} onClick={() => submit('reject')} data-testid={`button-confirm-reject-${plan.id}`}>{decide.isPending ? 'Saving...' : 'Confirm rejection'}</Button>}
-            <Button size="sm" variant="ghost" onClick={() => setMode(null)}>Cancel</Button>
+              ? <Button size="sm" className="min-h-11 w-full sm:w-auto font-semibold" disabled={!canApprove || decide.isPending} onClick={() => submit('approve')} data-testid={`button-confirm-approve-${plan.id}`}>{decide.isPending ? 'Saving...' : 'Confirm approval'}</Button>
+              : <Button size="sm" variant="destructive" className="min-h-11 w-full sm:w-auto" disabled={!nameOk || decide.isPending} onClick={() => submit('reject')} data-testid={`button-confirm-reject-${plan.id}`}>{decide.isPending ? 'Saving...' : 'Confirm rejection'}</Button>}
+            <Button size="sm" variant="ghost" className="min-h-11 w-full sm:w-auto" onClick={() => setMode(null)}>Cancel</Button>
           </div>
         </div>
       )}
@@ -319,7 +338,7 @@ export default function Reordering() {
                 {p.beforeQuantity !== undefined && <> · incoming {fmt(p.beforeQuantity)} to {fmt(p.afterQuantity ?? 0)} {p.line.unit}</>}
                 {p.beforeDate && <> · date {niceDate(p.beforeDate)} to {p.afterDate ? niceDate(p.afterDate) : '-'}</>}
               </div>
-              {p.detail && <div className={cn('text-xs mt-1', p.status === 'FAILED' ? 'text-destructive font-semibold' : 'text-muted-foreground')}>{p.status === 'FAILED' ? 'Reason: ' : ''}{p.detail}</div>}
+              {p.detail && p.detail !== pendingPlanPlaceholder && <div className={cn('text-xs mt-1', p.status === 'FAILED' ? 'text-destructive font-semibold' : 'text-muted-foreground')}>{p.status === 'FAILED' ? 'Reason: ' : ''}{p.detail}</div>}
             </div>
           ))}</div> : <EmptyState title="No decisions yet" body="Approved, rejected, failed and superseded plans are kept here." />}
         </Panel>

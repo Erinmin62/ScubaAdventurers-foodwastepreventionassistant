@@ -218,6 +218,7 @@ test("automated scans create drafts only and repeat scans do not duplicate uncha
   runWorkflows(s);
   assert.equal(s.reordering!.plans.length, 1);
   assert.equal(s.reordering!.plans[0]!.status, "PENDING_APPROVAL");
+  assert.equal(s.reordering!.plans[0]!.detail, "", "pending status is sufficient; no redundant boilerplate detail");
   assert.deepEqual(s.ingredients, before);
   scanReorders(s); assert.equal(s.reordering!.plans.length, 1);
   s.reordering!.settings[0]!.dailyUsage = 3;
