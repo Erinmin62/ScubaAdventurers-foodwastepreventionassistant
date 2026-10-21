@@ -27,3 +27,13 @@ is disabled and could make ordinary inbox interactions trigger external sends.
 **How to apply:** Keep inbox read/dismiss operations independent of messaging
 preferences, delivery budgets and Sandbox consent. Label messaging-only scans
 clearly; never turn opening an alert into approval or external delivery.
+
+The owner-facing Notifications page should focus on in-app alerts, not messaging
+configuration or provider diagnostics.
+
+**Why:** The user explicitly requested removing all message settings from this
+page because they confuse SME owners. This request was about the page, not
+disabling or deleting the existing messaging service.
+
+**How to apply:** Do not reintroduce WhatsApp/Sandbox setup, send controls or
+preview history into the Notifications page unless the user asks for them.
