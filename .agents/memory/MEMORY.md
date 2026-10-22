@@ -4,3 +4,4 @@
 - [Twilio connector constraints](twilio-connector-constraints.md) — why attaching Twilio did not provide a supported Sandbox sending path; recheck capabilities before changing authentication.
 - [Read-only monitor status](monitor-status-read-path.md) — status reads must bypass workspace loading because its non-automation path still migrates and synchronizes data.
 - [Forecast data readiness](forecast-data-readiness.md) — only synthetic history is currently available; any AI demo must stay isolated and unvalidated.
+- [AI demo live checks](ai-demo-live-checks.md) — run paid AI checks through the authenticated demo flow; do not add an auth bypass or retry blindly.
