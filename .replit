@@ -45,3 +45,6 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
+
+[userenv.development]
+EMAIL_FROM = "ExpiryGuardAI <onboarding@resend.dev>"
