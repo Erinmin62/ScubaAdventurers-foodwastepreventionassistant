@@ -3,8 +3,6 @@ import { getGetExpiryCheckStatusQueryKey, useGetExpiryCheckStatus } from '@works
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/bits';
 import { InboxCentre } from '@/components/inbox/inbox-centre';
-import { EmailHistory } from '@/components/inbox/email-history';
-import { ExpiryEmailPreview } from '@/components/inbox/expiry-email-preview';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -176,11 +174,21 @@ export default function Notifications() {
       <PageHeader kicker="What needs your attention" title="Notifications">
         Your alerts update automatically from stock and workflow changes. Review expiry risks and pending actions here; opening a notification never approves an action or places an order.
       </PageHeader>
-      <ExpiryCheckStatus />
-      <MonitorStatus />
-      <ExpiryEmailPreview />
       <InboxCentre />
-      <EmailHistory />
+      <section
+        aria-labelledby="background-checks-heading"
+        className="space-y-4 border-t border-ink/10 pt-6"
+        data-testid="section-background-checks"
+      >
+        <div>
+          <h2 id="background-checks-heading" className="font-display text-xl font-bold">Background checks</h2>
+          <p className="mt-1 text-sm text-muted-foreground">These status panels are shown below your notifications. They report completed checks and do not start a scan.</p>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <MonitorStatus />
+          <ExpiryCheckStatus />
+        </div>
+      </section>
     </div>
   );
 }
