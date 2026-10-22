@@ -68,7 +68,11 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="flex-1 md:ml-60 min-w-0">
         <InboxSync />
         <div className="sticky top-0 z-10 bg-amber/20 backdrop-blur border-b border-amber/30 px-4 md:px-8 py-1.5 text-xs flex flex-wrap items-center gap-x-4 gap-y-1 justify-between" data-testid="text-synthetic-banner">
-          <span><b>Synthetic data demo</b> — all sales, stock and savings are generated estimates for illustration.</span>
+          <span>
+            <b>Synthetic data demo</b>
+            {data && <> · {data.businessProfile.name} · {businessTypeLabel(data.businessProfile.type)}</>}
+            {' '}— all sales, stock and savings are generated estimates for illustration.
+          </span>
           <span className="flex items-center gap-3">
             {data && <span className="num text-muted-foreground">Today {niceDate(data.today)} · Planning {niceDate(data.tomorrow)}</span>}
             <NotificationBell />

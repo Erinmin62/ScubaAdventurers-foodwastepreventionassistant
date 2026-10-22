@@ -52,15 +52,15 @@ export default function BusinessProfilePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Workspace</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Workspace settings</p>
         <h1 className="mt-1 font-display text-3xl font-bold">Business profile</h1>
-        <p className="mt-2 text-muted-foreground">Set the name and business type shown throughout this workspace.</p>
+        <p className="mt-2 text-muted-foreground">Set the business name and type shown throughout your workspace.</p>
       </header>
 
       <Card>
         <CardHeader>
           <CardTitle>Your business</CardTitle>
-          <CardDescription>This profile is saved to your private owner workspace.</CardDescription>
+          <CardDescription>This profile is saved to your private owner workspace and appears in the shared workflows.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -115,7 +115,7 @@ export default function BusinessProfilePage() {
 
       <Card className="border-amber/40 bg-amber/5">
         <CardContent className="pt-6 text-sm text-muted-foreground">
-          Business type currently identifies your workspace only. The demo’s planning rules and safety checks do not change based on this selection.
+          This workspace uses synthetic sample data. Business type identifies your profile only; planning rules and safety checks remain shared across food businesses.
         </CardContent>
       </Card>
     </div>

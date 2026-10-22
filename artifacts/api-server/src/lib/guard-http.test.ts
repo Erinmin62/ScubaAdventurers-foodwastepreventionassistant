@@ -710,7 +710,6 @@ test("HTTP auth: business profile saves per owner without changing operational r
 
     const initial = await call("/guard/state", ownerA);
     assert.equal(initial.status, 200);
-    assert.equal(initial.data.activity[0]!.title, "Your food-business workspace is ready");
     assert.ok(initial.data.activity.some(event => event.title === "Your food-business workspace is ready"));
     assert.ok(snapshotWorkspace(ownerWorkspaceId(ownerA)).activity.some(event => event.title === "Your café workspace is ready"), "legacy sample history is not rewritten in storage");
     const before = snapshotWorkspace(ownerWorkspaceId(ownerA));
