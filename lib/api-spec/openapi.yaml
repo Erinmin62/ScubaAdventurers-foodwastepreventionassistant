@@ -207,6 +207,16 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MonitorHeartbeatStatus" }
+  /guard/expiry-check-status:
+    get:
+      operationId: getExpiryCheckStatus
+      responses:
+        "200":
+          description: Read-only status of the latest scheduled expiry scan for the authenticated owner
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExpiryCheckStatus" }
+        "503": { description: Expiry check status is temporarily unavailable }
   /guard/notifications/scan:
     post:
       operationId: scanNotifications
@@ -706,6 +716,13 @@ components:
         status: { type: string, enum: [healthy, stale, failed, not-started] }
         lastAttemptAt: { type: ["string", "null"], format: date-time }
         lastSuccessfulAt: { type: ["string", "null"], format: date-time }
+    ExpiryCheckStatus:
+      type: object
+      required: [status, lastCompletedAt, outcome]
+      properties:
+        status: { type: string, enum: [healthy, stale, failed, not-started] }
+        lastCompletedAt: { type: ["string", "null"], format: date-time }
+        outcome: { type: ["string", "null"], enum: [success, failed, null] }
     SandboxNotificationMessage:
       type: object
       required: [id, createdAt, status, message]

@@ -25,6 +25,7 @@ import type {
   AutomationRunInput,
   AutomationSettingsInput,
   DecisionInput,
+  ExpiryCheckStatus,
   FollowUpScheduleInput,
   GetEmailHistory200,
   GuardState,
@@ -1092,6 +1093,77 @@ export function useGetMonitorHeartbeatStatus<TData = Awaited<ReturnType<typeof g
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMonitorHeartbeatStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetExpiryCheckStatusUrl = () => {
+
+
+
+
+  return `/api/guard/expiry-check-status`
+}
+
+export const getExpiryCheckStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<ExpiryCheckStatus> => {
+
+  return customFetch<ExpiryCheckStatus>(getGetExpiryCheckStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetExpiryCheckStatusQueryKey = () => {
+    return [
+    `/api/guard/expiry-check-status`
+    ] as const;
+    }
+
+
+export const getGetExpiryCheckStatusQueryOptions = <TData = Awaited<ReturnType<typeof getExpiryCheckStatus>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExpiryCheckStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetExpiryCheckStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getExpiryCheckStatus>>> = ({ signal }) => getExpiryCheckStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getExpiryCheckStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetExpiryCheckStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getExpiryCheckStatus>>>
+export type GetExpiryCheckStatusQueryError = ErrorType<void>
+
+
+
+export function useGetExpiryCheckStatus<TData = Awaited<ReturnType<typeof getExpiryCheckStatus>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExpiryCheckStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetExpiryCheckStatusQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

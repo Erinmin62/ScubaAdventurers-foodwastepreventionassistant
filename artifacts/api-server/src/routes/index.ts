@@ -7,6 +7,7 @@ import reorderRouter from "./guard-reorders";
 import notificationsRouter from "./guard-notifications";
 import inboxRouter from "./guard-inbox";
 import emailHistoryRouter from "./guard-email-history";
+import expiryCheckStatusRouter from "./guard-expiry-check-status";
 import { ownerAuth } from "../middlewares/owner-auth";
 import { createIngredientPhotoRouter } from "./ingredient-photos";
 
@@ -22,5 +23,6 @@ router.use(reorderRouter);
 router.use(notificationsRouter);
 router.use(inboxRouter);
 router.use(emailHistoryRouter);
+router.use(expiryCheckStatusRouter);
 
 export default router;

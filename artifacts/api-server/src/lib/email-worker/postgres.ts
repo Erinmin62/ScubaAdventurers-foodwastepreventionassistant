@@ -1,5 +1,5 @@
 import type { DatabaseClient } from "@workspace/db";
-import type { EmailRecord, EmailRepository, WorkspaceRecord } from "./repository";
+import type { EmailRecord, EmailRepository, ExpiryCheckOutcome, WorkspaceRecord } from "./repository";
 
 type Client = DatabaseClient;
 type DatabaseRow = {
@@ -81,6 +81,14 @@ export function postgresEmailRepository(client: Client): EmailRepository {
         result.status === "accepted" ? null : result.errorDetail,
       ]);
       if (changed.rowCount !== 1) throw new Error("email_attempt_not_recorded");
+    },
+    async saveExpiryCheckStatus(workspaceId: string, outcome: ExpiryCheckOutcome, completedAt: string) {
+      await client.query(`INSERT INTO guard_expiry_check_status (workspace_id, last_completed_at, outcome)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (workspace_id) DO UPDATE SET
+          last_completed_at = EXCLUDED.last_completed_at, outcome = EXCLUDED.outcome
+        WHERE guard_expiry_check_status.last_completed_at <= EXCLUDED.last_completed_at`,
+      [workspaceId, completedAt, outcome]);
     },
   };
 }

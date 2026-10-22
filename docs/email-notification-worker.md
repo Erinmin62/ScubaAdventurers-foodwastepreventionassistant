@@ -1,6 +1,6 @@
 # Hourly email notification worker
 
-This adds a separate finite Node.js command to **ExpiryGuardAI**, not a replacement app or another web server. It reads the same PostgreSQL `guard_workspace` table as the web API and writes only the new `guard_email_notifications` outbox. It never migrates workspace documents, changes inventory, runs approval executors, places orders, or depends on an open browser.
+This adds a separate finite Node.js command to **ExpiryGuardAI**, not a replacement app or another web server. It reads the same PostgreSQL `guard_workspace` table as the web API and writes only the new `guard_email_notifications` outbox plus a separate per-owner expiry-check status row. It never migrates workspace documents, changes inventory, runs approval executors, places orders, or depends on an open browser.
 
 ## Current verification and activation boundary
 
@@ -41,6 +41,12 @@ NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --se
 ```
 
 No flags defaults to dry-run. `--expiry-only` limits mail to critical expiry alerts and the daily digest for items expiring in 2–3 days; it excludes approval and reminder emails. `--send` cannot be combined with dry-run/sample/list options. All modes exit when complete; none binds a port or starts a timer/server. A sending pass exits nonzero if a notification failed or its acceptance is uncertain. An overlapping invocation logs that it was skipped and exits successfully.
+
+## Owner-visible scheduled check status
+
+Only a real `--send --expiry-only` run records the hourly check status. Dry-runs and sample previews remain read-only. The worker stores one latest status per configured owner in the separate `guard_expiry_check_status` table; it records only the completion timestamp and `success`/`failed` outcome, never inventory, recipient details, or email contents. A successful scan replaces a previous failure, so the status recovers automatically. Failed/stale states do not send additional emails or create repeated outage alerts.
+
+The signed-in Notifications page reads `GET /api/guard/expiry-check-status` using the authenticated owner's workspace context. It performs a direct database read and does not load, migrate, or write the workspace document. A missing run is shown as not started, a failed scan as failed, and a successful scan becomes overdue after 90 minutes without another success. This is a worker heartbeat, not proof that an email reached its recipient. The API remains unavailable if the status table has not yet been created during the additive schema review.
 
 ## Server-only configuration
 
@@ -84,7 +90,7 @@ Remove an owner from the routing map or unset `EMAIL_NOTIFICATIONS_ENABLED` to s
 
 The existing PostgreSQL database already supports both the published API and a scheduled process. No local files or process memory are used for production state. There is no database replacement or migration of inventory records.
 
-The additive Drizzle schema defines `guard_email_notifications`. Each row stores:
+The additive Drizzle schema defines `guard_email_notifications` and `guard_expiry_check_status`. Each email row stores:
 
 - deterministic event ID, workspace and hashed recipient (not the recipient's raw address);
 - type, event key and related ingredient/batch/action IDs;
@@ -112,7 +118,7 @@ For a new **development** database:
 pnpm --filter @workspace/db run push
 ```
 
-This is an additive outbox table. There is **no startup-time DDL**. Do not add schema mutations to worker/build commands, and do not run that command against production. Replit's normal Publish flow applies the development-to-production schema diff after review. Do not choose an option that overwrites production data with development samples.
+These are additive tables. There is **no startup-time DDL**. Do not add schema mutations to worker/build commands, and do not run that command against production. Replit's normal Publish flow applies the development-to-production schema diff after review. Do not choose an option that overwrites production data with development samples.
 
 Before enabling production sending:
 

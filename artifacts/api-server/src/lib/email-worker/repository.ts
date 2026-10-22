@@ -9,6 +9,7 @@ export type EmailRecord = {
   message: EmailMessage; attempts: number; acceptedAt?: string;
 };
 export type WorkspaceRecord = { id: string; data: Stored };
+export type ExpiryCheckOutcome = "success" | "failed";
 export interface EmailRepository {
   lock(): Promise<boolean>;
   unlock(): Promise<void>;
@@ -21,4 +22,5 @@ export interface EmailRepository {
   cancel(id: string): Promise<void>;
   startAttempt(id: string, message: EmailMessage, at: string): Promise<boolean>;
   finishAttempt(id: string, result: SendResult, at: string): Promise<void>;
+  saveExpiryCheckStatus(workspaceId: string, outcome: ExpiryCheckOutcome, completedAt: string): Promise<void>;
 }

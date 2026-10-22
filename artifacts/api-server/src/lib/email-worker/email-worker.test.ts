@@ -6,6 +6,7 @@ import { expiryEmailCandidates, klDay, scanEmailCandidates } from "./rules";
 import { resendConnectorSender, resendSender, type EmailSender } from "./sender";
 import { MemoryEmailRepository, sampleEmailWorkspace, testRoute } from "./email-worker.test-support";
 import { seed, shift } from "../guard-model";
+import { EXPIRY_CHECK_STALE_AFTER_MS, expiryCheckStatusState } from "./expiry-check-status";
 
 const now = new Date("2026-10-22T02:00:00Z");
 const clock = () => new Date(now);
@@ -49,6 +50,41 @@ test("email dry-run previews without sender calls or any persistent writes", asy
   const result = await runEmailWorker(repo, { dryRun: true, routes: [], clock, sender: async () => { calls++; throw new Error("must not send"); } });
   assert.ok(result.wouldSend > 0); assert.equal(calls, 0); assert.equal(repo.writes, 0);
   assert.deepEqual(repo.workspaceRows, before);
+});
+
+test("expiry check status records send-mode scans, reports failures, recovers, and stays read-only in preview", async () => {
+  const repo = repository();
+  const originalWorkspace = structuredClone(repo.workspaceRows[0]!);
+  const options = { dryRun: false, expiryOnly: true, routes: [testRoute], clock, pause, sender: accepted };
+
+  const dryRun = await runEmailWorker(repo, { ...options, dryRun: true, routes: [] });
+  assert.ok(dryRun.wouldSend > 0);
+  assert.equal(repo.expiryCheckStatuses.size, 0);
+
+  await runEmailWorker(repo, options);
+  assert.deepEqual(repo.expiryCheckStatuses.get(testRoute.workspaceId), {
+    outcome: "success", completedAt: now.toISOString(),
+  });
+  assert.deepEqual(repo.workspaceRows[0], originalWorkspace);
+
+  repo.workspaceRows[0] = { ...originalWorkspace, data: null as never };
+  const failed = await runEmailWorker(repo, options);
+  assert.equal(failed.failed, 1);
+  assert.deepEqual(repo.expiryCheckStatuses.get(testRoute.workspaceId), {
+    outcome: "failed", completedAt: now.toISOString(),
+  });
+
+  repo.workspaceRows[0] = originalWorkspace;
+  await runEmailWorker(repo, options);
+  assert.equal(repo.expiryCheckStatuses.get(testRoute.workspaceId)?.outcome, "success");
+});
+
+test("expiry check status distinguishes never started, fresh, overdue, and failed outcomes", () => {
+  const completedAt = new Date(now.getTime() - EXPIRY_CHECK_STALE_AFTER_MS - 1);
+  assert.equal(expiryCheckStatusState(null, now.getTime()).status, "not-started");
+  assert.equal(expiryCheckStatusState({ lastCompletedAt: now, outcome: "success" }, now.getTime()).status, "healthy");
+  assert.equal(expiryCheckStatusState({ lastCompletedAt: completedAt, outcome: "success" }, now.getTime()).status, "stale");
+  assert.equal(expiryCheckStatusState({ lastCompletedAt: now, outcome: "failed" }, now.getTime()).status, "failed");
 });
 
 test("expiry-only runs include expiry alerts and digests but exclude approvals", async () => {

@@ -1,4 +1,5 @@
 import { getGetMonitorHeartbeatStatusQueryKey, useGetMonitorHeartbeatStatus } from '@workspace/api-client-react';
+import { getGetExpiryCheckStatusQueryKey, useGetExpiryCheckStatus } from '@workspace/api-client-react';
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/bits';
 import { InboxCentre } from '@/components/inbox/inbox-centre';
@@ -90,12 +91,91 @@ function MonitorStatus() {
   );
 }
 
+const expiryCheckStyles = {
+  healthy: {
+    title: 'Hourly expiry check is up to date',
+    detail: 'The latest scheduled expiry scan completed successfully.',
+    className: 'border-jade/40 bg-jade/10 text-jade',
+    Icon: CheckCircle2,
+  },
+  stale: {
+    title: 'Hourly expiry check is overdue',
+    detail: 'No successful scheduled expiry scan has completed in the last 90 minutes.',
+    className: 'border-amber/40 bg-amber/10 text-[hsl(32_80%_32%)]',
+    Icon: Clock3,
+  },
+  failed: {
+    title: 'The latest expiry check failed',
+    detail: 'The scheduled scan could not complete. The next successful run will clear this status.',
+    className: 'border-destructive/40 bg-destructive/10 text-destructive',
+    Icon: XCircle,
+  },
+  'not-started': {
+    title: 'No scheduled expiry check recorded',
+    detail: 'This owner account has not received a completed scheduled expiry scan yet.',
+    className: 'border-ink/15 bg-muted text-muted-foreground',
+    Icon: AlertCircle,
+  },
+} as const;
+
+function ExpiryCheckStatus() {
+  const { data, isLoading, error, refetch, isFetching } = useGetExpiryCheckStatus({
+    query: {
+      queryKey: getGetExpiryCheckStatusQueryKey(),
+      refetchInterval: 30_000,
+      refetchIntervalInBackground: false,
+      staleTime: 0,
+    },
+  });
+
+  if (isLoading) {
+    return <Skeleton className="h-28 rounded-2xl" data-testid="state-expiry-check-loading" />;
+  }
+
+  const view = data ? expiryCheckStyles[data.status] : null;
+  const checkedAt = data?.lastCompletedAt ? new Date(data.lastCompletedAt).toLocaleString() : null;
+
+  return (
+    <section
+      className={cn('rounded-2xl border-2 p-4 md:p-5', view?.className ?? 'border-destructive/40 bg-destructive/10 text-destructive')}
+      aria-live="polite"
+      data-testid="panel-expiry-check-status"
+    >
+      <div className="flex items-start gap-3">
+        {view && <view.Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest">Scheduled expiry scan</p>
+          <h2 className="mt-1 text-base font-bold">{view?.title ?? 'Expiry check status unavailable'}</h2>
+          <p className="mt-1 text-sm">
+            {error || !data
+              ? 'Could not load the scheduled check status. Refresh to try again; this view does not run checks.'
+              : view?.detail}
+          </p>
+          <p className="mt-2 text-xs">Last completed check: <strong>{checkedAt ?? 'None recorded'}</strong></p>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-11 shrink-0 sm:h-9"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          aria-label="Refresh expiry check status"
+          data-testid="button-refresh-expiry-check"
+        >
+          <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
+        </Button>
+      </div>
+    </section>
+  );
+}
+
 export default function Notifications() {
   return (
     <div className="space-y-6">
       <PageHeader kicker="What needs your attention" title="Notifications">
         Your alerts update automatically from stock and workflow changes. Review expiry risks and pending actions here; opening a notification never approves an action or places an order.
       </PageHeader>
+      <ExpiryCheckStatus />
       <MonitorStatus />
       <InboxCentre />
       <EmailHistory />

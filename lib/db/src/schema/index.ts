@@ -20,3 +20,4 @@
 export * from "./guard-workspace";
 export * from "./guard-email-notifications";
 export * from "./guard-email-delivery-events";
+export * from "./guard-expiry-check-status";

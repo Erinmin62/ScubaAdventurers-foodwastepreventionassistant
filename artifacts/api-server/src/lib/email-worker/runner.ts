@@ -36,6 +36,7 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
   };
   if (!options.dryRun && (!options.sender || !options.routes.length)) throw new Error("email_sender_or_owner_routes_missing");
   let locked = false, attempts = 0;
+  const completedChecks = new Set<string>();
   try {
     if (!options.dryRun) {
       locked = await repository.lock();
@@ -47,6 +48,15 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
       summary.uncertain += await repository.recoverInterrupted();
     }
     const workspaces = await repository.workspaces(options.routes.length ? options.routes.map(route => route.workspaceId) : undefined);
+    if (!options.dryRun && options.expiryOnly) {
+      const foundWorkspaceIds = new Set(workspaces.map(workspace => workspace.id));
+      for (const route of options.routes) {
+        if (!foundWorkspaceIds.has(route.workspaceId)) {
+          await repository.saveExpiryCheckStatus(route.workspaceId, "failed", clock().toISOString());
+          completedChecks.add(route.workspaceId);
+        }
+      }
+    }
     if (options.routes.length && workspaces.length !== options.routes.length) {
       summary.failed += options.routes.length - workspaces.length;
       log("email_worker_missing_configured_workspace", { missing: options.routes.length - workspaces.length });
@@ -62,8 +72,16 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
         if (options.expiryOnly) scan = { ...scan, candidates: expiryEmailCandidates(scan.candidates) };
       } catch {
         summary.failed++;
+        if (!options.dryRun && options.expiryOnly) {
+          await repository.saveExpiryCheckStatus(workspace.id, "failed", clock().toISOString());
+          completedChecks.add(workspace.id);
+        }
         log("email_worker_invalid_workspace", { workspace: hash(workspace.id).slice(0, 12) });
         continue;
+      }
+      if (!options.dryRun && options.expiryOnly) {
+        await repository.saveExpiryCheckStatus(workspace.id, "success", clock().toISOString());
+        completedChecks.add(workspace.id);
       }
       summary.ingredientsChecked += scan.ingredientsChecked;
       summary.batchesChecked += scan.batchesChecked;
@@ -129,6 +147,17 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
     return summary;
   } catch (error) {
     summary.failed++;
+    if (!options.dryRun && options.expiryOnly) {
+      for (const route of options.routes) {
+        if (!completedChecks.has(route.workspaceId)) {
+          try {
+            await repository.saveExpiryCheckStatus(route.workspaceId, "failed", clock().toISOString());
+          } catch {
+            // Preserve the original worker failure; the status becomes stale if persistence is unavailable.
+          }
+        }
+      }
+    }
     log("email_worker_aborted", { ...summary, attemptsReserved: attempts, acceptanceMayBeUnknown: true });
     throw error;
   } finally {

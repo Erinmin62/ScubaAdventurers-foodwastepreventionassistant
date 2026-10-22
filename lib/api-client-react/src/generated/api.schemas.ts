@@ -301,6 +301,35 @@ export interface MonitorHeartbeatStatus {
   lastSuccessfulAt: string | null;
 }
 
+export type ExpiryCheckStatusStatus = typeof ExpiryCheckStatusStatus[keyof typeof ExpiryCheckStatusStatus];
+
+
+export const ExpiryCheckStatusStatus = {
+  healthy: 'healthy',
+  stale: 'stale',
+  failed: 'failed',
+  'not-started': 'not-started',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ExpiryCheckStatusOutcome = typeof ExpiryCheckStatusOutcome[keyof typeof ExpiryCheckStatusOutcome] | null;
+
+
+export const ExpiryCheckStatusOutcome = {
+  success: 'success',
+  failed: 'failed',
+} as const;
+
+export interface ExpiryCheckStatus {
+  status: ExpiryCheckStatusStatus;
+  /** @nullable */
+  lastCompletedAt: string | null;
+  /** @nullable */
+  outcome: ExpiryCheckStatusOutcome;
+}
+
 export interface NotificationReviewInput {
   /**
      * @minLength 40

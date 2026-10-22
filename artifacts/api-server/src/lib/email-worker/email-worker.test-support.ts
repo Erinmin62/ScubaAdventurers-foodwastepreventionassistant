@@ -25,6 +25,7 @@ export function sampleEmailWorkspace(now = new Date("2026-10-22T02:00:00Z")) {
 /** Tests only. The production runner exclusively uses PostgreSQL. */
 export class MemoryEmailRepository implements EmailRepository {
   rows = new Map<string, EmailRecord>();
+  expiryCheckStatuses = new Map<string, { outcome: "success" | "failed"; completedAt: string }>();
   writes = 0;
   locked = false;
   constructor(public workspaceRows: WorkspaceRecord[]) {}
@@ -65,6 +66,10 @@ export class MemoryEmailRepository implements EmailRepository {
     const row = this.rows.get(id)!;
     row.status = result.status;
     if (result.status === "accepted") row.acceptedAt = at;
+    this.writes++;
+  }
+  async saveExpiryCheckStatus(workspaceId: string, outcome: "success" | "failed", completedAt: string) {
+    this.expiryCheckStatuses.set(workspaceId, { outcome, completedAt });
     this.writes++;
   }
 }

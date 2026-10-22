@@ -1168,6 +1168,13 @@ export const GetMonitorHeartbeatStatusResponse = zod.object({
 })
 
 
+export const GetExpiryCheckStatusResponse = zod.object({
+  "status": zod.enum(['healthy', 'stale', 'failed', 'not-started']),
+  "lastCompletedAt": zod.coerce.date().nullable(),
+  "outcome": zod.union([zod.literal('success'),zod.literal('failed'),zod.literal(null)]).nullable()
+})
+
+
 export const scanNotificationsResponseSettingsPhoneMax = 20;
 
 export const scanNotificationsResponseSettingsReminderHoursMin = 24;
