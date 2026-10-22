@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "esbuild src/lib/guard-follow-ups.test.ts src/lib/guard-automation.test.ts src/lib/guard-reorder.test.ts src/lib/guard-notifications.test.ts src/lib/guard-sandbox.test.ts src/lib/guard-inbox.test.ts src/lib/guard-scheduler.test.ts src/lib/guard-menu.test.ts src/lib/menu-recipe-ai.test.ts src/lib/email-worker/email-worker.test.ts --bundle --platform=node --format=esm --outdir=/tmp/expiryguard-tests && node --test /tmp/expiryguard-tests/*.test.js /tmp/expiryguard-tests/email-worker/*.test.js && node scripts/test-guard-http.mjs && node scripts/test-ingredient-photos.mjs",
+    "test": "esbuild src/lib/guard-follow-ups.test.ts src/lib/guard-automation.test.ts src/lib/guard-reorder.test.ts src/lib/guard-notifications.test.ts src/lib/guard-sandbox.test.ts src/lib/guard-inbox.test.ts src/lib/guard-scheduler.test.ts src/lib/guard-menu.test.ts src/lib/menu-recipe-ai.test.ts src/lib/email-worker/email-worker.test.ts --bundle --platform=node --format=esm --outdir=/tmp/expiryguard-tests && node --test /tmp/expiryguard-tests/*.test.js /tmp/expiryguard-tests/email-worker/*.test.js && node scripts/test-guard-http.mjs && node scripts/test-ingredient-photos.mjs && node scripts/test-email-delivery.mjs",
     "email-worker:build": "node scripts/build-email-worker.mjs",
     "email-worker": "node --enable-source-maps dist-workers/email-worker.mjs",
     "test:email-worker-db": "node scripts/test-email-worker-db.mjs",
+    "test:email-delivery": "node scripts/test-email-delivery.mjs",
     "test:guard-store-db": "node scripts/test-guard-store-db.mjs",
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
@@ -27,6 +28,7 @@
     "http-proxy-middleware": "^4.2.0",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0",
+    "svix": "^2.8.0",
     "zod": "catalog:"
   },
   "devDependencies": {

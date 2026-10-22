@@ -6,6 +6,7 @@ import guardAiForecastDemoRouter from "./guard-ai-forecast-demo";
 import reorderRouter from "./guard-reorders";
 import notificationsRouter from "./guard-notifications";
 import inboxRouter from "./guard-inbox";
+import emailHistoryRouter from "./guard-email-history";
 import { ownerAuth } from "../middlewares/owner-auth";
 import { createIngredientPhotoRouter } from "./ingredient-photos";
 
@@ -20,5 +21,6 @@ router.use(guardMenuRouter);
 router.use(reorderRouter);
 router.use(notificationsRouter);
 router.use(inboxRouter);
+router.use(emailHistoryRouter);
 
 export default router;

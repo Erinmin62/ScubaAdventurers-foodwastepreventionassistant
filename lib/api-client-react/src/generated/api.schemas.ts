@@ -5,6 +5,46 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type EmailHistoryRecordAttemptStatus = typeof EmailHistoryRecordAttemptStatus[keyof typeof EmailHistoryRecordAttemptStatus];
+
+
+export const EmailHistoryRecordAttemptStatus = {
+  queued: 'queued',
+  sending: 'sending',
+  accepted: 'accepted',
+  failed: 'failed',
+  uncertain: 'uncertain',
+  cancelled: 'cancelled',
+} as const;
+
+export type EmailHistoryRecordDeliveryStatus = typeof EmailHistoryRecordDeliveryStatus[keyof typeof EmailHistoryRecordDeliveryStatus];
+
+
+export const EmailHistoryRecordDeliveryStatus = {
+  unconfirmed: 'unconfirmed',
+  emailsent: 'email.sent',
+  emaildelivery_delayed: 'email.delivery_delayed',
+  emaildelivered: 'email.delivered',
+  emailfailed: 'email.failed',
+  emailbounced: 'email.bounced',
+  emailcomplained: 'email.complained',
+} as const;
+
+export interface EmailHistoryRecord {
+  id: string;
+  kind: string;
+  subject: string;
+  attemptStatus: EmailHistoryRecordAttemptStatus;
+  observedAt: string;
+  /** @nullable */
+  attemptedAt: string | null;
+  /** @nullable */
+  acceptedAt: string | null;
+  deliveryStatus: EmailHistoryRecordDeliveryStatus;
+  /** @nullable */
+  deliveryUpdatedAt: string | null;
+}
+
 export type InboxUpdateInputAction = typeof InboxUpdateInputAction[keyof typeof InboxUpdateInputAction];
 
 
@@ -1131,4 +1171,8 @@ export interface DecisionInput {
 export interface HealthStatus {
   status: string;
 }
+
+export type GetEmailHistory200 = {
+  records: EmailHistoryRecord[];
+};
 

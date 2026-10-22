@@ -6,4 +6,5 @@
 - [Forecast data readiness](forecast-data-readiness.md) — only synthetic history is currently available; any AI demo must stay isolated and unvalidated.
 - [AI demo live checks](ai-demo-live-checks.md) — run paid AI checks through the authenticated demo flow; do not add an auth bypass or retry blindly.
 - [Email delivery guarantees](email-delivery-guarantees.md) — investigate uncertain sends before retrying; acceptance is not confirmed inbox delivery.
+- [Email webhook verification](email-webhook-verification.md) — Svix verification return contracts vary; exercise the installed verifier with signed raw-byte tests.
 - [Legacy archive recovery](legacy-archive-recovery.md) — old imports have timestamps but no original file names; preserve that uncertainty when offering batch recovery.

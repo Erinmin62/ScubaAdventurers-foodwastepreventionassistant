@@ -96,7 +96,7 @@ Both PostgreSQL event IDs and provider `Idempotency-Key` headers prevent repeats
 
 Statuses: `queued`, `sending`, `accepted`, `failed`, `uncertain`, `cancelled`.
 
-**Accepted is not delivered.** The `sent` log count means Resend returned a valid acceptance ID; it is not proof of inbox delivery. This implementation has no delivery/bounce webhook. Check Resend and the actual inbox for delivery evidence.
+**Accepted is not delivered.** The `sent` log count means Resend returned a valid acceptance ID; it is not proof of inbox delivery. The separately opt-in delivery webhook below records verified provider evidence. Resend's `email.delivered` means the recipient's mail server accepted the email, **not** that it reached the inbox or was read.
 
 There is no way to atomically commit both a third-party email send and a database update. If a process stops after reserving a send, the next run marks it `uncertain` and **does not resend**. Timeouts, ambiguous responses and server errors are also held as uncertain. Explicit rejections are recorded as failed. Neither failed nor uncertain requests retry automatically: an administrator must inspect the provider and confirm whether a reset/retry is safe. This deliberately favours avoiding duplicate email over blindly retrying a potentially accepted request.
 
@@ -150,4 +150,38 @@ pnpm --filter @workspace/api-server test
 pnpm --filter @workspace/api-server run test:email-worker-db
 ```
 
-The final command refuses a published/production runtime. It uses uniquely named synthetic fixture rows in the **development** database, a mocked email sender, and cleans up only its own workspace/outbox rows. It verifies cross-connection persistence, duplicate guards, concurrent reservations, interrupted-send recovery and an unchanged inventory document. No real email is sent.
+The final command refuses a published/production runtime. It uses uniquely named synthetic fixture rows in the **development** database, a mocked email sender, and cleans up only its own workspace/outbox/event rows. It verifies cross-connection persistence, duplicate guards, concurrent reservations, interrupted-send recovery, delivery receipt deduplication/reordering/early arrival, owner isolation and an unchanged inventory document. No real email is sent.
+
+## Verified delivery receipts and owner history
+
+`POST /api/webhooks/resend` accepts **raw** JSON bytes before browser authentication or JSON parsing. It uses Resend's documented **Svix Webhook.verify** method, including signature verification and the library's default timestamp/replay tolerance. It does not need a Resend API key and cannot send email.
+
+Receiving is disabled by default. An administrator must separately opt in on the API runtime:
+
+| Variable | Purpose |
+| --- | --- |
+| `EMAIL_DELIVERY_WEBHOOK_ENABLED` | Must be exactly `true` to receive receipts. Leave unset until setup is reviewed. Independent of sending opt-in. |
+| `RESEND_WEBHOOK_SECRET` | Server-only endpoint signing secret from Resend, supplied privately through Secrets. This is **not** the Resend sending API key. |
+
+After reviewing the additive `guard_email_delivery_events` schema through the normal production schema process, register the published API endpoint in Resend and subscribe to `email.sent`, `email.delivery_delayed`, `email.delivered`, `email.failed`, `email.bounced`, and `email.complained`. Obtain the actual published origin through deployment inspection; do not register the temporary development URL as production. No production activation, webhook registration, provider connection, or real send is performed by this implementation.
+
+- The webhook stores only the verified Svix message ID, provider email ID, event type, event time, and server receipt time. It discards recipient addresses, subjects, bodies, tags and raw bounce/error details; none are logged.
+- PostgreSQL's event primary key deduplicates repeat/concurrent deliveries. A successful duplicate is acknowledged. Invalid signatures, missing headers, stale/future signed request timestamps, or malformed supported events return 400 without writes. Disabled/unconfigured or failed storage returns 503 so Resend can retry. Valid unsupported event types are acknowledged without storing them.
+- Receipts can arrive before the send receipt is saved. They remain unassigned until the worker's provider email ID matches; no caller-supplied owner/workspace tag is trusted. Unmatched receipts remain private and are not displayed to any owner.
+- The original send audit is never overwritten by a webhook. Queued/sending/accepted/failed/uncertain/cancelled, acceptance time, attempts, errors and duplicate guards remain unchanged. An uncertain attempt without a provider ID remains unconfirmed and requires provider investigation; no guessed association and **no automatic resend**.
+- History projects events deterministically, independent of arrival order: complaint > bounce > provider failure > delivery > delay > sent. Within the same type, the newest provider event time wins (event ID breaks ties). This conservative policy never hides failure or complaint evidence behind a late delivery/sent event. All receipts remain available in the database for investigation.
+- The signed-in Notifications page shows the latest 50 attempts for the authenticated owner's workspace with separate attempt and delivery labels/timestamps, loading/error/empty states and manual/30-second refresh. `GET /api/guard/email-history` uses the server's owner context, not a browser-supplied workspace ID, and returns `private, no-store`. It does not load/migrate workspace data, return recipient hashes/addresses, or activate sending.
+- An absent delivery event is displayed as **No verified delivery update**, never “delivered”. The history is not an email preferences screen and supplies no retry control.
+
+Run the mocked signed HTTP checks independently with:
+
+```sh
+pnpm --filter @workspace/api-server run test:email-delivery
+```
+
+These checks are also included in the API test command. They sign synthetic payloads locally, test exact-byte verification, missing/invalid/stale/future signatures, malformed/unsupported events, disabled configuration, storage failures and authenticated workspace selection. The database checks above exercise persistent/concurrent deduplication and projection separately. They do **not** prove real provider delivery or production setup. After explicit activation, verify one controlled real email and its provider event/inbox manually before claiming operational delivery.
+
+Provider references:
+- [Resend webhook signature verification (including Svix)](https://resend.com/docs/webhooks/verify-webhooks-requests)
+- [Delivered means recipient mail-server acceptance](https://resend.com/docs/webhooks/emails/delivered)
+- [Bounced event](https://resend.com/docs/webhooks/emails/bounced)

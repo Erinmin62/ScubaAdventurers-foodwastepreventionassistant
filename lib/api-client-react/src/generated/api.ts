@@ -26,6 +26,7 @@ import type {
   AutomationSettingsInput,
   DecisionInput,
   FollowUpScheduleInput,
+  GetEmailHistory200,
   GuardState,
   HealthStatus,
   HistoricalBatchRemoval,
@@ -82,6 +83,157 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetEmailHistoryUrl = () => {
+
+
+
+
+  return `/api/guard/email-history`
+}
+
+/**
+ * @summary Latest 50 notification email attempts for the signed-in owner
+ */
+export const getEmailHistory = async ( options?: Parameters<typeof customFetch>[1]): Promise<GetEmailHistory200> => {
+
+  return customFetch<GetEmailHistory200>(getGetEmailHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailHistoryQueryKey = () => {
+    return [
+    `/api/guard/email-history`
+    ] as const;
+    }
+
+
+export const getGetEmailHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getEmailHistory>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailHistory>>> = ({ signal }) => getEmailHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmailHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmailHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailHistory>>>
+export type GetEmailHistoryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Latest 50 notification email attempts for the signed-in owner
+ */
+
+export function useGetEmailHistory<TData = Awaited<ReturnType<typeof getEmailHistory>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmailHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReceiveEmailDeliveryUrl = () => {
+
+
+
+
+  return `/api/webhooks/resend`
+}
+
+/**
+ * @summary Opt-in Resend webhook verified using Svix headers and raw body
+ */
+export const receiveEmailDelivery = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getReceiveEmailDeliveryUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReceiveEmailDeliveryMutationKey = () => ['receiveEmailDelivery'] as const;
+
+export const getReceiveEmailDeliveryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveEmailDelivery>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof receiveEmailDelivery>>, TError,void, TContext> => {
+
+const mutationKey = getReceiveEmailDeliveryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof receiveEmailDelivery>>, void> = () => {
+
+
+          return  receiveEmailDelivery(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReceiveEmailDeliveryMutationResult = NonNullable<Awaited<ReturnType<typeof receiveEmailDelivery>>>
+
+    export type ReceiveEmailDeliveryMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Opt-in Resend webhook verified using Svix headers and raw body
+ */
+export const useReceiveEmailDelivery = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveEmailDelivery>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof receiveEmailDelivery>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getReceiveEmailDeliveryMutationOptions(options));
+    }
 
 export const getRequestIngredientPhotoUploadUrl = () => {
 

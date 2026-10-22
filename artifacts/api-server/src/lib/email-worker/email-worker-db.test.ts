@@ -7,11 +7,62 @@ import { emailRecord, runEmailWorker } from "./runner";
 import { sampleEmailWorkspace, testRoute } from "./email-worker.test-support";
 import { scanEmailCandidates } from "./rules";
 import type { EmailSender } from "./sender";
+import { saveDeliveryEvent, emailHistory } from "./delivery-postgres";
 
 if (process.env.REPLIT_DEPLOYMENT || process.env.NODE_ENV === "production") {
   throw new Error("Email worker database tests are restricted to development.");
 }
 after(async () => { await pool.end(); });
+
+test("delivery receipts deduplicate across connections, survive early arrival and reorder without changing send audits or owner boundaries", async () => {
+  const suffix = randomUUID();
+  const owner = `owner:delivery-test-${suffix}`, otherOwner = `owner:delivery-other-${suffix}`;
+  const client = await pool.connect();
+  const emailId = `mock-email-${suffix}`, rowId = `delivery-row-${suffix}`;
+  const before = "2026-10-22T01:00:00Z";
+  const event = (id: string, type: Parameters<typeof saveDeliveryEvent>[0]["type"], occurredAt = before) => ({
+    id: `${suffix}-${id}`, providerMessageId: emailId, type, occurredAt,
+  });
+  try {
+    await pool.query("INSERT INTO guard_workspace (id,data) VALUES ($1,'{}'),($2,'{}')", [owner, otherOwner]);
+    // Verified receipt may beat the worker's commit; it is retained without a guessed owner.
+    await saveDeliveryEvent(event("early", "email.delivered"));
+    assert.equal((await emailHistory(owner)).records.length, 0);
+    await pool.query(`INSERT INTO guard_email_notifications
+      (id,workspace_id,recipient_hash,kind,event_key,related_ids,scheduled_at,observed_at,status,message,attempts,accepted_at,provider_message_id)
+      VALUES ($1,$2,'synthetic-hash','critical','test','[]',$3,$3,'accepted',
+        '{"subject":"Synthetic email","text":"Do not expose body"}',1,$3,$4)`, [rowId, owner, before, emailId]);
+    let history = await emailHistory(owner);
+    assert.equal(history.records[0].deliveryStatus, "email.delivered");
+    assert.equal(history.records[0].attemptStatus, "accepted");
+    assert.equal((await emailHistory(otherOwner)).records.length, 0);
+    await Promise.all(Array.from({ length: 5 }, () => saveDeliveryEvent(event("bounce", "email.bounced", "2026-10-22T02:00:00Z"))));
+    assert.equal(Number((await pool.query("SELECT count(*) FROM guard_email_delivery_events WHERE id=$1", [`${suffix}-bounce`])).rows[0].count), 1);
+    // Both older and newer non-failure events cannot hide terminal evidence.
+    await saveDeliveryEvent(event("late-sent", "email.sent", "2026-10-22T03:00:00Z"));
+    await saveDeliveryEvent(event("late-delivered", "email.delivered", "2026-10-22T04:00:00Z"));
+    await saveDeliveryEvent(event("old-delay", "email.delivery_delayed"));
+    history = await emailHistory(owner);
+    assert.equal(history.records[0].deliveryStatus, "email.bounced");
+    assert.equal(history.records[0].deliveryUpdatedAt.toISOString(), "2026-10-22T02:00:00.000Z");
+    assert.equal(history.records[0].attemptStatus, "accepted");
+    assert.equal(JSON.stringify(history).includes("synthetic-hash"), false);
+    assert.equal(JSON.stringify(history).includes("Do not expose body"), false);
+    await saveDeliveryEvent(event("complaint", "email.complained"));
+    assert.equal((await emailHistory(owner)).records[0].deliveryStatus, "email.complained");
+    await pool.query("UPDATE guard_email_notifications SET status='uncertain',provider_message_id=NULL WHERE id=$1", [rowId]);
+    assert.equal((await emailHistory(owner)).records[0].deliveryStatus, "unconfirmed");
+    assert.equal((await emailHistory(owner)).records[0].attemptStatus, "uncertain");
+    const audit = (await pool.query("SELECT attempts,accepted_at FROM guard_email_notifications WHERE id=$1", [rowId])).rows[0];
+    assert.equal(audit.attempts, 1);
+    assert.equal(audit.accepted_at.toISOString(), "2026-10-22T01:00:00.000Z");
+    assert.equal(await postgresEmailRepository(client).startAttempt(rowId, { subject: "test", text: "test" }, before), false);
+  } finally {
+    await pool.query("DELETE FROM guard_email_delivery_events WHERE provider_message_id=$1", [emailId]);
+    await pool.query("DELETE FROM guard_workspace WHERE id=ANY($1::text[])", [[owner, otherOwner]]);
+    client.release();
+  }
+});
 
 test("PostgreSQL worker persists deduplication across connections, excludes overlaps, survives interrupted attempts, and never writes inventory", async () => {
   const client = await pool.connect(), other = await pool.connect();

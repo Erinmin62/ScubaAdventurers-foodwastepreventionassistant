@@ -9,6 +9,40 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Latest 50 notification email attempts for the signed-in owner
+ */
+export const GetEmailHistoryResponse = zod.object({
+  "records": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "subject": zod.string(),
+  "attemptStatus": zod.enum(['queued', 'sending', 'accepted', 'failed', 'uncertain', 'cancelled']),
+  "observedAt": zod.coerce.date(),
+  "attemptedAt": zod.coerce.date().nullable(),
+  "acceptedAt": zod.coerce.date().nullable(),
+  "deliveryStatus": zod.enum(['unconfirmed', 'email.sent', 'email.delivery_delayed', 'email.delivered', 'email.failed', 'email.bounced', 'email.complained']),
+  "deliveryUpdatedAt": zod.coerce.date().nullable()
+}))
+})
+
+
+/**
+ * @summary Opt-in Resend webhook verified using Svix headers and raw body
+ */
+export const receiveEmailDeliveryHeaderSvixIdMax = 200;
+
+
+
+export const ReceiveEmailDeliveryHeader = zod.object({
+  "svix-id": zod.string().max(receiveEmailDeliveryHeaderSvixIdMax),
+  "svix-timestamp": zod.string(),
+  "svix-signature": zod.string()
+})
+
+export const ReceiveEmailDeliveryResponse = zod.unknown()
+
+
+/**
  * @summary Request an owner-scoped ingredient photo upload
  */
 export const requestIngredientPhotoUploadBodyIngredientIdMax = 160;

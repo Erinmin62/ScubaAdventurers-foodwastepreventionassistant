@@ -2,6 +2,7 @@ import { getGetMonitorHeartbeatStatusQueryKey, useGetMonitorHeartbeatStatus } fr
 import { AlertCircle, CheckCircle2, Clock3, RefreshCw, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/bits';
 import { InboxCentre } from '@/components/inbox/inbox-centre';
+import { EmailHistory } from '@/components/inbox/email-history';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -97,6 +98,7 @@ export default function Notifications() {
       </PageHeader>
       <MonitorStatus />
       <InboxCentre />
+      <EmailHistory />
     </div>
   );
 }

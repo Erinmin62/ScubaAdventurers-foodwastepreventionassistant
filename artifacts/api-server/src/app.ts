@@ -5,6 +5,8 @@ import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { createDeliveryWebhook } from "./lib/email-worker/delivery";
+import { saveDeliveryEvent } from "./lib/email-worker/delivery-postgres";
 
 const app: Express = express();
 
@@ -28,6 +30,8 @@ app.use(
   }),
 );
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+// Machine-only endpoint: verified raw bytes before JSON parsing and browser authentication.
+app.post("/api/webhooks/resend", express.raw({ type: "application/json", limit: "256kb" }), createDeliveryWebhook(saveDeliveryEvent));
 // Preserve exact signed bytes; only the Meta webhook bypasses JSON parsing.
 app.use("/api/guard/notifications/webhook", express.raw({ type: "application/json", limit: "256kb" }));
 app.use(express.json());

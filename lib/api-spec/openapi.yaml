@@ -16,6 +16,46 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /guard/email-history:
+    get:
+      operationId: getEmailHistory
+      summary: Latest 50 notification email attempts for the signed-in owner
+      responses:
+        "200":
+          description: Acceptance audit and separately verified delivery evidence
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [records]
+                properties:
+                  records:
+                    type: array
+                    items: { $ref: "#/components/schemas/EmailHistoryRecord" }
+        "401": { description: Sign-in required }
+        "503": { description: Email history unavailable }
+  /webhooks/resend:
+    post:
+      security: []
+      operationId: receiveEmailDelivery
+      summary: Opt-in Resend webhook verified using Svix headers and raw body
+      parameters:
+        - in: header
+          name: svix-id
+          required: true
+          schema: { type: string, maxLength: 200 }
+        - in: header
+          name: svix-timestamp
+          required: true
+          schema: { type: string }
+        - in: header
+          name: svix-signature
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Verified receipt persisted or unsupported event ignored }
+        "400": { description: Invalid signature or event }
+        "503": { description: Disabled or receipt storage unavailable }
   /storage/uploads/request-url:
     post:
       operationId: requestIngredientPhotoUpload
@@ -542,6 +582,23 @@ components:
       scheme: bearer
       description: Separate server-configured scheduler credential; a user session cannot run global checks.
   schemas:
+    EmailHistoryRecord:
+      type: object
+      required: [id, kind, subject, attemptStatus, observedAt, attemptedAt, acceptedAt, deliveryStatus, deliveryUpdatedAt]
+      properties:
+        id: { type: string }
+        kind: { type: string }
+        subject: { type: string }
+        attemptStatus:
+          type: string
+          enum: [queued, sending, accepted, failed, uncertain, cancelled]
+        observedAt: { type: string, format: date-time }
+        attemptedAt: { type: [string, "null"], format: date-time }
+        acceptedAt: { type: [string, "null"], format: date-time }
+        deliveryStatus:
+          type: string
+          enum: [unconfirmed, email.sent, email.delivery_delayed, email.delivered, email.failed, email.bounced, email.complained]
+        deliveryUpdatedAt: { type: [string, "null"], format: date-time }
     InboxUpdateInput:
       type: object
       required: [action]
