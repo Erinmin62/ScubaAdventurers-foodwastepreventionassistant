@@ -53,7 +53,7 @@ function ScoreCard({
   );
 }
 
-export function ForecastAccuracy({ state }: { state: Pick<GuardState, 'sales' | 'results' | 'menu'> }) {
+export function ForecastAccuracy({ state }: { state: Pick<GuardState, 'sales' | 'results' | 'menu' | 'synthetic'> }) {
   const evaluation = evaluateForecastHistory(state);
   const hasResults = evaluation.heldOutDays > 0;
 
@@ -66,9 +66,9 @@ export function ForecastAccuracy({ state }: { state: Pick<GuardState, 'sales' | 
         <div className="flex items-start gap-2 rounded-xl border border-amber/30 bg-amber/5 p-3 text-sm">
           <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-amber" />
           <p>
-            <b>Sample-history check only.</b> This workspace includes seeded synthetic history, which may be mixed
-            with later entries. These scores do not establish accuracy for your business and do not evaluate the
-            experimental AI forecast.
+            {state.synthetic
+              ? <><b>Sample-history check only.</b> This workspace includes seeded synthetic history, which may be mixed with later entries. These scores do not establish accuracy for your business and do not evaluate the experimental AI forecast.</>
+              : <><b>Owner-entered history only.</b> This check uses daily sales and preparation records saved in this workspace. It is a backtest on the dates shown, not proof of future accuracy, and it does not evaluate the experimental AI forecast.</>}
           </p>
         </div>
 

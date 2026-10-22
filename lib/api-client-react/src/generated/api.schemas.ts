@@ -915,6 +915,15 @@ export interface Summary {
   actualWasteKg: number;
 }
 
+export type GuardStateWorkspaceMode = typeof GuardStateWorkspaceMode[keyof typeof GuardStateWorkspaceMode];
+
+
+export const GuardStateWorkspaceMode = {
+  setup_required: 'setup_required',
+  synthetic_demo: 'synthetic_demo',
+  owner_data: 'owner_data',
+} as const;
+
 export type BusinessType = typeof BusinessType[keyof typeof BusinessType];
 
 
@@ -1012,6 +1021,7 @@ export interface GuardState {
      */
   cafeName: string;
   businessProfile: BusinessProfile;
+  workspaceMode: GuardStateWorkspaceMode;
   synthetic: boolean;
   automation: AutomationState;
   ingredients: Ingredient[];
@@ -1034,6 +1044,19 @@ export interface BusinessProfileInput {
      */
   name: string;
   type: BusinessType;
+}
+
+export type WorkspaceSetupInputMode = typeof WorkspaceSetupInputMode[keyof typeof WorkspaceSetupInputMode];
+
+
+export const WorkspaceSetupInputMode = {
+  synthetic_demo: 'synthetic_demo',
+  owner_data: 'owner_data',
+} as const;
+
+export interface WorkspaceSetupInput {
+  mode: WorkspaceSetupInputMode;
+  confirmReplaceSamples?: boolean;
 }
 
 export type FollowUpScheduleInputFollowUpDays = typeof FollowUpScheduleInputFollowUpDays[keyof typeof FollowUpScheduleInputFollowUpDays];

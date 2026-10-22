@@ -159,6 +159,7 @@ export const ConfirmIngredientPhotoUploadResponse = zod.object({
   "name": zod.string().min(1).max(confirmIngredientPhotoUploadResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -420,6 +421,7 @@ export const RemoveIngredientPhotoResponse = zod.object({
   "name": zod.string().min(1).max(removeIngredientPhotoResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -621,7 +623,7 @@ export const RemoveIngredientPhotoResponse = zod.object({
 
 
 /**
- * @summary Serve an ingredient photo to its owning café account
+ * @summary Serve an ingredient photo to its owning food-business account
  */
 export const getIngredientPhotoPathObjectKeyRegExp = new RegExp('^[a-f0-9]{96}$');
 
@@ -826,6 +828,7 @@ export const SaveIngredientBatchResponse = zod.object({
   "name": zod.string().min(1).max(saveIngredientBatchResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -2072,6 +2075,7 @@ export const UpdateAutomationResponse = zod.object({
   "name": zod.string().min(1).max(updateAutomationResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -2326,6 +2330,7 @@ export const RunAutomationResponse = zod.object({
   "name": zod.string().min(1).max(runAutomationResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -2576,6 +2581,7 @@ export const GetGuardStateResponse = zod.object({
   "name": zod.string().min(1).max(getGuardStateResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -2838,6 +2844,7 @@ export const UpdateBusinessProfileResponse = zod.object({
   "name": zod.string().min(1).max(updateBusinessProfileResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -3015,6 +3022,265 @@ export const UpdateBusinessProfileResponse = zod.object({
   "ingredientId": zod.string(),
   "remaining": zod.number().min(updateBusinessProfileResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin).max(updateBusinessProfileResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax),
   "wasted": zod.number().min(updateBusinessProfileResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin).max(updateBusinessProfileResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax)
+}).and(zod.object({
+  "assessment": zod.string(),
+  "nextAction": zod.string(),
+  "inventoryUpdate": zod.string()
+})))
+}),zod.null()])
+})),
+  "approvedRecommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}))
+})
+
+
+/**
+ * @summary Keep the synthetic demo or replace it with an owner-data workspace
+ */
+export const ChooseWorkspaceModeBody = zod.object({
+  "mode": zod.enum(['synthetic_demo', 'owner_data']),
+  "confirmReplaceSamples": zod.boolean().optional()
+})
+
+export const chooseWorkspaceModeResponseBusinessProfileNameMax = 120;
+
+export const chooseWorkspaceModeResponseIngredientsItemQuantityMin = 0;
+
+export const chooseWorkspaceModeResponseIngredientsItemCostMin = 0;
+
+export const chooseWorkspaceModeResponseIngredientsItemDeliveryQuantityMin = 0;
+
+export const chooseWorkspaceModeResponseIngredientsItemBatchesItemQuantityMin = 0;
+
+export const chooseWorkspaceModeResponseSalesItemPortionsMin = 0;
+
+export const chooseWorkspaceModeResponseSalesItemMenuPriceMin = 0;
+
+export const chooseWorkspaceModeResponseSalesItemMenuCostMin = 0;
+
+export const chooseWorkspaceModeResponseSalesItemMenuRecipeItemAmountExclusiveMin = 0;
+
+export const chooseWorkspaceModeResponseResultsItemPreparedMin = 0;
+
+export const chooseWorkspaceModeResponseResultsItemSoldMin = 0;
+
+export const chooseWorkspaceModeResponseResultsItemLeftoverMin = 0;
+
+export const chooseWorkspaceModeResponseResultsItemMenuPriceMin = 0;
+
+export const chooseWorkspaceModeResponseResultsItemMenuCostMin = 0;
+
+export const chooseWorkspaceModeResponseResultsItemMenuRecipeItemAmountExclusiveMin = 0;
+
+export const chooseWorkspaceModeResponseMenuItemRecipeItemAmountExclusiveMin = 0;
+
+export const chooseWorkspaceModeResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
+
+export const chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
+export const chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
+
+export const chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin = 0;
+export const chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax = 1000000;
+
+
+
+export const ChooseWorkspaceModeResponse = zod.object({
+  "today": zod.string(),
+  "tomorrow": zod.string(),
+  "cafeName": zod.string().describe('Legacy compatibility alias for businessProfile.name.'),
+  "businessProfile": zod.object({
+  "name": zod.string().min(1).max(chooseWorkspaceModeResponseBusinessProfileNameMax),
+  "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
+}),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
+  "synthetic": zod.boolean(),
+  "automation": zod.object({
+  "dailyPlanning": zod.boolean(),
+  "followUpHandling": zod.boolean(),
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "workflow": zod.enum(['daily-planning', 'follow-ups']),
+  "trigger": zod.enum(['automatic', 'manual']),
+  "time": zod.string(),
+  "date": zod.string(),
+  "detail": zod.string(),
+  "draftCount": zod.number().int(),
+  "riskCount": zod.number().int(),
+  "dueCount": zod.number().int(),
+  "overdueCount": zod.number().int(),
+  "predictedPortions": zod.number().int()
+}))
+}),
+  "ingredients": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quantity": zod.number().min(chooseWorkspaceModeResponseIngredientsItemQuantityMin),
+  "unit": zod.string(),
+  "expiry": zod.string(),
+  "cost": zod.number().min(chooseWorkspaceModeResponseIngredientsItemCostMin),
+  "category": zod.string(),
+  "deliveryQuantity": zod.number().min(chooseWorkspaceModeResponseIngredientsItemDeliveryQuantityMin),
+  "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(chooseWorkspaceModeResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
+})),
+  "sales": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "portions": zod.number().int().min(chooseWorkspaceModeResponseSalesItemPortionsMin),
+  "menuName": zod.string().optional(),
+  "menuPrice": zod.number().min(chooseWorkspaceModeResponseSalesItemMenuPriceMin).optional(),
+  "menuCost": zod.number().min(chooseWorkspaceModeResponseSalesItemMenuCostMin).optional(),
+  "menuRecipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number().gt(chooseWorkspaceModeResponseSalesItemMenuRecipeItemAmountExclusiveMin)
+})).optional()
+})),
+  "results": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "prepared": zod.number().int().min(chooseWorkspaceModeResponseResultsItemPreparedMin),
+  "sold": zod.number().int().min(chooseWorkspaceModeResponseResultsItemSoldMin),
+  "leftover": zod.number().int().min(chooseWorkspaceModeResponseResultsItemLeftoverMin),
+  "menuName": zod.string().optional(),
+  "menuPrice": zod.number().min(chooseWorkspaceModeResponseResultsItemMenuPriceMin).optional(),
+  "menuCost": zod.number().min(chooseWorkspaceModeResponseResultsItemMenuCostMin).optional(),
+  "menuRecipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number().gt(chooseWorkspaceModeResponseResultsItemMenuRecipeItemAmountExclusiveMin)
+})).optional()
+})),
+  "menu": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "price": zod.number(),
+  "cost": zod.number(),
+  "archivedAt": zod.string().nullable(),
+  "recipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number().gt(chooseWorkspaceModeResponseMenuItemRecipeItemAmountExclusiveMin)
+}))
+})),
+  "forecasts": zod.array(zod.object({
+  "menuId": zod.string(),
+  "name": zod.string(),
+  "predicted": zod.number().int(),
+  "capacity": zod.number().int(),
+  "suggested": zod.number().int(),
+  "confidence": zod.string(),
+  "reason": zod.string()
+})),
+  "risks": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "daysLeft": zod.number().int(),
+  "level": zod.string(),
+  "expectedUse": zod.number(),
+  "atRisk": zod.number(),
+  "value": zod.number(),
+  "message": zod.string()
+})),
+  "recommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+})),
+  "activity": zod.array(zod.object({
+  "id": zod.string(),
+  "time": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "decision": zod.string(),
+  "impact": zod.number()
+})),
+  "summary": zod.object({
+  "predictedPortions": zod.number().int(),
+  "riskValue": zod.number(),
+  "pendingCount": zod.number().int(),
+  "estimatedSavings": zod.number(),
+  "baselineWasteCost": zod.number(),
+  "actualWasteCost": zod.number(),
+  "baselinePurchaseCost": zod.number(),
+  "plannedPurchaseCost": zod.number(),
+  "baselineWasteKg": zod.number(),
+  "actualWasteKg": zod.number()
+}),
+  "followUps": zod.array(zod.object({
+  "id": zod.string(),
+  "recommendationId": zod.string(),
+  "recommendation": zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}),
+  "approvedAction": zod.string(),
+  "approvedQuantity": zod.number(),
+  "approvedAt": zod.string().nullable(),
+  "snapshotAt": zod.string(),
+  "startingDate": zod.string(),
+  "scheduledDate": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['outstanding', 'completed', 'cancelled']),
+  "cancellationReason": zod.string().nullable(),
+  "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(chooseWorkspaceModeResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "startingQuantity": zod.number(),
+  "expiry": zod.string(),
+  "deliveryQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "expectedUsage": zod.number(),
+  "expectedRemaining": zod.number()
+})),
+  "outcome": zod.union([zod.object({
+  "observationDate": zod.string(),
+  "actionTaken": zod.string(),
+  "recordedAt": zod.string(),
+  "rows": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "remaining": zod.number().min(chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin).max(chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax),
+  "wasted": zod.number().min(chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin).max(chooseWorkspaceModeResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax)
 }).and(zod.object({
   "assessment": zod.string(),
   "nextAction": zod.string(),
@@ -3243,6 +3509,7 @@ export const AddGuardRecordsResponse = zod.object({
   "name": zod.string().min(1).max(addGuardRecordsResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -3520,6 +3787,7 @@ export const CreateMenuItemResponse = zod.object({
   "name": zod.string().min(1).max(createMenuItemResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -3802,6 +4070,7 @@ export const UpdateMenuItemResponse = zod.object({
   "name": zod.string().min(1).max(updateMenuItemResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -4056,6 +4325,7 @@ export const DeleteMenuItemResponse = zod.object({
   "name": zod.string().min(1).max(deleteMenuItemResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -4419,6 +4689,7 @@ export const DecideRecommendationResponse = zod.object({
   "name": zod.string().min(1).max(decideRecommendationResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -4679,6 +4950,7 @@ export const AttachFollowUpResponse = zod.object({
   "name": zod.string().min(1).max(attachFollowUpResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),
@@ -4955,6 +5227,7 @@ export const RecordFollowUpOutcomeResponse = zod.object({
   "name": zod.string().min(1).max(recordFollowUpOutcomeResponseBusinessProfileNameMax),
   "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
 }),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
   "synthetic": zod.boolean(),
   "automation": zod.object({
   "dailyPlanning": zod.boolean(),

@@ -396,6 +396,22 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/GuardState" }
         "400": { description: Invalid business profile }
+  /guard/workspace/setup:
+    post:
+      operationId: chooseWorkspaceMode
+      summary: Keep the synthetic demo or replace it with an owner-data workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceSetupInput" }
+      responses:
+        "200":
+          description: Updated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid or unconfirmed workspace choice }
   /guard/history:
     get:
       operationId: getHistoricalRecords
@@ -1209,12 +1225,13 @@ components:
         actualWasteKg: { type: number }
     GuardState:
       type: object
-      required: [today, tomorrow, cafeName, businessProfile, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations, automation]
+      required: [today, tomorrow, cafeName, businessProfile, workspaceMode, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations, automation]
       properties:
         today: { type: string }
         tomorrow: { type: string }
         cafeName: { type: string, deprecated: true, description: "Legacy compatibility alias for businessProfile.name." }
         businessProfile: { $ref: "#/components/schemas/BusinessProfile" }
+        workspaceMode: { type: string, enum: [setup_required, synthetic_demo, owner_data] }
         synthetic: { type: boolean }
         automation: { $ref: "#/components/schemas/AutomationState" }
         ingredients:
@@ -1260,6 +1277,12 @@ components:
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
         type: { $ref: "#/components/schemas/BusinessType" }
+    WorkspaceSetupInput:
+      type: object
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [synthetic_demo, owner_data] }
+        confirmReplaceSamples: { type: boolean }
     BusinessType:
       type: string
       enum: [cafe, restaurant, food_vendor, cloud_kitchen, other]

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { AddGuardRecordsBody, GetHistoricalRecordsResponse, ImportHistoricalRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody, UpdateBusinessProfileBody } from "@workspace/api-zod";
+import { AddGuardRecordsBody, GetHistoricalRecordsResponse, ImportHistoricalRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody, UpdateBusinessProfileBody, ChooseWorkspaceModeBody } from "@workspace/api-zod";
 import { compute, today, round, seed, type HistoricalRecord } from "../lib/guard-model";
 import { appendHistoricalRecords, removeHistoricalBatch, changeWorkspace as change, readWorkspace } from "../lib/guard-store";
 import { RemoveHistoricalBatchBody, RemoveHistoricalBatchParams } from "@workspace/api-zod";
@@ -7,6 +7,7 @@ import { historicalArchive } from "../lib/guard-history";
 import { runWorkflows } from "../lib/guard-automation";
 import { InputError, cancelOutstanding, completeFollowUp, scheduleFollowUp } from "../lib/guard-follow-ups";
 import { safeStock, stockBatches, syncStock } from "../lib/guard-batches";
+import { chooseWorkspaceMode } from "../lib/guard-workspace-setup";
 
 const router: IRouter = Router();
 const requiredString = (v: unknown, field: string): string => {
@@ -33,6 +34,16 @@ router.patch("/guard/business-profile", async (req, res): Promise<void> => {
   res.json(await change(s => {
     s.businessProfile = { name, type: parsed.data.type };
   }, false));
+});
+router.post("/guard/workspace/setup", async (req, res): Promise<void> => {
+  const parsed = ChooseWorkspaceModeBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Choose synthetic demo mode or confirm replacement with your own data." }); return; }
+  try {
+    res.json(await change(s => chooseWorkspaceMode(s, parsed.data), false));
+  } catch (err) {
+    if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
+    throw err;
+  }
 });
 router.post("/guard/ingredients/:id/batches", async (req, res): Promise<void> => {
   const parsed = SaveIngredientBatchBody.safeParse(req.body);

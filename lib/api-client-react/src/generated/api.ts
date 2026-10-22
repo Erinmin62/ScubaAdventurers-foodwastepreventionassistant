@@ -57,7 +57,8 @@ import type {
   ReorderPreview,
   ReorderPreviewInput,
   ReorderState,
-  StockBatchInput
+  StockBatchInput,
+  WorkspaceSetupInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -574,7 +575,7 @@ export const getGetIngredientPhotoUrl = (objectKey: string,) => {
 }
 
 /**
- * @summary Serve an ingredient photo to its owning café account
+ * @summary Serve an ingredient photo to its owning food-business account
  */
 export const getIngredientPhoto = async (objectKey: string, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
 
@@ -621,7 +622,7 @@ export type GetIngredientPhotoQueryError = ErrorType<void>
 
 
 /**
- * @summary Serve an ingredient photo to its owning café account
+ * @summary Serve an ingredient photo to its owning food-business account
  */
 
 export function useGetIngredientPhoto<TData = Awaited<ReturnType<typeof getIngredientPhoto>>, TError = ErrorType<void>>(
@@ -2320,6 +2321,94 @@ export const useUpdateBusinessProfile = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateBusinessProfileMutationOptions(options));
+    }
+
+export const getChooseWorkspaceModeUrl = () => {
+
+
+
+
+  return `/api/guard/workspace/setup`
+}
+
+/**
+ * @summary Keep the synthetic demo or replace it with an owner-data workspace
+ */
+export const chooseWorkspaceMode = async (workspaceSetupInput: WorkspaceSetupInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getChooseWorkspaceModeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workspaceSetupInput)
+  }
+);}
+
+
+
+
+
+export const getChooseWorkspaceModeMutationKey = () => ['chooseWorkspaceMode'] as const;
+
+export const getChooseWorkspaceModeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chooseWorkspaceMode>>, TError,ChooseWorkspaceModeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof chooseWorkspaceMode>>, TError,ChooseWorkspaceModeMutationVariables, TContext> => {
+
+const mutationKey = getChooseWorkspaceModeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof chooseWorkspaceMode>>, ChooseWorkspaceModeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  chooseWorkspaceMode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChooseWorkspaceModeMutationResult = NonNullable<Awaited<ReturnType<typeof chooseWorkspaceMode>>>
+    export type ChooseWorkspaceModeMutationBody = BodyType<WorkspaceSetupInput>
+    export type ChooseWorkspaceModeMutationError = ErrorType<void>
+    export type ChooseWorkspaceModeMutationVariables = {data: BodyType<WorkspaceSetupInput>}
+
+    /**
+ * @summary Keep the synthetic demo or replace it with an owner-data workspace
+ */
+export const useChooseWorkspaceMode = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chooseWorkspaceMode>>, TError,ChooseWorkspaceModeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof chooseWorkspaceMode>>,
+        TError,
+        ChooseWorkspaceModeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getChooseWorkspaceModeMutationOptions(options));
     }
 
 export const getGetHistoricalRecordsUrl = () => {

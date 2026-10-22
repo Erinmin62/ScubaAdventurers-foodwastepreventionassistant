@@ -3,13 +3,13 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
-import { getGetGuardStateQueryKey, useUpdateBusinessProfile } from '@workspace/api-client-react';
+import { getGetGuardStateQueryKey, getGetInboxQueryKey, getGetReordersQueryKey, useChooseWorkspaceMode, useUpdateBusinessProfile } from '@workspace/api-client-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useGuard } from '@/lib/guard';
+import { errorMessage, useGuard } from '@/lib/guard';
 import { businessTypes } from '@/lib/business-profile';
 
 const profileSchema = z.object({
@@ -23,6 +23,7 @@ export default function BusinessProfilePage() {
   const { data, isLoading } = useGuard();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
+  const [setupMessage, setSetupMessage] = useState<string | null>(null);
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: { name: '', type: 'other' },
@@ -43,6 +44,35 @@ export default function BusinessProfilePage() {
       onError: () => setMessage('Could not save the profile. Check your connection and try again.'),
     },
   });
+
+  const chooseMode = useChooseWorkspaceMode({
+    mutation: {
+      onSuccess: (updated) => {
+        queryClient.setQueryData(getGetGuardStateQueryKey(), updated);
+        void queryClient.invalidateQueries({ queryKey: getGetReordersQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey() });
+        setSetupMessage(updated.workspaceMode === 'owner_data'
+          ? 'Your own-data workspace is ready. Add your pantry ingredients and menu items to begin.'
+          : 'Synthetic demo data will remain clearly labelled throughout the app.');
+      },
+      onError: (error) => setSetupMessage(errorMessage(error)),
+    },
+  });
+
+  function startOwnerWorkspace() {
+    if (!data) return;
+    const confirmed = window.confirm(
+      `This permanently removes ${data.menu.length} menu items, ${data.ingredients.length} pantry items, ${data.sales.length} sales entries, ${data.results.length} preparation/waste records, pending decisions, demo expiry alerts, and planning snapshots from this workspace. The separate imported historical archive is kept. This cannot be undone. Continue?`,
+    );
+    if (!confirmed) return;
+    setSetupMessage(null);
+    chooseMode.mutate({ data: { mode: 'owner_data', confirmReplaceSamples: true } });
+  }
+
+  function keepSyntheticDemo() {
+    setSetupMessage(null);
+    chooseMode.mutate({ data: { mode: 'synthetic_demo' } });
+  }
 
   function onSubmit(values: ProfileFormValues) {
     setMessage(null);
@@ -115,7 +145,42 @@ export default function BusinessProfilePage() {
 
       <Card className="border-amber/40 bg-amber/5">
         <CardContent className="pt-6 text-sm text-muted-foreground">
-          This workspace uses synthetic sample data. Business type identifies your profile only; planning rules and safety checks remain shared across food businesses.
+          {data?.synthetic
+            ? 'This workspace currently uses synthetic sample data. Business type identifies your profile only; planning rules and safety checks remain shared across food businesses.'
+            : 'This workspace uses records entered by you. Forecasts use your recorded sales; menu and business type do not change shared planning or food-safety rules.'}
+        </CardContent>
+      </Card>
+
+      <Card id="workspace-data">
+        <CardHeader>
+          <CardTitle>Choose your workspace data</CardTitle>
+          <CardDescription>
+            {data?.workspaceMode === 'owner_data'
+              ? 'Your owner-data workspace is active. Add your own pantry ingredients and menu items; forecasts will use only sales you record.'
+              : data?.workspaceMode === 'synthetic_demo'
+                ? 'Synthetic sample menu, pantry, sales and waste records are active for demonstration. You can replace them when you are ready to start with your own records.'
+                : 'This workspace starts with clearly labelled synthetic sample data. Keep the demo, or replace it with an empty workspace for your own menu and ingredients.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {data?.workspaceMode !== 'owner_data' && (
+            <div className="flex flex-wrap gap-3">
+              {data?.workspaceMode === 'setup_required' && (
+                <Button type="button" variant="outline" onClick={keepSyntheticDemo} disabled={chooseMode.isPending} data-testid="button-keep-synthetic-demo">
+                  {chooseMode.isPending ? 'Saving…' : 'Keep synthetic demo'}
+                </Button>
+              )}
+              <Button type="button" onClick={startOwnerWorkspace} disabled={chooseMode.isPending} data-testid="button-start-owner-workspace">
+                {chooseMode.isPending ? 'Starting…' : 'Start with my menu and ingredients'}
+              </Button>
+            </div>
+          )}
+          {setupMessage && <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-testid="status-workspace-setup">{setupMessage}</p>}
+          {data?.workspaceMode === 'owner_data' && (
+            <p className="text-sm text-muted-foreground" data-testid="status-owner-workspace">
+              Your records are private to your signed-in workspace. No sample sales or waste history is included.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

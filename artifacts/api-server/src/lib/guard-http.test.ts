@@ -734,3 +734,91 @@ test("HTTP auth: business profile saves per owner without changing operational r
     await new Promise<void>((resolve, reject) => secured.close(error => error ? reject(error) : resolve()));
   }
 });
+
+test("HTTP auth: workspace data choice is owner-scoped and removes only the confirmed demo records", async () => {
+  const app = express();
+  app.use(express.json());
+  app.use("/guard", createOwnerAuth(req => req.get("test-owner") ?? null));
+  app.use(guardRouter, createGuardMenuRouter());
+  const secured = app.listen(0, "127.0.0.1");
+  await new Promise<void>(resolve => secured.once("listening", resolve));
+  const address = secured.address();
+  assert.ok(address && typeof address !== "string");
+  const url = `http://127.0.0.1:${address.port}`;
+  const ownerA = "workspace-setup-a";
+  const ownerB = "workspace-setup-b";
+  const call = async (path: string, owner?: string, body?: unknown, method = "GET") => {
+    const response = await fetch(url + path, {
+      method,
+      headers: { "Content-Type": "application/json", ...(owner ? { "test-owner": owner } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { status: response.status, data: await response.json() as State };
+  };
+
+  try {
+    const initialOwnerA = seed();
+    initialOwnerA.historicalRecords = [{
+      id: "archive-stock",
+      kind: "stock",
+      date: today(),
+      importedAt: new Date().toISOString(),
+      itemName: "Imported cabbage",
+      quantity: 2,
+      unit: "kg",
+    }];
+    resetWorkspace(initialOwnerA, ownerWorkspaceId(ownerA));
+    resetWorkspace(seed(), ownerWorkspaceId(ownerB));
+
+    assert.equal((await call("/guard/workspace/setup", undefined, { mode: "owner_data", confirmReplaceSamples: true }, "POST")).status, 401);
+    const keptDemo = await call("/guard/workspace/setup", ownerA, { mode: "synthetic_demo" }, "POST");
+    assert.equal(keptDemo.status, 200);
+    assert.equal(keptDemo.data.workspaceMode, "synthetic_demo");
+    assert.equal(keptDemo.data.synthetic, true);
+    assert.ok(keptDemo.data.sales.length > 0);
+
+    const unconfirmed = await call("/guard/workspace/setup", ownerA, { mode: "owner_data" }, "POST");
+    assert.equal(unconfirmed.status, 400);
+    assert.ok(snapshotWorkspace(ownerWorkspaceId(ownerA)).sales.length > 0, "unconfirmed replacement leaves the demo unchanged");
+
+    const ownerMode = await call("/guard/workspace/setup", ownerA, { mode: "owner_data", confirmReplaceSamples: true }, "POST");
+    assert.equal(ownerMode.status, 200);
+    assert.equal(ownerMode.data.workspaceMode, "owner_data");
+    assert.equal(ownerMode.data.synthetic, false);
+    assert.deepEqual(ownerMode.data.ingredients, []);
+    assert.deepEqual(ownerMode.data.menu, []);
+    assert.deepEqual(ownerMode.data.sales, []);
+    assert.deepEqual(ownerMode.data.results, []);
+    assert.equal(snapshotWorkspace(ownerWorkspaceId(ownerA)).historicalRecords?.[0]?.itemName, "Imported cabbage");
+    assert.equal((await call("/guard/workspace/setup", ownerA, { mode: "synthetic_demo" }, "POST")).status, 400, "an owner-data workspace cannot silently revert to demo mode");
+
+    const ingredientState = await call("/guard/records", ownerA, {
+      kind: "inventory",
+      rows: [{ name: "Green beans", quantity: 5, unit: "kg", expiry: shift(today(), 5), cost: 4 }],
+    }, "POST");
+    assert.equal(ingredientState.status, 200);
+    const ingredient = ingredientState.data.ingredients.find(item => item.name === "Green beans");
+    assert.ok(ingredient);
+    const menuState = await call("/guard/menu", ownerA, {
+      name: "Green bean bowl",
+      description: "A sample owner-entered dish.",
+      price: 14,
+      cost: 5,
+      recipe: [{ ingredientId: ingredient!.id, amount: 0.2 }],
+    }, "POST");
+    assert.equal(menuState.status, 201);
+    assert.equal(menuState.data.menu.some(item => item.name === "Green bean bowl"), true);
+    assert.equal(menuState.data.forecasts.find(item => item.name === "Green bean bowl")?.confidence, "No sales history");
+    assert.equal(menuState.data.recommendations.some(item => item.type === "preparation" && item.targetId === ingredient!.id), false);
+
+    const ownerBState = await call("/guard/state", ownerB);
+    assert.equal(ownerBState.data.workspaceMode, "setup_required");
+    assert.equal(ownerBState.data.synthetic, true);
+    assert.ok(ownerBState.data.ingredients.some(item => item.name === "Cherry tomatoes"));
+    assert.ok(ownerBState.data.menu.some(item => item.name === "Avocado Toast"));
+    assert.equal(ownerBState.data.ingredients.some(item => item.name === "Green beans"), false);
+    assert.equal(ownerBState.data.menu.some(item => item.name === "Green bean bowl"), false);
+  } finally {
+    await new Promise<void>((resolve, reject) => secured.close(error => error ? reject(error) : resolve()));
+  }
+});

@@ -26,6 +26,7 @@ export type MonitorHeartbeat = {
 };
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
   businessProfile?: State["businessProfile"];
+  workspaceMode?: State["workspaceMode"];
   historicalRecords?: HistoricalRecord[];
   inbox?: import("./guard-inbox").InboxStore;
   notifications?: import("./guard-notifications").NotificationStore;
@@ -82,11 +83,12 @@ export function seed(): Stored {
   const baselineResults = results.filter(r => r.date >= shift(d, -13) && r.date < shift(d, -6));
   const wasteCost = baselineResults.reduce((s, r) => s + r.leftover * menu.find(m => m.id === r.menuId)!.cost, 0);
   const wasteKg = baselineResults.reduce((s, r) => s + r.leftover * menu.find(m => m.id === r.menuId)!.recipe.reduce((a, v) => a + (ingredients.find(i => i.id === v.ingredientId)?.unit === "kg" ? v.amount : 0), 0), 0);
-  return { businessProfile: { name: "Sample Food Business", type: "other" }, ingredients, menu, menuRevision: 0, sales, results, decisions: {}, baseline: { wasteCost, wasteKg }, activity: [{ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Your food-business workspace is ready", detail: "28 days of synthetic sales and waste results loaded. No real orders are placed.", decision: "system", impact: 0 }] };
+  return { businessProfile: { name: "Sample Food Business", type: "other" }, workspaceMode: "setup_required", ingredients, menu, menuRevision: 0, sales, results, decisions: {}, baseline: { wasteCost, wasteKg }, activity: [{ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Your food-business workspace is ready", detail: "28 days of synthetic sales and waste results loaded. No real orders are placed.", decision: "system", impact: 0 }] };
 }
 
 export function compute(s: Stored, d = today()): State {
   const businessProfile = s.businessProfile ?? { name: "Sample Food Business", type: "other" as const };
+  const workspaceMode = s.workspaceMode ?? "setup_required";
   const tomorrow = shift(d, 1);
   const weekday = new Date(`${tomorrow}T00:00Z`).getUTCDay();
   const available = Object.fromEntries(s.ingredients.map(i => [i.id, safeStock(i, tomorrow)]));
@@ -101,11 +103,18 @@ export function compute(s: Stored, d = today()): State {
       ? [...salesByDay.values()].reduce((sum, portions) => sum + portions, 0) / salesByDay.size
       : 0;
     const factor = [0, 6].includes(weekday) ? 1.15 : 0.97;
-    const predicted = Math.max(0, Math.round(avg * factor));
+    const noSalesHistory = workspaceMode === "owner_data" && salesByDay.size === 0;
+    const predicted = noSalesHistory ? 0 : Math.max(0, Math.round(avg * factor));
     const capacity = Math.max(0, Math.floor(Math.min(...m.recipe.map(r => (available[r.ingredientId] ?? 0) / r.amount))));
     const suggested = Math.min(capacity, predicted);
     for (const r of m.recipe) available[r.ingredientId] = Math.max(0, (available[r.ingredientId] ?? 0) - suggested * r.amount);
-    return { menuId: m.id, name: m.name, predicted, capacity, suggested, confidence: salesByDay.size >= 7 ? "High" : "Limited data", reason: `${salesByDay.size}-day mean × ${factor} ${[0, 6].includes(weekday) ? "weekend" : "weekday"} factor. Stock shared across menu items; expired stock excluded. Rules-based estimate, not a guarantee.` };
+    return {
+      menuId: m.id, name: m.name, predicted, capacity, suggested,
+      confidence: noSalesHistory ? "No sales history" : salesByDay.size >= 7 ? "High" : "Limited data",
+      reason: noSalesHistory
+        ? "No actual sales have been recorded for this dish. Add daily sales before using a demand estimate."
+        : `${salesByDay.size}-day mean × ${factor} ${[0, 6].includes(weekday) ? "weekend" : "weekday"} factor. Stock shared across menu items; expired stock excluded. Rules-based estimate, not a guarantee.`,
+    };
   });
   const dailyUse = (id: string) => forecasts.reduce((n, f) => n + f.predicted * (activeMenu.find(m => m.id === f.menuId)?.recipe.find(r => r.ingredientId === id)?.amount ?? 0), 0);
   const risks: State["risks"] = s.ingredients.map(i => {
@@ -128,7 +137,10 @@ export function compute(s: Stored, d = today()): State {
     const decision = s.decisions[r.id];
     recommendations.push({ ...r, ...(decision ? { original: decision.original, savings: decision.savings } : {}), status: decision?.decision ?? "pending", approvedQuantity: decision?.quantity ?? null });
   };
-  for (const f of forecasts) add({ id: `${tomorrow}:prep:${f.menuId}${revisionKey}`, type: "preparation", targetId: f.menuId, title: `Prepare ${f.suggested} ${f.name}`, description: f.reason, original: f.predicted, suggested: f.suggested, unit: "portions", savings: 0 });
+  for (const f of forecasts) {
+    if (f.confidence === "No sales history") continue;
+    add({ id: `${tomorrow}:prep:${f.menuId}${revisionKey}`, type: "preparation", targetId: f.menuId, title: `Prepare ${f.suggested} ${f.name}`, description: f.reason, original: f.predicted, suggested: f.suggested, unit: "portions", savings: 0 });
+  }
   for (const i of s.ingredients) {
     const daily = dailyUse(i.id);
     const leadDays = Math.max(1, daysBetween(d, i.deliveryDate));
@@ -167,5 +179,5 @@ export function compute(s: Stored, d = today()): State {
   });
   const menu = s.menu.map(m => ({ ...m, description: m.description ?? "", archivedAt: m.archivedAt ?? null }));
   const activity = s.activity.map(event => event.title === "Your café workspace is ready" ? { ...event, title: "Your food-business workspace is ready" } : event);
-  return { today: d, tomorrow, cafeName: businessProfile.name, businessProfile, synthetic: true, ingredients: s.ingredients.map(i => ({ ...i, photoPath: i.photoPath ?? null })), sales: s.sales, results: s.results, menu, forecasts, risks, recommendations, activity, followUps: s.followUps ?? [], approvedRecommendations, automation: s.automation ?? { dailyPlanning: true, followUpHandling: true, runs: [] }, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
+  return { today: d, tomorrow, cafeName: businessProfile.name, businessProfile, workspaceMode, synthetic: workspaceMode !== "owner_data", ingredients: s.ingredients.map(i => ({ ...i, photoPath: i.photoPath ?? null })), sales: s.sales, results: s.results, menu, forecasts, risks, recommendations, activity, followUps: s.followUps ?? [], approvedRecommendations, automation: s.automation ?? { dailyPlanning: true, followUpHandling: true, runs: [] }, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
 }

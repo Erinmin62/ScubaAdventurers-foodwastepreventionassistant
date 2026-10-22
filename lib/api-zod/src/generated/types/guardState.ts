@@ -10,6 +10,7 @@ import type { AutomationState } from './automationState';
 import type { BusinessProfile } from './businessProfile';
 import type { FollowUp } from './followUp';
 import type { Forecast } from './forecast';
+import type { GuardStateWorkspaceMode } from './guardStateWorkspaceMode';
 import type { Ingredient } from './ingredient';
 import type { MenuItem } from './menuItem';
 import type { Recommendation } from './recommendation';
@@ -27,6 +28,7 @@ export interface GuardState {
      */
   cafeName: string;
   businessProfile: BusinessProfile;
+  workspaceMode: GuardStateWorkspaceMode;
   synthetic: boolean;
   automation: AutomationState;
   ingredients: Ingredient[];

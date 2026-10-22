@@ -61,17 +61,24 @@ export function Shell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="hidden md:block mt-auto m-3 rounded-xl border border-sidebar-border p-3 text-[11px] leading-snug text-sidebar-foreground/70">
-          <div className="font-semibold text-sidebar-primary uppercase tracking-wider mb-1">Synthetic demo</div>
-          Private workspace with sample data. Figures are estimates. Nothing is ever ordered automatically.
+          <div className="font-semibold text-sidebar-primary uppercase tracking-wider mb-1">{data?.synthetic ? 'Synthetic demo' : 'Owner data workspace'}</div>
+          {data?.synthetic
+            ? 'Private workspace with sample data. Figures are estimates. Nothing is ever ordered automatically.'
+            : 'Uses the menu, pantry and sales you enter. No sample sales history; nothing is ordered automatically.'}
         </div>
       </aside>
       <div className="flex-1 md:ml-60 min-w-0">
         <InboxSync />
-        <div className="sticky top-0 z-10 bg-amber/20 backdrop-blur border-b border-amber/30 px-4 md:px-8 py-1.5 text-xs flex flex-wrap items-center gap-x-4 gap-y-1 justify-between" data-testid="text-synthetic-banner">
+        <div className={cn(
+          'sticky top-0 z-10 backdrop-blur border-b px-4 md:px-8 py-1.5 text-xs flex flex-wrap items-center gap-x-4 gap-y-1 justify-between',
+          data?.synthetic ? 'bg-amber/20 border-amber/30' : 'bg-card/90 border-border',
+        )} data-testid={data?.synthetic ? 'text-synthetic-banner' : 'text-owner-data-banner'}>
           <span>
-            <b>Synthetic data demo</b>
+            <b>{data?.synthetic ? 'Synthetic data demo' : 'Owner data workspace'}</b>
             {data && <> · {data.businessProfile.name} · {businessTypeLabel(data.businessProfile.type)}</>}
-            {' '}— all sales, stock and savings are generated estimates for illustration.
+            {' '}— {data?.synthetic
+              ? 'sales, stock and savings are generated estimates for illustration.'
+              : 'sales and stock come from records you enter; forecasts use only recorded sales.'}
           </span>
           <span className="flex items-center gap-3">
             {data && <span className="num text-muted-foreground">Today {niceDate(data.today)} · Planning {niceDate(data.tomorrow)}</span>}
