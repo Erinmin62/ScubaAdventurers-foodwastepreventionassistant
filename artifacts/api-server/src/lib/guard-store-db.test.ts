@@ -2,8 +2,8 @@ import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
-import { pool } from "@workspace/db";
-import { appendHistoricalRecords, readWorkspace, removeHistoricalBatch } from "./guard-store";
+import { pool, type DatabaseClient } from "@workspace/db";
+import { appendHistoricalRecords, changeWorkspace, readWorkspace, removeHistoricalBatch } from "./guard-store";
 import { seed, shift, today, type Stored } from "./guard-model";
 import { historicalArchive } from "./guard-history";
 import { inWorkspace, ownerWorkspaceId } from "./workspace-context";
@@ -12,6 +12,27 @@ if (process.env.REPLIT_DEPLOYMENT || process.env.NODE_ENV === "production") {
   throw new Error("Workspace database tests are restricted to development.");
 }
 after(async () => { await pool.end(); });
+
+async function waitForBlockedWriters(observer: DatabaseClient, pid: number, count: number) {
+  // A queued writer can block another writer, so follow the entire lock chain.
+  const deadline = Date.now() + 5_000;
+  let waiting = 0;
+  do {
+    const result = await observer.query(`
+      WITH RECURSIVE blocked(pid) AS (
+        SELECT $1::int
+        UNION
+        SELECT activity.pid FROM pg_stat_activity activity
+        JOIN blocked parent ON parent.pid = ANY(pg_blocking_pids(activity.pid))
+      )
+      SELECT count(*)::int AS count FROM blocked WHERE pid <> $1::int
+    `, [pid]);
+    waiting = result.rows[0].count;
+    if (waiting >= count) break;
+    await delay(20);
+  } while (Date.now() < deadline);
+  assert.equal(waiting, count, `${count} writers must overlap on separate PostgreSQL connections`);
+}
 
 test("PostgreSQL: simultaneous history imports retain both batches after reload and stay private to their owner", { timeout: 20_000 }, async () => {
   const owner = ownerWorkspaceId(`history-db-test-${randomUUID()}`);
@@ -38,23 +59,7 @@ test("PostgreSQL: simultaneous history imports retain both batches after reload 
     // Follow the lock chain: the second writer may queue behind the first writer
     // rather than directly behind our blocker. Do not rely on scheduling or sleeps
     // alone to establish that both real database transactions are in flight.
-    const deadline = Date.now() + 5_000;
-    let waiting = 0;
-    do {
-      const result = await observer.query(`
-        WITH RECURSIVE blocked(pid) AS (
-          SELECT $1::int
-          UNION
-          SELECT activity.pid FROM pg_stat_activity activity
-          JOIN blocked parent ON parent.pid = ANY(pg_blocking_pids(activity.pid))
-        )
-        SELECT count(*)::int AS count FROM blocked WHERE pid <> $1::int
-      `, [pid]);
-      waiting = result.rows[0].count;
-      if (waiting >= 2) break;
-      await delay(20);
-    } while (Date.now() < deadline);
-    assert.equal(waiting, 2, "both imports must overlap on separate PostgreSQL connections");
+    await waitForBlockedWriters(observer, pid, 2);
     await blocker.query("COMMIT");
     await settled;
     const [first, second] = await Promise.all(imports);
@@ -97,3 +102,97 @@ test("PostgreSQL: simultaneous history imports retain both batches after reload 
     observer.release();
   }
 });
+
+for (const firstWriter of ["inventory", "archive"] as const) {
+  test(`PostgreSQL: inventory edit and archive import both survive reload (${firstWriter} queued first)`,
+    { timeout: 20_000 }, async () => {
+      const owner = ownerWorkspaceId(`history-stock-db-test-${randomUUID()}`);
+      const original = seed();
+      const date = today();
+      // Keep an existing archive row as well as both newly imported rows.
+      original.historicalRecords = [{
+        id: randomUUID(), batchId: randomUUID(), fileName: "existing.csv",
+        importedAt: new Date().toISOString(), kind: "stock",
+        date: shift(date, -3), itemName: "Existing flour", quantity: 2, unit: "kg",
+      }];
+      const blocker = await pool.connect();
+      const observer = await pool.connect();
+      const writes: Promise<unknown>[] = [];
+      let importPromise: ReturnType<typeof appendHistoricalRecords> | undefined;
+      try {
+        await observer.query("INSERT INTO guard_workspace (id, data) VALUES ($1, $2::jsonb)",
+          [owner, JSON.stringify(original)]);
+        // Initialize normal migrations/inbox state before taking the baseline.
+        await inWorkspace(owner, () => changeWorkspace(() => {}, false));
+        const baseline = await inWorkspace(owner, readWorkspace);
+        assert.ok(baseline);
+        const expected = structuredClone(baseline);
+        const ingredient = expected.ingredients.find(item => item.id === "tomato");
+        assert.ok(ingredient);
+        Object.assign(ingredient, {
+          quantity: 17.25, cost: 19.5, expiry: shift(date, 5),
+          deliveryQuantity: 9, deliveryDate: shift(date, 4),
+          measuredDate: date,
+          batches: [{ id: randomUUID(), quantity: 17.25, expiry: shift(date, 5), receivedDate: date }],
+        });
+        const rows = [
+          { kind: "stock" as const, date: shift(date, -2), itemName: ingredient.name, quantity: 99, unit: "kg" as const },
+          { kind: "sales" as const, date: shift(date, -1), menuId: "avo-toast", menuName: "Avocado Toast", quantity: 43, unit: "portions" as const },
+        ];
+        await blocker.query("BEGIN");
+        await blocker.query("SELECT id FROM guard_workspace WHERE id = $1 FOR UPDATE", [owner]);
+        const { rows: [{ pid }] } = await blocker.query("SELECT pg_backend_pid() AS pid");
+
+        const startWriter = (writer: typeof firstWriter) => {
+          const promise = writer === "inventory"
+            ? inWorkspace(owner, () => changeWorkspace(stored => {
+              const target = stored.ingredients.find(item => item.id === ingredient.id);
+              assert.ok(target);
+              Object.assign(target, ingredient);
+            }, false))
+            : (importPromise = inWorkspace(owner, () => appendHistoricalRecords(rows, "racing-stock.csv")));
+          writes.push(promise);
+          // Observe rejections immediately, even if a lock assertion later fails.
+          void promise.catch(() => {});
+        };
+        startWriter(firstWriter);
+        await waitForBlockedWriters(observer, pid, 1);
+        startWriter(firstWriter === "inventory" ? "archive" : "inventory");
+        await waitForBlockedWriters(observer, pid, 2);
+        await blocker.query("COMMIT");
+        await Promise.all(writes);
+        assert.ok(importPromise);
+        const added = await importPromise;
+        assert.equal(added.length, rows.length);
+        assert.ok(added[0]!.batchId);
+        assert.ok(added.every(row => row.batchId === added[0]!.batchId && row.fileName === "racing-stock.csv"));
+        assert.deepEqual(added.map(({ id, importedAt, batchId, fileName, ...row }) => row), rows);
+
+        // These reads do not reuse either mutation's returned state.
+        const reloaded = await inWorkspace(owner, readWorkspace);
+        assert.ok(reloaded);
+        const persisted = (await observer.query("SELECT data FROM guard_workspace WHERE id = $1", [owner])).rows[0].data as Stored;
+        assert.deepEqual(reloaded, persisted, "store reload must agree with an independent PostgreSQL connection");
+        assert.deepEqual(persisted.historicalRecords, [...baseline.historicalRecords!, ...added],
+          "existing history and the complete imported batch must survive the inventory edit");
+        assert.equal(new Set(persisted.historicalRecords!.map(row => row.id)).size, 3);
+        // Inbox/notification scans are legitimate changeWorkspace side effects,
+        // but no operational field may revert or change because of the import.
+        const operational = ({ historicalRecords, inbox, notifications, ...rest }: Stored) => rest;
+        assert.deepEqual(operational(persisted), operational(expected),
+          "all edited stock values and unrelated operational data must survive the archive import");
+      } finally {
+        // Release the lock before draining pending work, including on failure.
+        try {
+          await blocker.query("ROLLBACK");
+          await Promise.allSettled(writes);
+          await observer.query("DELETE FROM guard_workspace WHERE id = $1", [owner]);
+          const remaining = await observer.query("SELECT id FROM guard_workspace WHERE id = $1", [owner]);
+          assert.equal(remaining.rowCount, 0, "temporary workspace must be removed");
+        } finally {
+          blocker.release();
+          observer.release();
+        }
+      }
+    });
+}
