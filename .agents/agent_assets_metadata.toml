@@ -7,3 +7,9 @@ uri = "file://.local/outputs/ExpiryGuardAI-Project-Deck.pptx"
 type = "slides"
 title = "ExpiryGuardAI Project Deck.pptx"
 logical_id = "8c5445e1-9e76-4616-ac88-8fc6dc477ac7"
+
+[[outputs]]
+id = "czF6OHxTbUxFWXJ50V4J4"
+uri = "file://.local/outputs/ExpiryGuardAI-Website-Walkthrough.pptx"
+type = "slides"
+title = "ExpiryGuardAI Website Walkthrough.pptx"
