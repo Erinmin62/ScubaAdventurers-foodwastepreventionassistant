@@ -50,6 +50,23 @@ paths:
               schema: { $ref: "#/components/schemas/GuardState" }
         "400": { description: "Invalid, missing, or oversized photo" }
         "401": { description: Sign-in required }
+  /storage/ingredients/{ingredientId}/photo:
+    delete:
+      operationId: removeIngredientPhoto
+      summary: Remove the custom photo from an owner ingredient
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 160 }
+      responses:
+        "200":
+          description: Owner workspace with the bundled ingredient image restored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "401": { description: Sign-in required }
+        "404": { description: Ingredient not found in this owner's workspace }
   /storage/objects/{objectKey}:
     get:
       operationId: getIngredientPhoto

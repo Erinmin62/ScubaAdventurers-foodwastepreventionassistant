@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 const STORAGE_SIDECAR = "http://127.0.0.1:1106";
 const PRIVATE_OBJECT_PREFIX = "ingredient-photos";
 
-export type PhotoHttpMethod = "PUT" | "GET" | "HEAD";
+export type PhotoHttpMethod = "PUT" | "GET" | "HEAD" | "DELETE";
 
 function ingredientPhotoOwnerPrefix(ownerId: string, ingredientId: string): string {
   return createHash("sha256").update(`${ownerId}\0${ingredientId}`).digest("hex");
@@ -70,4 +70,13 @@ export async function inspectIngredientPhoto(objectKey: string) {
     size: Number(response.headers.get("content-length") ?? 0),
     contentType: (response.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase(),
   };
+}
+
+export async function deleteIngredientPhoto(objectKey: string): Promise<void> {
+  const url = await signIngredientPhotoUrl(objectKey, "DELETE");
+  const response = await fetch(url, { method: "DELETE", signal: AbortSignal.timeout(30_000) });
+  // Treat an already-missing object as cleaned up; it cannot be restored by retrying.
+  if (!response.ok && response.status !== 404) {
+    throw new Error("Could not delete the private ingredient photo.");
+  }
 }

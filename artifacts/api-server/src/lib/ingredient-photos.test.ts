@@ -3,15 +3,18 @@ import { after, test } from "node:test";
 import express from "express";
 import { createOwnerAuth } from "../middlewares/owner-auth";
 import { createIngredientPhotoRouter } from "../routes/ingredient-photos";
+import { ingredientPhotoObjectKey } from "./ingredient-photo-storage";
 import { seed } from "./guard-model";
-import { resetWorkspace, snapshotWorkspace } from "./guard-http-fixture";
+import { failNextWorkspaceChange, resetWorkspace, snapshotWorkspace } from "./guard-http-fixture";
 import { ownerWorkspaceId } from "./workspace-context";
 
 const ownerA = "photo-owner-a";
 const ownerB = "photo-owner-b";
 const ingredientId = "custom-photo-ingredient";
 let inspection = { exists: true, size: 1024, contentType: "image/jpeg" };
+let failPhotoCleanup = false;
 const signedCalls: { key: string; method: string }[] = [];
+const removedKeys: string[] = [];
 const sign = async (key: string, method: "PUT" | "GET" | "HEAD") => {
   signedCalls.push({ key, method });
   return `https://storage.example/${key}?method=${method}`;
@@ -26,6 +29,10 @@ app.use(
     identity: req => req.get("test-owner") ?? null,
     sign,
     inspect: async () => inspection,
+    remove: async key => {
+      if (failPhotoCleanup) throw new Error("Storage unavailable");
+      removedKeys.push(key);
+    },
   }),
 );
 const server = app.listen(0, "127.0.0.1");
@@ -62,7 +69,9 @@ test("ingredient photos validate, persist, and are only served to their owner", 
   addOwnerFixture(ownerA);
   addOwnerFixture(ownerB);
   inspection = { exists: true, size: 1024, contentType: "image/jpeg" };
+  failPhotoCleanup = false;
   signedCalls.length = 0;
+  removedKeys.length = 0;
 
   assert.equal((await call("/storage/uploads/request-url", undefined, {
     ingredientId, name: "dragon-fruit.jpg", size: 1024, contentType: "image/jpeg",
@@ -102,13 +111,17 @@ test("ingredient photos validate, persist, and are only served to their owner", 
   assert.equal((await call("/storage/uploads/confirm", ownerA, { ingredientId, objectKey: replacementKey })).status, 400);
   assert.equal(snapshotWorkspace(ownerWorkspaceId(ownerA)).ingredients[0]!.photoPath, objectKey);
   inspection = { exists: true, size: 1024, contentType: "image/jpeg" };
+  assert.equal((await call("/storage/uploads/confirm", ownerA, { ingredientId, objectKey: replacementKey })).status, 200);
+  assert.equal(snapshotWorkspace(ownerWorkspaceId(ownerA)).ingredients[0]!.photoPath, replacementKey);
+  assert.deepEqual(removedKeys, [objectKey]);
 
-  const privatePhoto = await call(`/storage/objects/${objectKey}`, ownerA);
+  const privatePhoto = await call(`/storage/objects/${replacementKey}`, ownerA);
   assert.equal(privatePhoto.status, 302);
   assert.equal(privatePhoto.headers.get("cache-control"), "private, no-store");
   assert.match(privatePhoto.headers.get("location") ?? "", /\?method=GET$/);
   assert.equal(signedCalls.at(-1)?.method, "GET");
-  assert.equal((await call(`/storage/objects/${objectKey}`, ownerB)).status, 404);
+  assert.equal((await call(`/storage/objects/${replacementKey}`, ownerB)).status, 404);
+  assert.equal((await call(`/storage/objects/${objectKey}`, ownerA)).status, 404);
   assert.equal((await call(`/storage/objects/${objectKey}`)).status, 401);
 });
 
@@ -124,4 +137,55 @@ test("ingredient photo confirmation rejects files that are too large or not imag
   inspection = { exists: true, size: 1024, contentType: "text/html" };
   assert.equal((await call("/storage/uploads/confirm", ownerA, { ingredientId, objectKey })).status, 400);
   assert.equal(snapshotWorkspace(ownerWorkspaceId(ownerA)).ingredients[0]!.photoPath, undefined);
+});
+
+test("photo removal restores the default image and only cleans the owner's referenced object", async () => {
+  addOwnerFixture(ownerA);
+  addOwnerFixture(ownerB);
+  failPhotoCleanup = false;
+  removedKeys.length = 0;
+  const objectKey = ingredientPhotoObjectKey(ownerA, ingredientId);
+  const ownerState = snapshotWorkspace(ownerWorkspaceId(ownerA));
+  ownerState.ingredients[0]!.photoPath = objectKey;
+  resetWorkspace(ownerState, ownerWorkspaceId(ownerA));
+
+  assert.equal((await call(`/storage/ingredients/${ingredientId}/photo`, undefined, undefined, "DELETE")).status, 401);
+  assert.equal((await call("/storage/ingredients/missing/photo", ownerA, undefined, "DELETE")).status, 404);
+  assert.equal((await call(`/storage/ingredients/${ingredientId}/photo`, ownerB, undefined, "DELETE")).status, 200);
+  assert.deepEqual(removedKeys, []);
+
+  const removed = await call(`/storage/ingredients/${ingredientId}/photo`, ownerA, undefined, "DELETE");
+  assert.equal(removed.status, 200);
+  assert.equal(snapshotWorkspace(ownerWorkspaceId(ownerA)).ingredients[0]!.photoPath, undefined);
+  assert.deepEqual(removedKeys, [objectKey]);
+  assert.equal((await call(`/storage/objects/${objectKey}`, ownerA)).status, 404);
+});
+
+test("photo removal succeeds when storage cleanup fails after the workspace update", async () => {
+  addOwnerFixture(ownerA);
+  const objectKey = ingredientPhotoObjectKey(ownerA, ingredientId);
+  const ownerState = snapshotWorkspace(ownerWorkspaceId(ownerA));
+  ownerState.ingredients[0]!.photoPath = objectKey;
+  resetWorkspace(ownerState, ownerWorkspaceId(ownerA));
+  failPhotoCleanup = true;
+
+  const removed = await call(`/storage/ingredients/${ingredientId}/photo`, ownerA, undefined, "DELETE");
+  assert.equal(removed.status, 200);
+  assert.equal(snapshotWorkspace(ownerWorkspaceId(ownerA)).ingredients[0]!.photoPath, undefined);
+  failPhotoCleanup = false;
+});
+
+test("failed workspace persistence leaves the current photo intact and skips storage cleanup", async () => {
+  addOwnerFixture(ownerA);
+  const objectKey = ingredientPhotoObjectKey(ownerA, ingredientId);
+  const ownerState = snapshotWorkspace(ownerWorkspaceId(ownerA));
+  ownerState.ingredients[0]!.photoPath = objectKey;
+  resetWorkspace(ownerState, ownerWorkspaceId(ownerA));
+  removedKeys.length = 0;
+  failNextWorkspaceChange();
+
+  const removed = await call(`/storage/ingredients/${ingredientId}/photo`, ownerA, undefined, "DELETE");
+  assert.equal(removed.status, 503);
+  assert.equal(snapshotWorkspace(ownerWorkspaceId(ownerA)).ingredients[0]!.photoPath, objectKey);
+  assert.deepEqual(removedKeys, []);
 });

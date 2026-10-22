@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FocusBanner, useFocusItem, useScrollHighlight } from '@/components/focus-target';
 import { Pencil, Plus, Search, Upload } from 'lucide-react';
-import type { Ingredient } from '@workspace/api-client-react';
+import { useRemoveIngredientPhoto, type Ingredient } from '@workspace/api-client-react';
 import { CsvImport, EmptyState, ErrorState, LevelPill, LoadingState, PageHeader, Panel, type ImportSpec } from '@/components/bits';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +50,7 @@ type FormState = { id?: string; name: string; quantity: string; unit: string; ex
 export default function Inventory() {
   const { data, isLoading, error, refetch } = useGuard();
   const { add } = useGuardMutations();
+  const removePhoto = useRemoveIngredientPhoto();
   const { toast } = useToast();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('All');
@@ -59,6 +60,7 @@ export default function Inventory() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState('');
   const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoRemoving, setPhotoRemoving] = useState(false);
   const photoPreview = useMemo(() => photoFile ? URL.createObjectURL(photoFile) : null, [photoFile]);
   useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
@@ -136,6 +138,24 @@ export default function Inventory() {
       onError: (e) => toast({ title: 'Not saved', description: errorMessage(e), variant: 'destructive' }),
     });
   };
+  const removeIngredientPhoto = async () => {
+    if (!form?.id || !form.photoPath || photoRemoving || photoFile) return;
+    const ingredientId = form.id;
+    setPhotoRemoving(true);
+    try {
+      const updated = await removePhoto.mutateAsync({ ingredientId });
+      const ingredient = updated.ingredients.find(item => item.id === ingredientId);
+      setForm(current => current?.id === ingredientId
+        ? { ...current, photoPath: ingredient?.photoPath ?? null }
+        : current);
+      await refetch();
+      toast({ title: 'Custom photo removed', description: 'The bundled ingredient image is restored.' });
+    } catch (e) {
+      toast({ title: 'Photo not removed', description: errorMessage(e), variant: 'destructive' });
+    } finally {
+      setPhotoRemoving(false);
+    }
+  };
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => (f ? { ...f, [k]: e.target.value } : f));
 
   return (
@@ -184,7 +204,7 @@ export default function Inventory() {
         )}
       </Panel>
 
-      <Dialog open={!!form} onOpenChange={(o) => { if (!o) { setForm(null); setPhotoFile(null); setPhotoError(''); } }}>
+      <Dialog open={!!form} onOpenChange={(o) => { if (!o && !photoRemoving) { setForm(null); setPhotoFile(null); setPhotoError(''); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{form?.id ? 'Edit ingredient' : 'Add ingredient'}</DialogTitle></DialogHeader>
           {form && (
@@ -197,7 +217,7 @@ export default function Inventory() {
                     ? <img src={photoPreview} alt={`Selected photo for ${form.name || 'ingredient'}`} className="h-16 w-16 rounded-lg object-cover" />
                     : <IngredientPhoto id={form.id} name={form.name || 'Ingredient'} photoPath={form.photoPath} className="h-16 w-16 rounded-lg" />}
                   <div className="min-w-0 flex-1">
-                    <Input id="ingredient-photo" type="file" accept="image/jpeg,image/png,image/webp" className="min-h-10 cursor-pointer text-xs file:mr-2 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs file:font-semibold" data-testid="input-ingredient-photo" onChange={async e => {
+                    <Input id="ingredient-photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={photoRemoving} className="min-h-10 cursor-pointer text-xs file:mr-2 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs file:font-semibold" data-testid="input-ingredient-photo" onChange={async e => {
                       const file = e.target.files?.[0] ?? null;
                       setPhotoError('');
                       if (!file) { setPhotoFile(null); return; }
@@ -218,6 +238,11 @@ export default function Inventory() {
                       }
                     }} />
                     <p className="mt-1 text-[11px] text-muted-foreground">JPEG, PNG or WebP · max 5 MB · only visible to your account</p>
+                    {form.id && form.photoPath && !photoFile && (
+                      <Button type="button" variant="link" size="sm" className="mt-1 min-h-8 px-0" disabled={photoRemoving || photoSaving} onClick={removeIngredientPhoto} data-testid="button-remove-ingredient-photo">
+                        {photoRemoving ? 'Restoring default image…' : 'Remove custom photo'}
+                      </Button>
+                    )}
                   </div>
                 </div>
                 {photoError && <p role="alert" className="mt-2 text-xs text-destructive">{photoError}</p>}
@@ -231,7 +256,7 @@ export default function Inventory() {
               <div><Label>Delivery quantity</Label><Input type="number" min={0} value={form.deliveryQuantity} onChange={set('deliveryQuantity')} data-testid="input-delivery-qty" /></div>
               <div><Label>Delivery date</Label><Input type="date" value={form.deliveryDate} onChange={set('deliveryDate')} data-testid="input-delivery-date" /></div>
               {formErr && <div className="col-span-2 text-xs text-destructive">{formErr}</div>}
-              <Button className="col-span-2" disabled={!!formErr || !!photoError || add.isPending || photoSaving} onClick={save} data-testid="button-save-ingredient">{add.isPending ? 'Saving...' : photoSaving ? 'Uploading photo...' : 'Save ingredient'}</Button>
+              <Button className="col-span-2" disabled={!!formErr || !!photoError || add.isPending || photoSaving || photoRemoving} onClick={save} data-testid="button-save-ingredient">{add.isPending ? 'Saving...' : photoSaving ? 'Uploading photo...' : 'Save ingredient'}</Button>
             </div>
           )}
         </DialogContent>

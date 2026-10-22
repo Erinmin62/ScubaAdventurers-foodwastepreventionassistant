@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request } from "express";
 import { getAuth } from "@clerk/express";
 import {
   ConfirmIngredientPhotoUploadBody,
+  RemoveIngredientPhotoParams,
   RequestIngredientPhotoUploadBody,
   RequestIngredientPhotoUploadResponse,
 } from "@workspace/api-zod";
@@ -10,6 +11,7 @@ import {
   ingredientPhotoObjectKey,
   isIngredientPhotoObjectKeyForOwner,
   inspectIngredientPhoto,
+  deleteIngredientPhoto,
   signIngredientPhotoUrl,
   type PhotoHttpMethod,
 } from "../lib/ingredient-photo-storage";
@@ -22,16 +24,37 @@ type Dependencies = {
   identity: (req: Request) => string | null;
   sign: (key: string, method: PhotoHttpMethod) => Promise<string>;
   inspect: (key: string) => Promise<PhotoInspection>;
+  remove: (key: string) => Promise<void>;
 };
 
 const defaultDependencies: Dependencies = {
   identity: req => getAuth(req).userId,
   sign: signIngredientPhotoUrl,
   inspect: inspectIngredientPhoto,
+  remove: deleteIngredientPhoto,
 };
 
 export function createIngredientPhotoRouter(dependencies = defaultDependencies): IRouter {
   const router: IRouter = Router();
+
+  const removeIfUnreferenced = async (
+    req: Request,
+    ownerId: string,
+    ingredientId: string,
+    objectKey: string,
+  ): Promise<void> => {
+    if (!isIngredientPhotoObjectKeyForOwner(objectKey, ownerId, ingredientId)) return;
+    try {
+      const workspace = await readWorkspace();
+      // Do not delete when state cannot be checked, or another ingredient still references it.
+      if (!workspace || workspace.ingredients.some(ingredient => ingredient.photoPath === objectKey)) return;
+      await dependencies.remove(objectKey);
+    } catch (error) {
+      // The database already points at the valid new/default image. A cleanup failure
+      // leaves an orphan but must not turn a successful image change into a failure.
+      req.log?.warn({ err: error, ingredientId }, "Could not clean up an old ingredient photo");
+    }
+  };
 
   router.post("/uploads/request-url", async (req, res): Promise<void> => {
     const ownerId = dependencies.identity(req);
@@ -82,14 +105,56 @@ export function createIngredientPhotoRouter(dependencies = defaultDependencies):
         res.status(400).json({ error: "Upload a valid JPEG, PNG, or WebP image smaller than 5 MB." });
         return;
       }
-      res.json(await changeWorkspace(state => {
+      let previousPhotoKey: string | undefined;
+      const state = await changeWorkspace(state => {
         const ingredient = state.ingredients.find(item => item.id === ingredientId);
         if (!ingredient) throw new Error("Ingredient no longer exists.");
+        if (typeof ingredient.photoPath === "string" &&
+          isIngredientPhotoObjectKeyForOwner(ingredient.photoPath, ownerId, ingredientId)) {
+          previousPhotoKey = ingredient.photoPath;
+        }
         ingredient.photoPath = objectKey;
-      }));
+      });
+      if (previousPhotoKey && previousPhotoKey !== objectKey) {
+        await removeIfUnreferenced(req, ownerId, ingredientId, previousPhotoKey);
+      }
+      res.json(state);
     } catch (error) {
       req.log?.error({ err: error }, "Could not confirm ingredient photo");
       res.status(503).json({ error: "Could not save the photo. Try again." });
+    }
+  });
+
+  router.delete("/ingredients/:ingredientId/photo", async (req, res): Promise<void> => {
+    const ownerId = dependencies.identity(req);
+    if (!ownerId) { res.status(401).json({ error: "Sign in to remove ingredient photos." }); return; }
+    const parsed = RemoveIngredientPhotoParams.safeParse(req.params);
+    if (!parsed.success) { res.status(400).json({ error: "The ingredient reference is invalid." }); return; }
+    const { ingredientId } = parsed.data;
+    const workspace = await readWorkspace();
+    if (!workspace?.ingredients.some(ingredient => ingredient.id === ingredientId)) {
+      res.status(404).json({ error: "Ingredient not found in your café workspace." });
+      return;
+    }
+
+    let previousPhotoKey: string | undefined;
+    try {
+      const state = await changeWorkspace(stored => {
+        const ingredient = stored.ingredients.find(item => item.id === ingredientId);
+        if (!ingredient) throw new Error("Ingredient no longer exists.");
+        if (typeof ingredient.photoPath === "string" &&
+          isIngredientPhotoObjectKeyForOwner(ingredient.photoPath, ownerId, ingredientId)) {
+          previousPhotoKey = ingredient.photoPath;
+        }
+        delete ingredient.photoPath;
+      });
+      if (previousPhotoKey) {
+        await removeIfUnreferenced(req, ownerId, ingredientId, previousPhotoKey);
+      }
+      res.json(state);
+    } catch (error) {
+      req.log?.error({ err: error, ingredientId }, "Could not remove ingredient photo");
+      res.status(503).json({ error: "Could not remove the photo. Try again." });
     }
   });
 

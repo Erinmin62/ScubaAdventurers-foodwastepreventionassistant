@@ -250,6 +250,80 @@ export const useConfirmIngredientPhotoUpload = <TError = ErrorType<void>,
       return useMutation(getConfirmIngredientPhotoUploadMutationOptions(options));
     }
 
+export const getRemoveIngredientPhotoUrl = (ingredientId: string,) => {
+
+
+
+
+  return `/api/storage/ingredients/${ingredientId}/photo`
+}
+
+/**
+ * @summary Remove the custom photo from an owner ingredient
+ */
+export const removeIngredientPhoto = async (ingredientId: string, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+  return customFetch<GuardState>(getRemoveIngredientPhotoUrl(ingredientId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveIngredientPhotoMutationKey = () => ['removeIngredientPhoto'] as const;
+
+export const getRemoveIngredientPhotoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeIngredientPhoto>>, TError,RemoveIngredientPhotoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeIngredientPhoto>>, TError,RemoveIngredientPhotoMutationVariables, TContext> => {
+
+const mutationKey = getRemoveIngredientPhotoMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeIngredientPhoto>>, RemoveIngredientPhotoMutationVariables> = (props) => {
+          const {ingredientId} = props ?? {};
+
+          return  removeIngredientPhoto(ingredientId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveIngredientPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof removeIngredientPhoto>>>
+
+    export type RemoveIngredientPhotoMutationError = ErrorType<void>
+    export type RemoveIngredientPhotoMutationVariables = {ingredientId: string}
+
+    /**
+ * @summary Remove the custom photo from an owner ingredient
+ */
+export const useRemoveIngredientPhoto = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeIngredientPhoto>>, TError,RemoveIngredientPhotoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeIngredientPhoto>>,
+        TError,
+        RemoveIngredientPhotoMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveIngredientPhotoMutationOptions(options));
+    }
+
 export const getGetIngredientPhotoUrl = (objectKey: string,) => {
 
 

@@ -15,9 +15,13 @@ function workspace() {
   catch { return "demo"; } // Existing pure route tests deliberately omit auth.
 }
 let tail: Promise<unknown> = Promise.resolve();
+let nextWorkspaceChangeError: Error | null = null;
 export function resetWorkspace(state: Stored, id = workspace()) { saved.set(id, structuredClone(state)); }
 export function snapshotWorkspace(id = workspace()) { return structuredClone(saved.get(id) ?? seed()); }
 export function readWorkspace() { return snapshotWorkspace(); }
+export function failNextWorkspaceChange(error = new Error("Simulated workspace persistence failure.")) {
+  nextWorkspaceChangeError = error;
+}
 export function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun = true) {
   const id = workspace();
   const work = tail.then(() => {
@@ -28,6 +32,11 @@ export function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun 
     scanNotificationEvents(staged);
     syncInbox(staged);
     const response = GetGuardStateResponse.parse(compute(staged));
+    if (nextWorkspaceChangeError) {
+      const error = nextWorkspaceChangeError;
+      nextWorkspaceChangeError = null;
+      throw error;
+    }
     saved.set(id, staged);
     return response;
   });
