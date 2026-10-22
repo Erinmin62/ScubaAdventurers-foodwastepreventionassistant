@@ -3999,11 +3999,18 @@ export const PreviewMenuImportBody = zod.object({
   "csv": zod.string().min(1).max(previewMenuImportBodyCsvMax)
 })
 
+export const previewMenuImportResponseMenuRevisionMin = 0;
+
+
+
 export const PreviewMenuImportResponse = zod.object({
   "valid": zod.boolean(),
+  "menuRevision": zod.number().int().min(previewMenuImportResponseMenuRevisionMin),
   "dishCount": zod.number().int(),
   "dishes": zod.array(zod.object({
   "name": zod.string(),
+  "description": zod.string(),
+  "action": zod.enum(['add', 'update']),
   "price": zod.number(),
   "cost": zod.number(),
   "ingredientCount": zod.number().int(),
@@ -4018,14 +4025,17 @@ export const PreviewMenuImportResponse = zod.object({
 
 
 /**
- * @summary Import all valid menu dishes and recipes into the authenticated owner workspace
+ * @summary Apply a validated menu CSV, updating matching active dishes and adding new dishes
  */
 export const importMenuCsvBodyCsvMax = 2000000;
+
+export const importMenuCsvBodyExpectedMenuRevisionMin = 0;
 
 
 
 export const ImportMenuCsvBody = zod.object({
-  "csv": zod.string().min(1).max(importMenuCsvBodyCsvMax)
+  "csv": zod.string().min(1).max(importMenuCsvBodyCsvMax),
+  "expectedMenuRevision": zod.number().int().min(importMenuCsvBodyExpectedMenuRevisionMin)
 })
 
 export const importMenuCsvResponseBusinessProfileNameMax = 120;

@@ -704,6 +704,24 @@ export interface MenuCsvImportInput {
   csv: string;
 }
 
+export interface MenuCsvImportApplyInput {
+  /**
+     * @minLength 1
+     * @maxLength 2000000
+     */
+  csv: string;
+  /** @minimum 0 */
+  expectedMenuRevision: number;
+}
+
+export type MenuCsvImportDishPreviewAction = typeof MenuCsvImportDishPreviewAction[keyof typeof MenuCsvImportDishPreviewAction];
+
+
+export const MenuCsvImportDishPreviewAction = {
+  add: 'add',
+  update: 'update',
+} as const;
+
 export interface MenuCsvImportIngredientPreview {
   name: string;
   unit: string;
@@ -712,6 +730,8 @@ export interface MenuCsvImportIngredientPreview {
 
 export interface MenuCsvImportDishPreview {
   name: string;
+  description: string;
+  action: MenuCsvImportDishPreviewAction;
   price: number;
   cost: number;
   ingredientCount: number;
@@ -720,6 +740,8 @@ export interface MenuCsvImportDishPreview {
 
 export interface MenuCsvImportPreview {
   valid: boolean;
+  /** @minimum 0 */
+  menuRevision: number;
   dishCount: number;
   dishes: MenuCsvImportDishPreview[];
   errors: string[];

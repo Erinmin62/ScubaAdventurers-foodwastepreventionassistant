@@ -50,7 +50,10 @@ export default function Menu() {
     mutation: {
       onSuccess: () => {
         refresh();
-        toast({ title: 'Menu imported', description: `${previewImport.data?.dishCount ?? 0} dishes and their recipes are now in your menu.` });
+        const dishes = previewImport.data?.dishes ?? [];
+        const updated = dishes.filter((dish) => dish.action === 'update').length;
+        const added = dishes.filter((dish) => dish.action === 'add').length;
+        toast({ title: 'Menu CSV applied', description: `${updated} dish${updated === 1 ? '' : 'es'} updated, ${added} added. Past sales and waste details are preserved.` });
         setImportOpen(false);
         setCsv('');
         setPreviewedCsv('');
@@ -164,6 +167,8 @@ export default function Menu() {
   const list = showArchived ? archived : active;
   const pending = create.isPending || update.isPending || remove.isPending;
   const importReady = previewImport.data?.valid === true && previewedCsv === csv;
+  const importUpdates = previewImport.data?.dishes.filter((dish) => dish.action === 'update').length ?? 0;
+  const importAdds = previewImport.data?.dishes.filter((dish) => dish.action === 'add').length ?? 0;
 
   return <div className="space-y-5">
     <PageHeader kicker="Menu · owner-managed catalog" title="Your dishes, clearly accounted for.">
@@ -258,7 +263,7 @@ export default function Menu() {
     {importOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-3 backdrop-blur-sm" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !importMenu.isPending) resetImport(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="menu-import-title" className="rise max-h-[94dvh] w-full max-w-3xl overflow-y-auto rounded-3xl border bg-card p-5 shadow-xl md:p-7" data-testid="dialog-menu-import">
         <header className="mb-5 flex items-start justify-between gap-4">
-          <div><div className="text-xs font-bold uppercase tracking-[.18em] text-primary">Bulk menu setup</div><h2 id="menu-import-title" className="mt-1 text-2xl font-bold">Import dishes and recipes</h2><p className="mt-1 text-sm text-muted-foreground">Preview validates all rows against your pantry. Nothing is saved until you confirm a fully valid file.</p></div>
+          <div><div className="text-xs font-bold uppercase tracking-[.18em] text-primary">Bulk menu setup</div><h2 id="menu-import-title" className="mt-1 text-2xl font-bold">Import dishes and recipes</h2><p className="mt-1 text-sm text-muted-foreground">Matching active dishes will be updated; new names will be added. Preview validates all rows against your pantry. Past sales and waste details stay unchanged, and nothing is saved until you confirm a fully valid file.</p></div>
           <Button type="button" variant="ghost" size="icon" aria-label="Close menu import" disabled={importMenu.isPending} onClick={resetImport}><X className="h-4 w-4" /></Button>
         </header>
         <div className="space-y-4">
@@ -282,12 +287,12 @@ export default function Menu() {
           {previewImport.error && <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{errorMessage(previewImport.error)}</div>}
           {previewImport.data && previewedCsv === csv && <>
             <div className={`rounded-xl border p-3 text-sm ${previewImport.data.valid ? 'border-jade/40 bg-jade/5' : 'border-destructive/40 bg-destructive/5'}`} role={previewImport.data.valid ? 'status' : 'alert'} data-testid="menu-csv-preview-result">
-              <strong>{previewImport.data.valid ? 'Ready to import' : 'Fix the CSV before importing'}</strong>
-              <span className="ml-2">{previewImport.data.dishCount} dish{previewImport.data.dishCount === 1 ? '' : 'es'} found.</span>
+              <strong>{previewImport.data.valid ? 'Ready to apply' : 'Fix the CSV before importing'}</strong>
+              <span className="ml-2">{importUpdates} update{importUpdates === 1 ? '' : 's'} and {importAdds} add{importAdds === 1 ? '' : 's'}.</span>
             </div>
             {previewImport.data.dishes.length > 0 && <div className="max-h-56 overflow-auto rounded-xl border" data-testid="menu-csv-preview-dishes">
-              <table className="w-full text-left text-sm"><thead className="sticky top-0 bg-muted text-xs"><tr><th className="p-2">Dish</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">Cost</th><th className="p-2">Per-portion recipe</th></tr></thead>
-                <tbody>{previewImport.data.dishes.map((dish, index) => <tr key={`${dish.name}-${index}`} className="border-t align-top"><td className="p-2 font-medium">{dish.name}</td><td className="p-2 text-right num">{rm(dish.price)}</td><td className="p-2 text-right num">{rm(dish.cost)}</td><td className="p-2 text-xs leading-relaxed">{dish.ingredients.map((ingredient, ingredientIndex) => <div key={`${ingredient.name}-${ingredientIndex}`}><span className="num">{ingredient.quantityPerPortion.toLocaleString(undefined, { maximumFractionDigits: 6 })} {ingredient.unit}</span> {ingredient.name}</div>)}</td></tr>)}</tbody>
+              <table className="w-full text-left text-sm"><thead className="sticky top-0 bg-muted text-xs"><tr><th className="p-2">Action</th><th className="p-2">Dish</th><th className="p-2">Description</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">Cost</th><th className="p-2">Per-portion recipe</th></tr></thead>
+                <tbody>{previewImport.data.dishes.map((dish, index) => <tr key={`${dish.name}-${index}`} className="border-t align-top"><td className="p-2"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${dish.action === 'update' ? 'bg-primary/10 text-primary' : 'bg-jade/10 text-jade'}`} data-testid={`menu-csv-action-${index}`}>{dish.action === 'update' ? 'Update' : 'Add'}</span></td><td className="p-2 font-medium">{dish.name}</td><td className="p-2 text-xs">{dish.description || '—'}</td><td className="p-2 text-right num">{rm(dish.price)}</td><td className="p-2 text-right num">{rm(dish.cost)}</td><td className="p-2 text-xs leading-relaxed">{dish.ingredients.map((ingredient, ingredientIndex) => <div key={`${ingredient.name}-${ingredientIndex}`}><span className="num">{ingredient.quantityPerPortion.toLocaleString(undefined, { maximumFractionDigits: 6 })} {ingredient.unit}</span> {ingredient.name}</div>)}</td></tr>)}</tbody>
               </table>
             </div>}
             {previewImport.data.errors.length > 0 && <ul className="max-h-40 space-y-1 overflow-auto rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive" data-testid="menu-csv-preview-errors">
@@ -296,8 +301,8 @@ export default function Menu() {
           </>}
           <footer className="flex flex-wrap justify-end gap-2 border-t pt-4">
             <Button type="button" variant="outline" onClick={resetImport} disabled={importMenu.isPending} data-testid="button-cancel-menu-import">Cancel</Button>
-            <Button type="button" onClick={() => importMenu.mutate({ data: { csv } })} disabled={!importReady || importMenu.isPending} data-testid="button-confirm-menu-import">
-              {importMenu.isPending ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Importing…</> : <><FileUp className="mr-2 h-4 w-4" />Import {previewImport.data?.dishCount ?? 0} dishes</>}
+            <Button type="button" onClick={() => previewImport.data && importMenu.mutate({ data: { csv, expectedMenuRevision: previewImport.data.menuRevision } })} disabled={!importReady || importMenu.isPending} data-testid="button-confirm-menu-import">
+              {importMenu.isPending ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" />Applying…</> : <><FileUp className="mr-2 h-4 w-4" />Apply {previewImport.data?.dishCount ?? 0} dishes</>}
             </Button>
           </footer>
         </div>

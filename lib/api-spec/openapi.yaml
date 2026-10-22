@@ -510,15 +510,15 @@ paths:
   /guard/menu/import:
     post:
       operationId: importMenuCsv
-      summary: Import all valid menu dishes and recipes into the authenticated owner workspace
+      summary: Apply a validated menu CSV, updating matching active dishes and adding new dishes
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/MenuCsvImportInput" }
+            schema: { $ref: "#/components/schemas/MenuCsvImportApplyInput" }
       responses:
         "201":
-          description: All menu dishes imported together; historical menu snapshots are unchanged
+          description: All menu changes applied together; historical sales and waste snapshots retain the prior menu details
           content:
             application/json:
               schema: { $ref: "#/components/schemas/GuardState" }
@@ -1106,12 +1106,21 @@ components:
       required: [csv]
       properties:
         csv: { type: string, minLength: 1, maxLength: 2000000 }
+    MenuCsvImportApplyInput:
+      type: object
+      additionalProperties: false
+      required: [csv, expectedMenuRevision]
+      properties:
+        csv: { type: string, minLength: 1, maxLength: 2000000 }
+        expectedMenuRevision: { type: integer, minimum: 0 }
     MenuCsvImportDishPreview:
       type: object
       additionalProperties: false
-      required: [name, price, cost, ingredientCount, ingredients]
+      required: [name, description, action, price, cost, ingredientCount, ingredients]
       properties:
         name: { type: string }
+        description: { type: string }
+        action: { type: string, enum: [add, update] }
         price: { type: number }
         cost: { type: number }
         ingredientCount: { type: integer }
@@ -1129,9 +1138,10 @@ components:
     MenuCsvImportPreview:
       type: object
       additionalProperties: false
-      required: [valid, dishCount, dishes, errors]
+      required: [valid, menuRevision, dishCount, dishes, errors]
       properties:
         valid: { type: boolean }
+        menuRevision: { type: integer, minimum: 0 }
         dishCount: { type: integer }
         dishes:
           type: array

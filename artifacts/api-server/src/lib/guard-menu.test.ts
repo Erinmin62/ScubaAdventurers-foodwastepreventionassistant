@@ -74,6 +74,8 @@ test("menu CSV preview parses quoted fields and validates pantry name and units"
   assert.equal(preview.dishCount, 1);
   assert.deepEqual(preview.dishes, [{
     name: "Tomato, basil toast",
+    description: 'With "fresh" tomatoes',
+    action: "add",
     price: 18,
     cost: 5,
     ingredientCount: 2,
@@ -114,4 +116,64 @@ test("menu CSV import adds all recipes and leaves existing historical snapshots 
   assert.deepEqual(s.sales, previousSales);
   assert.deepEqual(s.results, previousResults);
   assert.equal(s.menuRevision, (previousRevision ?? 0) + 1);
+});
+
+test("menu CSV preview classifies matching dishes and confirmed updates preserve historical menu snapshots", () => {
+  const s = seed();
+  const dish = s.menu.find(item => item.id === "avo-toast")!;
+  const salesBefore = s.sales.filter(row => row.menuId === dish.id).map(row => structuredClone(row));
+  const resultsBefore = s.results.filter(row => row.menuId === dish.id).map(row => structuredClone(row));
+  const updateCsv = `dish_name,description,price,cost,ingredient_name,ingredient_unit,quantity_per_portion
+"Avocado Toast","New menu description",28,10,"Avocados",kg,0.2`;
+  const preview = previewMenuCsv(s, updateCsv);
+  assert.equal(preview.valid, true);
+  assert.equal(preview.dishes[0]?.action, "update");
+  assert.equal(preview.dishes[0]?.description, "New menu description");
+  assert.equal(previewMenuCsv(s, menuCsv).dishes[0]?.action, "add");
+
+  const previousName = dish.name;
+  const previousPrice = dish.price;
+  const previousCost = dish.cost;
+  const previousRecipe = structuredClone(dish.recipe);
+  assert.equal(importMenuCsv(s, updateCsv, preview.menuRevision), 1);
+  assert.equal(dish.description, "New menu description");
+  assert.equal(dish.price, 28);
+  assert.equal(dish.cost, 10);
+  assert.deepEqual(dish.recipe, [{ ingredientId: "avocado", amount: 0.2 }]);
+  assert.deepEqual(s.sales.filter(row => row.menuId === dish.id), salesBefore.map(row => ({
+    ...row,
+    menuName: row.menuName ?? previousName,
+    menuPrice: row.menuPrice ?? previousPrice,
+    menuCost: row.menuCost ?? previousCost,
+    menuRecipe: row.menuRecipe ?? previousRecipe,
+  })));
+  assert.deepEqual(s.results.filter(row => row.menuId === dish.id), resultsBefore.map(row => ({
+    ...row,
+    menuName: row.menuName ?? previousName,
+    menuPrice: row.menuPrice ?? previousPrice,
+    menuCost: row.menuCost ?? previousCost,
+    menuRecipe: row.menuRecipe ?? previousRecipe,
+  })));
+});
+
+test("menu CSV import rejects an ambiguous active-name match without partial changes", () => {
+  const s = seed();
+  s.menu.push({ ...structuredClone(s.menu.find(item => item.id === "avo-toast")!), id: "duplicate-active" });
+  const before = structuredClone(s);
+  const updateCsv = `dish_name,description,price,cost,ingredient_name,ingredient_unit,quantity_per_portion
+"Avocado Toast","New menu description",28,10,"Avocados",kg,0.2`;
+  assert.equal(previewMenuCsv(s, updateCsv).valid, false);
+  assert.throws(() => importMenuCsv(s, updateCsv), InputError);
+  assert.deepEqual(s, before);
+});
+
+test("menu CSV import rejects a stale preview before changing menu data", () => {
+  const s = seed();
+  const csv = `dish_name,description,price,cost,ingredient_name,ingredient_unit,quantity_per_portion
+"Tomato, basil toast","With basil",18,5,"Cherry tomatoes",kg,0.1`;
+  const expectedRevision = previewMenuCsv(s, csv).menuRevision;
+  createMenuItem(s, input);
+  const beforeStaleImport = structuredClone(s);
+  assert.throws(() => importMenuCsv(s, csv, expectedRevision), InputError);
+  assert.deepEqual(s, beforeStaleImport);
 });

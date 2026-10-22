@@ -9,6 +9,8 @@ import type { MenuCsvImportDishPreview } from './menuCsvImportDishPreview';
 
 export interface MenuCsvImportPreview {
   valid: boolean;
+  /** @minimum 0 */
+  menuRevision: number;
   dishCount: number;
   dishes: MenuCsvImportDishPreview[];
   errors: string[];

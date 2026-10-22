@@ -41,6 +41,7 @@ import type {
   IngredientPhotoConfirmRequest,
   IngredientPhotoUploadRequest,
   IngredientPhotoUploadResponse,
+  MenuCsvImportApplyInput,
   MenuCsvImportInput,
   MenuCsvImportPreview,
   MenuItemInput,
@@ -2928,9 +2929,9 @@ export const getImportMenuCsvUrl = () => {
 }
 
 /**
- * @summary Import all valid menu dishes and recipes into the authenticated owner workspace
+ * @summary Apply a validated menu CSV, updating matching active dishes and adding new dishes
  */
-export const importMenuCsv = async (menuCsvImportInput: MenuCsvImportInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+export const importMenuCsv = async (menuCsvImportApplyInput: MenuCsvImportApplyInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2951,7 +2952,7 @@ return customFetch<GuardState>(getImportMenuCsvUrl(),
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(menuCsvImportInput)
+    body: JSON.stringify(menuCsvImportApplyInput)
   }
 );}
 
@@ -2989,12 +2990,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ImportMenuCsvMutationResult = NonNullable<Awaited<ReturnType<typeof importMenuCsv>>>
-    export type ImportMenuCsvMutationBody = BodyType<MenuCsvImportInput>
+    export type ImportMenuCsvMutationBody = BodyType<MenuCsvImportApplyInput>
     export type ImportMenuCsvMutationError = ErrorType<void>
-    export type ImportMenuCsvMutationVariables = {data: BodyType<MenuCsvImportInput>}
+    export type ImportMenuCsvMutationVariables = {data: BodyType<MenuCsvImportApplyInput>}
 
     /**
- * @summary Import all valid menu dishes and recipes into the authenticated owner workspace
+ * @summary Apply a validated menu CSV, updating matching active dishes and adding new dishes
  */
 export const useImportMenuCsv = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importMenuCsv>>, TError,ImportMenuCsvMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

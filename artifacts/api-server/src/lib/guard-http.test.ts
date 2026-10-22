@@ -195,11 +195,15 @@ test("HTTP: menu changes preserve history, update planning, and keep recipe draf
   const beforeCsvPreview = snapshotWorkspace();
   const preview = await request("/guard/menu/import/preview", { csv });
   assert.equal(preview.status, 200);
+  const previewMenuRevision = (preview.data as { menuRevision: number }).menuRevision;
   assert.deepEqual(preview.data, {
     valid: true,
+    menuRevision: previewMenuRevision,
     dishCount: 1,
     dishes: [{
       name: "Tomato, basil plate",
+      description: "Roasted cherry tomatoes",
+      action: "add",
       price: 16,
       cost: 4,
       ingredientCount: 1,
@@ -212,13 +216,19 @@ test("HTTP: menu changes preserve history, update planning, and keep recipe draf
   const invalidPreview = await request("/guard/menu/import/preview", { csv: invalidCsv });
   assert.equal((invalidPreview.data as { valid: boolean }).valid, false);
   const beforeInvalidImport = snapshotWorkspace();
-  assert.equal((await request("/guard/menu/import", { csv: invalidCsv })).status, 400);
+  assert.equal((await request("/guard/menu/import", { csv: invalidCsv, expectedMenuRevision: previewMenuRevision })).status, 400);
   assert.deepEqual(snapshotWorkspace(), beforeInvalidImport, "invalid CSV cannot partially change the menu");
-  const imported = await request("/guard/menu/import", { csv });
+  const imported = await request("/guard/menu/import", { csv, expectedMenuRevision: previewMenuRevision });
   assert.equal(imported.status, 201);
   assert.ok((imported.data as { menu: { name: string }[] }).menu.some(item => item.name === "Tomato, basil plate"));
   assert.deepEqual(snapshotWorkspace().sales, beforeCsvPreview.sales, "existing sales snapshots stay untouched");
-  assert.equal((await request("/guard/menu/import", { csv })).status, 400, "an active duplicate dish is rejected");
+  const afterImport = snapshotWorkspace();
+  assert.equal((await request("/guard/menu/import", { csv, expectedMenuRevision: previewMenuRevision })).status, 400, "a stale preview cannot be applied");
+  assert.deepEqual(snapshotWorkspace(), afterImport, "a stale preview makes no changes");
+  const updatePreview = await request("/guard/menu/import/preview", { csv });
+  assert.equal((updatePreview.data as { dishes: { action: string }[] }).dishes[0]?.action, "update");
+  const updateMenuRevision = (updatePreview.data as { menuRevision: number }).menuRevision;
+  assert.equal((await request("/guard/menu/import", { csv, expectedMenuRevision: updateMenuRevision })).status, 201, "a confirmed current preview updates the active dish");
 
   const newBody = {
     name: "Tomato toast",
@@ -845,7 +855,8 @@ test("HTTP auth: workspace data choice is owner-scoped and removes only the conf
     const ownerPreview = await call("/guard/menu/import/preview", ownerA, { csv: ownerCsv }, "POST");
     assert.equal(ownerPreview.status, 200);
     assert.equal((ownerPreview.data as unknown as { valid: boolean }).valid, true);
-    const ownerImport = await call("/guard/menu/import", ownerA, { csv: ownerCsv }, "POST");
+    const ownerMenuRevision = (ownerPreview.data as unknown as { menuRevision: number }).menuRevision;
+    const ownerImport = await call("/guard/menu/import", ownerA, { csv: ownerCsv, expectedMenuRevision: ownerMenuRevision }, "POST");
     assert.equal(ownerImport.status, 201);
     assert.equal(ownerImport.data.menu.some(item => item.name === "Owner A special"), true);
 

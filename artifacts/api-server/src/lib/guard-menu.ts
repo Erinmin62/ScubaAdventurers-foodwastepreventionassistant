@@ -10,9 +10,12 @@ const CSV_HEADERS = ["dish_name", "description", "price", "cost", "ingredient_na
 
 export type MenuCsvPreview = {
   valid: boolean;
+  menuRevision: number;
   dishCount: number;
   dishes: {
     name: string;
+    description: string;
+    action: "add" | "update";
     price: number;
     cost: number;
     ingredientCount: number;
@@ -91,10 +94,10 @@ type MenuCsvDish = {
 export function previewMenuCsv(s: Stored, csv: string): MenuCsvPreview & { parsedDishes: MenuCsvDish[] } {
   const errors: string[] = [];
   if (typeof csv !== "string" || csv.length === 0) {
-    return { valid: false, dishCount: 0, dishes: [], errors: ["Choose a CSV file to preview."], parsedDishes: [] };
+    return { valid: false, menuRevision: s.menuRevision ?? 0, dishCount: 0, dishes: [], errors: ["Choose a CSV file to preview."], parsedDishes: [] };
   }
   if (csv.length > 2_000_000) {
-    return { valid: false, dishCount: 0, dishes: [], errors: ["CSV must be 2 MB or smaller."], parsedDishes: [] };
+    return { valid: false, menuRevision: s.menuRevision ?? 0, dishCount: 0, dishes: [], errors: ["CSV must be 2 MB or smaller."], parsedDishes: [] };
   }
   const parsedCsv = parseCsv(csv);
   errors.push(...parsedCsv.errors);
@@ -118,6 +121,12 @@ export function previewMenuCsv(s: Stored, csv: string): MenuCsvPreview & { parse
 
   const groups = new Map<string, MenuCsvDish>();
   const seenIngredients = new Map<string, Set<string>>();
+  const activeDishesByName = new Map<string, MenuItem[]>();
+  for (const item of s.menu) {
+    if (item.archivedAt) continue;
+    const key = item.name.trim().toLocaleLowerCase();
+    activeDishesByName.set(key, [...(activeDishesByName.get(key) ?? []), item]);
+  }
   const pantryByName = new Map<string, typeof s.ingredients>();
   for (const item of s.ingredients) {
     const key = item.name.trim().toLocaleLowerCase();
@@ -166,8 +175,8 @@ export function previewMenuCsv(s: Stored, csv: string): MenuCsvPreview & { parse
       errors.push(`Row ${line}: repeated dish details for '${name}' must match its first row.`);
       rowValid = false;
     }
-    if (!dish && s.menu.some(item => !item.archivedAt && item.name.trim().toLocaleLowerCase() === key)) {
-      errors.push(`Row ${line}: an active dish already uses the name '${name}'.`);
+    if (!dish && (activeDishesByName.get(key)?.length ?? 0) > 1) {
+      errors.push(`Row ${line}: more than one active dish uses the name '${name}', so this CSV row is ambiguous.`);
       rowValid = false;
     }
     const ingredientId = pantryItem?.id;
@@ -194,9 +203,12 @@ export function previewMenuCsv(s: Stored, csv: string): MenuCsvPreview & { parse
   const parsedDishes = [...groups.values()];
   return {
     valid: errors.length === 0 && parsedDishes.length > 0,
+    menuRevision: s.menuRevision ?? 0,
     dishCount: parsedDishes.length,
-    dishes: parsedDishes.map(({ name, price, cost, recipe }) => ({
+    dishes: parsedDishes.map(({ name, description, price, cost, recipe }) => ({
       name,
+      description,
+      action: (activeDishesByName.get(name.trim().toLocaleLowerCase())?.length ? "update" : "add"),
       price,
       cost,
       ingredientCount: recipe.length,
@@ -210,25 +222,57 @@ export function previewMenuCsv(s: Stored, csv: string): MenuCsvPreview & { parse
   };
 }
 
-export function importMenuCsv(s: Stored, csv: string) {
+export function importMenuCsv(s: Stored, csv: string, expectedMenuRevision?: number) {
+  if (expectedMenuRevision !== undefined && expectedMenuRevision !== (s.menuRevision ?? 0)) {
+    throw new InputError("The menu changed after this preview. Preview the CSV again before applying it.");
+  }
   const preview = previewMenuCsv(s, csv);
   if (!preview.valid) throw new InputError(preview.errors.join(" "));
-  for (const input of preview.parsedDishes) {
-    const name = validateName(input.name, s);
-    validateRecipe(s, input.recipe);
+  const existingByName = new Map<string, MenuItem[]>();
+  for (const item of s.menu) {
+    if (item.archivedAt) continue;
+    const key = item.name.trim().toLocaleLowerCase();
+    existingByName.set(key, [...(existingByName.get(key) ?? []), item]);
   }
-  const items: MenuItem[] = preview.parsedDishes.map(input => ({
-    id: crypto.randomUUID(),
-    name: input.name.trim(),
-    description: input.description.trim(),
-    price: input.price,
-    cost: input.cost,
-    recipe: structuredClone(input.recipe),
-    archivedAt: null,
-  }));
-  s.menu.push(...items);
-  changed(s, `Menu imported: ${items.length} dishes`, "New dishes and per-portion recipes were added from an owner-validated CSV. Existing menu history was not changed.");
-  return items.length;
+  const updates: { item: MenuItem; input: MenuCsvDish }[] = [];
+  const additions: MenuItem[] = [];
+  for (const input of preview.parsedDishes) {
+    const key = input.name.trim().toLocaleLowerCase();
+    const matches = existingByName.get(key) ?? [];
+    if (matches.length > 1) throw new InputError(`More than one active dish uses the name '${input.name}', so this CSV row is ambiguous.`);
+    validateRecipe(s, input.recipe);
+    if (matches[0]) {
+      validateName(input.name, s, matches[0].id);
+      updates.push({ item: matches[0], input });
+    } else {
+      const name = validateName(input.name, s);
+      additions.push({
+        id: crypto.randomUUID(),
+        name,
+        description: input.description.trim(),
+        price: input.price,
+        cost: input.cost,
+        recipe: structuredClone(input.recipe),
+        archivedAt: null,
+      });
+    }
+  }
+  for (const { item, input } of updates) {
+    snapshotMenuHistory(s, item);
+    item.name = input.name.trim();
+    item.description = input.description.trim();
+    item.price = input.price;
+    item.cost = input.cost;
+    item.recipe = structuredClone(input.recipe);
+  }
+  s.menu.push(...additions);
+  const total = updates.length + additions.length;
+  changed(
+    s,
+    `Menu CSV applied: ${updates.length} updated, ${additions.length} added`,
+    "Owner-confirmed CSV updates apply to future menu use. Prior sales and waste records keep the menu details recorded at the time.",
+  );
+  return total;
 }
 
 function validateName(name: string, s: Stored, excludeId?: string, active = true) {

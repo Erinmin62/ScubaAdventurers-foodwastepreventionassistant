@@ -87,14 +87,14 @@ export function createGuardMenuRouter(draftFn: DraftFn = generateRecipeDraft): I
     const workspace = await readWorkspace();
     if (!workspace) { res.status(400).json({ error: "Set up your owner workspace before importing a menu." }); return; }
     const { parsedDishes: _parsedDishes, ...preview } = previewMenuCsv(workspace, parsed.data.csv);
-    res.json(PreviewMenuImportResponse.parse(preview));
+    res.json(PreviewMenuImportResponse.parse({ ...preview, menuRevision: workspace.menuRevision ?? 0 }));
   });
 
   router.post("/guard/menu/import", async (req, res): Promise<void> => {
     const parsed = ImportMenuCsvBody.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: "Provide CSV text of 2 MB or less." }); return; }
     try {
-      const state = await change(s => importMenuCsv(s, parsed.data.csv));
+      const state = await change(s => importMenuCsv(s, parsed.data.csv, parsed.data.expectedMenuRevision));
       res.status(201).json(ImportMenuCsvResponse.parse(state));
     } catch (error) {
       if (error instanceof InputError) { res.status(400).json({ error: error.message }); return; }
