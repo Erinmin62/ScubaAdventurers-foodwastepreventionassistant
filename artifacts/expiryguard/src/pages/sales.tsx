@@ -22,19 +22,44 @@ export default function Sales() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedMenuId, setSelectedMenuId] = useState('');
   const [quantity, setQuantity] = useState('1');
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyDate, setHistoryDate] = useState('');
 
   const activeMenu = useMemo(() => (data?.menu ?? []).filter((m) => m.archivedAt === null), [data?.menu]);
   const menuIds = useMemo(() => activeMenu.map((m) => m.id), [activeMenu]);
-  const historyItems = useMemo(() => {
+  const historyGroups = useMemo(() => {
     const sales = data?.sales ?? [];
     const menu = data?.menu ?? [];
-    const ids = new Set(sales.map((s) => s.menuId));
-    return [...ids].map((id) => {
-      const item = menu.find((m) => m.id === id);
-      const snapshot = [...sales].reverse().find((s) => s.menuId === id);
-      return { id, name: snapshot?.menuName ?? item?.name ?? id };
+    const allDates = [...new Set(sales.map((sale) => sale.date.slice(0, 10)))].sort().reverse();
+    const dates = historyDate ? allDates.filter((salesDate) => salesDate === historyDate) : allDates.slice(0, 14);
+    const query = historySearch.trim().toLocaleLowerCase();
+
+    return dates.flatMap((salesDate) => {
+        const items = new Map<string, { id: string; name: string; portions: number; revenue: number; searchNames: Set<string> }>();
+        for (const sale of sales) {
+          if (sale.date.slice(0, 10) !== salesDate) continue;
+          const item = menu.find((menuItem) => menuItem.id === sale.menuId);
+          const name = sale.menuName ?? item?.name ?? sale.menuId;
+
+          const existing = items.get(sale.menuId) ?? { id: sale.menuId, name, portions: 0, revenue: 0, searchNames: new Set<string>() };
+          existing.searchNames.add(name);
+          if (item?.name) existing.searchNames.add(item.name);
+          existing.portions += sale.portions;
+          existing.revenue += sale.portions * (sale.menuPrice ?? item?.price ?? 0);
+          items.set(sale.menuId, existing);
+        }
+        const rows = [...items.values()]
+          .filter((item) => !query || [...item.searchNames].some((name) => name.toLocaleLowerCase().includes(query)))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        if (rows.length === 0) return [];
+        return [{
+          date: salesDate,
+          items: rows,
+          portions: rows.reduce((sum, item) => sum + item.portions, 0),
+          revenue: rows.reduce((sum, item) => sum + item.revenue, 0),
+        }];
     });
-  }, [data?.menu, data?.sales]);
+  }, [data?.menu, data?.sales, historyDate, historySearch]);
   const spec: ImportSpec = useMemo(() => ({
     kind: 'sales',
     columns: [
@@ -50,12 +75,7 @@ export default function Sales() {
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
   const entryDate = date || addDays(data.today, -1);
-  const dates = Array.from(new Set(data.sales.map((s) => s.date.slice(0, 10)))).sort().reverse().slice(0, 14);
-  const cell = (d: string, m: string) => data.sales.filter((s) => s.date.slice(0, 10) === d && s.menuId === m).reduce((a, s) => a + s.portions, 0);
-  const revenue = (d: string) => data.sales.filter((s) => s.date.slice(0, 10) === d).reduce((sum, sale) => {
-    const item = data.menu.find((m) => m.id === sale.menuId);
-    return sum + sale.portions * (sale.menuPrice ?? item?.price ?? 0);
-  }, 0);
+  const hasHistoryFilters = historySearch.trim() !== '' || historyDate !== '';
   const filled = Object.entries(vals).filter(([, v]) => v !== '');
   const invalid = filled.some(([, v]) => !isPortionCount(v));
   const selectedMenuItem = activeMenu.find((item) => item.id === selectedMenuId);
@@ -222,19 +242,45 @@ export default function Sales() {
       <Panel title="Import past sales and stock" sub="Review every row before saving to the separate archive">
         <HistoricalImport state={data} />
       </Panel>
-      <Panel title="Sales history" sub="Portions per item, most recent 14 days with data">
-        {dates.length === 0 ? <EmptyState title="No sales yet" body="Record a day to start forecasting." /> : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm num">
-              <thead><tr className="text-[11px] uppercase text-muted-foreground border-b"><th className="text-left py-2 pr-3 font-sans">Date</th>{historyItems.map((m) => <th key={m.id} className="text-right pr-3 font-sans">{m.name}</th>)}<th className="text-right font-sans">Revenue</th></tr></thead>
-              <tbody>{dates.map((d) => (
-                <tr key={d} className="border-b last:border-0 hover:bg-muted/40" data-testid={`row-sales-${d}`}>
-                  <td className="py-2 pr-3 font-sans font-medium">{niceDate(d)}</td>
-                  {historyItems.map((m) => <td key={m.id} className="text-right pr-3">{fmt(cell(d, m.id), 0)}</td>)}
-                  <td className="text-right font-semibold">{rm(revenue(d))}</td>
-                </tr>
-              ))}</tbody>
-            </table>
+      <Panel title="Sales history" sub="Most recent 14 days with sales · find items or filter by date">
+        <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
+          <div className="space-y-1.5">
+            <Label htmlFor="input-search-sales-history">Find an item</Label>
+            <Input id="input-search-sales-history" type="search" placeholder="Search menu items..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} data-testid="input-search-sales-history" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="input-filter-sales-history-date">Sales date</Label>
+            <Input id="input-filter-sales-history-date" type="date" value={historyDate} onChange={(e) => setHistoryDate(e.target.value)} data-testid="input-filter-sales-history-date" />
+          </div>
+          {hasHistoryFilters && <Button type="button" variant="outline" onClick={() => { setHistorySearch(''); setHistoryDate(''); }} data-testid="button-clear-sales-history-filters">Clear filters</Button>}
+        </div>
+        {historyGroups.length === 0 ? (
+          data.sales.length === 0
+            ? <EmptyState title="No sales yet" body="Record a day to start forecasting." />
+            : <EmptyState title="No matching sales" body="Try another item name or date, or clear the filters." />
+        ) : (
+          <div className="space-y-4">
+            {historyGroups.map((group) => (
+              <section key={group.date} className="overflow-hidden rounded-xl border" data-testid={`group-sales-${group.date}`}>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b bg-muted/30 px-3 py-3 sm:px-4">
+                  <h3 className="font-sans text-sm font-semibold">{niceDate(group.date)}</h3>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground num">
+                    <span data-testid={`text-sales-portions-${group.date}`}>{fmt(group.portions, 0)} portions</span>
+                    <span className="font-semibold text-foreground" data-testid={`text-sales-revenue-${group.date}`}>{rm(group.revenue)}</span>
+                  </div>
+                </div>
+                <div className="divide-y">
+                  {group.items.map((item) => (
+                    <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 text-sm sm:grid-cols-[minmax(0,1fr)_120px_140px] sm:px-4" data-testid={`row-sales-item-${group.date}-${item.id}`}>
+                      <span className="min-w-0 break-words font-medium">{item.name}</span>
+                      <span className="text-right num">{fmt(item.portions, 0)} portions</span>
+                      <span className="col-span-2 text-right font-semibold num sm:col-span-1">{rm(item.revenue)}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+            {historySearch.trim() && <p className="text-xs text-muted-foreground">Daily totals reflect only the matching items shown.</p>}
           </div>
         )}
       </Panel>
