@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { addDays, errorMessage, fmt, isDate, isNum, niceDate, rm, useGuard, useGuardMutations } from '@/lib/guard';
+import { buildSalesHistoryGroups } from '@/lib/sales-history';
 import { cn } from '@/lib/utils';
 
 const isPortionCount = (value: string) => /^\d+$/.test(value) && Number(value) <= 1_000_000;
@@ -27,39 +28,10 @@ export default function Sales() {
 
   const activeMenu = useMemo(() => (data?.menu ?? []).filter((m) => m.archivedAt === null), [data?.menu]);
   const menuIds = useMemo(() => activeMenu.map((m) => m.id), [activeMenu]);
-  const historyGroups = useMemo(() => {
-    const sales = data?.sales ?? [];
-    const menu = data?.menu ?? [];
-    const allDates = [...new Set(sales.map((sale) => sale.date.slice(0, 10)))].sort().reverse();
-    const dates = historyDate ? allDates.filter((salesDate) => salesDate === historyDate) : allDates.slice(0, 14);
-    const query = historySearch.trim().toLocaleLowerCase();
-
-    return dates.flatMap((salesDate) => {
-        const items = new Map<string, { id: string; name: string; portions: number; revenue: number; searchNames: Set<string> }>();
-        for (const sale of sales) {
-          if (sale.date.slice(0, 10) !== salesDate) continue;
-          const item = menu.find((menuItem) => menuItem.id === sale.menuId);
-          const name = sale.menuName ?? item?.name ?? sale.menuId;
-
-          const existing = items.get(sale.menuId) ?? { id: sale.menuId, name, portions: 0, revenue: 0, searchNames: new Set<string>() };
-          existing.searchNames.add(name);
-          if (item?.name) existing.searchNames.add(item.name);
-          existing.portions += sale.portions;
-          existing.revenue += sale.portions * (sale.menuPrice ?? item?.price ?? 0);
-          items.set(sale.menuId, existing);
-        }
-        const rows = [...items.values()]
-          .filter((item) => !query || [...item.searchNames].some((name) => name.toLocaleLowerCase().includes(query)))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        if (rows.length === 0) return [];
-        return [{
-          date: salesDate,
-          items: rows,
-          portions: rows.reduce((sum, item) => sum + item.portions, 0),
-          revenue: rows.reduce((sum, item) => sum + item.revenue, 0),
-        }];
-    });
-  }, [data?.menu, data?.sales, historyDate, historySearch]);
+  const historyGroups = useMemo(
+    () => buildSalesHistoryGroups({ sales: data?.sales ?? [], menu: data?.menu ?? [] }, historyDate, historySearch),
+    [data?.menu, data?.sales, historyDate, historySearch],
+  );
   const spec: ImportSpec = useMemo(() => ({
     kind: 'sales',
     columns: [
