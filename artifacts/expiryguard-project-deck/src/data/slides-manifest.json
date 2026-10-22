@@ -1,0 +1,66 @@
+[
+  {
+    "id": "91ea04f9-a112-4ada-af78-8a36bca57495",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide1.tsx",
+    "title": "ExpiryGuardAI",
+    "description": "A food-waste planning demo for food and beverage SMEs",
+    "speakerNotes": ""
+  },
+  {
+    "id": "3933c7f3-d132-4991-acdf-28dfb6afecac",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide2.tsx",
+    "title": "Food businesses make perishable-stock decisions every day",
+    "description": "Food businesses make perishable-stock decisions every day",
+    "speakerNotes": ""
+  },
+  {
+    "id": "1ee159fa-5085-460f-a8fd-1afdc83eb829",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide3.tsx",
+    "title": "One workflow—from pantry to review",
+    "description": "One workflow—from pantry to review",
+    "speakerNotes": ""
+  },
+  {
+    "id": "db439c2e-79be-49de-ae80-dc84dfba10f7",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide4.tsx",
+    "title": "Designed for more than cafes",
+    "description": "Designed for more than cafes",
+    "speakerNotes": ""
+  },
+  {
+    "id": "bc59f123-689f-423f-a6e5-67dc1abf0233",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide5.tsx",
+    "title": "Turn recent sales into a practical plan",
+    "description": "Turn recent sales into a practical plan",
+    "speakerNotes": ""
+  },
+  {
+    "id": "c02e72e0-6792-43dd-869d-0b5f5eee925d",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide6.tsx",
+    "title": "Automate routine checks; keep decisions with the owner",
+    "description": "Automate routine checks; keep decisions with the owner",
+    "speakerNotes": ""
+  },
+  {
+    "id": "6893eeae-b9da-420c-8b88-4e256bee1164",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide7.tsx",
+    "title": "AI output is a demonstration—not a validated forecast",
+    "description": "AI output is a demonstration—not a validated forecast",
+    "speakerNotes": ""
+  },
+  {
+    "id": "00882fbf-c3b9-4094-9f95-5bd240328974",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide8.tsx",
+    "title": "Demo today. Validation next.",
+    "description": "Demo today. Validation next.",
+    "speakerNotes": ""
+  }
+]

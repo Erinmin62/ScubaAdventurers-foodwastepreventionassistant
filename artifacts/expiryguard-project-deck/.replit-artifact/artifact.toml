@@ -1,0 +1,28 @@
+kind = "slides"
+previewPath = "/expiryguard-project-deck/"
+title = "ExpiryGuardAI Project Deck"
+description = "An 8-slide overview of ExpiryGuardAI, a demo food-waste planning system for food and beverage SMEs, with its current workflow, automation boundaries, and validation roadmap."
+version = "1.0.0"
+id = "artifacts/expiryguard-project-deck"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/expiryguard-project-deck/" ]
+localPort = 19554
+
+[services.development]
+run = "pnpm --filter @workspace/expiryguard-project-deck run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/expiryguard-project-deck", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/expiryguard-project-deck/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19554"
+BASE_PATH = "/expiryguard-project-deck/"
