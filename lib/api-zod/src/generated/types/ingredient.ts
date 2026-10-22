@@ -21,6 +21,8 @@ export interface Ingredient {
   deliveryQuantity: number;
   deliveryDate: string;
   /** @nullable */
+  photoPath?: string | null;
+  /** @nullable */
   measuredDate?: string | null;
   batches?: StockBatch[];
 }

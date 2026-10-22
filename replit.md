@@ -15,6 +15,7 @@ Food-waste prevention assistant for café and restaurant owners using realistic 
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 - Clerk sign-in requires `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, and `VITE_CLERK_PUBLISHABLE_KEY`; these are provisioned through Replit-managed Clerk. Never commit their values. Development accounts are separate from production accounts.
+- Custom ingredient photos use Replit App Storage. Files are stored privately; the owner workspace saves only the photo reference, and the API checks ownership before serving it.
 - `/api/healthz` returns `{"status":"ok"}` when the API is running. Anonymous requests to `/api/guard` must return 401.
 - The mockup-sandbox workflow is optional for design work and is not needed to run ExpiryGuardAI.
 

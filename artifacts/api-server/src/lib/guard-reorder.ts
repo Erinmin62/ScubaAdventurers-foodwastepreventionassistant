@@ -90,7 +90,7 @@ export function analyzeReorders(s: Stored): Line[] {
     if (proposed.waste > baseline.waste) assumptions.push(`The proposed minimum/safety quantity increases modeled expiry waste to ${proposed.waste} ${i.unit} (${round(proposed.waste * i.cost)} RM). Consider a smaller supplier minimum, split delivery, or reviewing safety stock before approving.`);
     const expired = round(stockBatches(i).filter(b => b.expiry < d).reduce((n, b) => n + b.quantity, 0));
     return {
-      ingredientId: i.id, name: i.name, unit: i.unit, unitCost: i.cost, expiry: i.expiry, currentStock: i.quantity, expiredQuantity: expired,
+      ingredientId: i.id, name: i.name, photoPath: i.photoPath ?? null, unit: i.unit, unitCost: i.cost, expiry: i.expiry, currentStock: i.quantity, expiredQuantity: expired,
       wasteQuantity: baseline.waste, wasteCost: round(baseline.waste * i.cost),
       incomingQuantity: i.deliveryQuantity, incomingDate: i.deliveryDate, dailyUsage: usage,
       expectedDemand: round(usage * Math.max(0, horizonDays)), originalQuantity: original, recommendedQuantity: recommended, additionalQuantity: round(Math.max(0, recommended - original)),

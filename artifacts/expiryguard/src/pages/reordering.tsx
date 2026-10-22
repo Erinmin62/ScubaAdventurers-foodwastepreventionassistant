@@ -75,7 +75,7 @@ function Assumptions({ l }: { l: ReorderLine }) {
   );
 }
 
-function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
+function PlanCard({ plan, today, currentPhotoPath }: { plan: ReorderPlan; today: string; currentPhotoPath?: string | null }) {
   const l = plan.line;
   const { toast } = useToast();
   const invalidate = useInvalidate();
@@ -137,7 +137,7 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
   return (
     <div className={cn('rounded-xl border p-4 space-y-3', pending ? 'border-primary/30 bg-primary/[0.03]' : 'bg-background/60', plan.status === 'FAILED' && 'border-destructive/40 bg-destructive/[0.03]')} data-testid={`card-plan-${plan.id}`}>
       <div className="flex items-start gap-3">
-        <IngredientPhoto id={l.ingredientId} name={l.name} className="h-16 w-16 rounded-xl sm:h-[4.5rem] sm:w-[4.5rem]" />
+        <IngredientPhoto id={l.ingredientId} name={l.name} photoPath={currentPhotoPath ?? l.photoPath} className="h-16 w-16 rounded-xl sm:h-[4.5rem] sm:w-[4.5rem]" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2"><PlanStatus s={plan.status} /><span className="num text-[11px] text-muted-foreground">drafted {niceDate(plan.createdAt.slice(0, 10))}</span></div>
           <h3 ref={planTitle} tabIndex={-1} className="font-semibold text-lg mt-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{l.name}</h3>
@@ -274,6 +274,7 @@ export default function Reordering() {
   const failed = history.filter((p) => p.status === 'FAILED').length;
   const riskCost = data.analysis.reduce((s, l) => s + l.wasteCost, 0);
   const savedCost = data.analysis.reduce((s, l) => s + (l.originalCost - l.proposedCost), 0);
+  const photoPathFor = (ingredientId: string) => data.analysis.find(line => line.ingredientId === ingredientId)?.photoPath;
   const doScan = () => scan.mutate(undefined, {
     onSuccess: (s) => { invalidate(s); toast({ title: 'Reorder scan complete', description: `${s.plans.filter((p) => p.status === 'PENDING_APPROVAL').length} plans awaiting approval` }); },
     onError: (e) => toast({ title: 'Scan failed', description: errorMessage(e), variant: 'destructive' }),
@@ -296,7 +297,7 @@ export default function Reordering() {
       </div>
       {focus && (() => { const f = data.plans.find((p) => p.id === focus); return (
         <div id="focus-target" className="scroll-mt-24"><FocusBanner found={!!f} clearHref="/reordering" label={f ? `${f.line.name} reorder plan: ${f.status.replace('_', ' ').toLowerCase()}` : ''}>
-          {f && (f.status === 'PENDING_APPROVAL' ? <PlanCard plan={f} today={today} />
+          {f && (f.status === 'PENDING_APPROVAL' ? <PlanCard plan={f} today={today} currentPhotoPath={photoPathFor(f.line.ingredientId)} />
             : <div className={cn('rounded-lg border bg-card p-3 text-sm', f.status === 'FAILED' && 'border-destructive/40')} data-testid={`focus-plan-${f.id}`}>
                 <div className="flex flex-wrap items-center gap-2"><PlanStatus s={f.status} /><b>{f.line.name}</b><span className="num text-xs text-muted-foreground ml-auto">{(f.decidedAt ?? f.createdAt).replace('T', ' ').slice(0, 16)}{f.approver && ` · ${f.approver}`}</span></div>
                 {f.detail && <div className={cn('text-xs mt-1', f.status === 'FAILED' ? 'text-destructive font-semibold' : 'text-muted-foreground')}>{f.status === 'FAILED' ? 'Reason: ' : ''}{f.detail}</div>}
@@ -309,7 +310,7 @@ export default function Reordering() {
       </div>
       {tab === 'plans' && (
         <Panel title="Proposed order plans" sub="Each plan needs an explicit owner decision. Approval records a synthetic plan only.">
-          {pending.length ? <div className="space-y-3">{pending.filter((p) => p.id !== focus).map((p) => <PlanCard key={p.id} plan={p} today={today} />)}</div>
+          {pending.length ? <div className="space-y-3">{pending.filter((p) => p.id !== focus).map((p) => <PlanCard key={p.id} plan={p} today={today} currentPhotoPath={photoPathFor(p.line.ingredientId)} />)}</div>
             : <EmptyState title="No plans waiting" body="Run a reorder scan to draft a plan per ingredient." />}
         </Panel>
       )}
@@ -317,7 +318,7 @@ export default function Reordering() {
         <Panel title="Live ingredient analysis" sub="Received batches are allocated by earliest expiry. The incoming delivery is a separate plan, not received stock.">
           {data.analysis.length ? <div className="space-y-4">{data.analysis.map((l) => (
             <div key={l.ingredientId} className="rounded-xl border p-4 space-y-3" data-testid={`card-analysis-${l.ingredientId}`}>
-              <div className="flex items-center gap-3"><IngredientPhoto id={l.ingredientId} name={l.name} className="h-12 w-12 rounded-lg" /><div><div className="flex items-center gap-2 font-semibold"><Truck className="w-4 h-4 text-primary" />{l.name}</div><div className="text-xs text-muted-foreground">Current {fmt(l.currentStock)} {l.unit} · recommend {fmt(l.recommendedQuantity)} {l.unit}</div></div></div>
+              <div className="flex items-center gap-3"><IngredientPhoto id={l.ingredientId} name={l.name} photoPath={l.photoPath} className="h-12 w-12 rounded-lg" /><div><div className="flex items-center gap-2 font-semibold"><Truck className="w-4 h-4 text-primary" />{l.name}</div><div className="text-xs text-muted-foreground">Current {fmt(l.currentStock)} {l.unit} · recommend {fmt(l.recommendedQuantity)} {l.unit}</div></div></div>
               {l.shortageBeforeDelivery > 0 && <div className="text-xs text-destructive font-semibold">Shortfall warning: {fmt(l.shortageBeforeDelivery)} {l.unit} short before delivery.</div>}
               <LineFacts l={l} />
               <Assumptions l={l} />

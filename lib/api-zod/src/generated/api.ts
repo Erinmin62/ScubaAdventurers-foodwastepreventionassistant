@@ -8,6 +8,273 @@
 import * as zod from 'zod';
 
 
+/**
+ * @summary Request an owner-scoped ingredient photo upload
+ */
+export const requestIngredientPhotoUploadBodyIngredientIdMax = 160;
+
+export const requestIngredientPhotoUploadBodyNameMax = 255;
+
+export const requestIngredientPhotoUploadBodySizeMax = 5242880;
+
+
+
+export const RequestIngredientPhotoUploadBody = zod.object({
+  "ingredientId": zod.string().min(1).max(requestIngredientPhotoUploadBodyIngredientIdMax),
+  "name": zod.string().min(1).max(requestIngredientPhotoUploadBodyNameMax),
+  "size": zod.number().int().min(1).max(requestIngredientPhotoUploadBodySizeMax),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp'])
+})
+
+export const requestIngredientPhotoUploadResponseObjectKeyRegExp = new RegExp('^[a-f0-9]{96}$');
+
+
+export const RequestIngredientPhotoUploadResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectKey": zod.string().regex(requestIngredientPhotoUploadResponseObjectKeyRegExp)
+})
+
+
+/**
+ * @summary Confirm and save an uploaded ingredient photo
+ */
+export const confirmIngredientPhotoUploadBodyIngredientIdMax = 160;
+
+export const confirmIngredientPhotoUploadBodyObjectKeyRegExp = new RegExp('^[a-f0-9]{96}$');
+
+
+export const ConfirmIngredientPhotoUploadBody = zod.object({
+  "ingredientId": zod.string().min(1).max(confirmIngredientPhotoUploadBodyIngredientIdMax),
+  "objectKey": zod.string().regex(confirmIngredientPhotoUploadBodyObjectKeyRegExp)
+})
+
+export const confirmIngredientPhotoUploadResponseIngredientsItemQuantityMin = 0;
+
+export const confirmIngredientPhotoUploadResponseIngredientsItemCostMin = 0;
+
+export const confirmIngredientPhotoUploadResponseIngredientsItemDeliveryQuantityMin = 0;
+
+export const confirmIngredientPhotoUploadResponseIngredientsItemBatchesItemQuantityMin = 0;
+
+export const confirmIngredientPhotoUploadResponseSalesItemPortionsMin = 0;
+
+export const confirmIngredientPhotoUploadResponseResultsItemPreparedMin = 0;
+
+export const confirmIngredientPhotoUploadResponseResultsItemSoldMin = 0;
+
+export const confirmIngredientPhotoUploadResponseResultsItemLeftoverMin = 0;
+
+export const confirmIngredientPhotoUploadResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
+
+export const confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
+export const confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
+
+export const confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin = 0;
+export const confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax = 1000000;
+
+
+
+export const ConfirmIngredientPhotoUploadResponse = zod.object({
+  "today": zod.string(),
+  "tomorrow": zod.string(),
+  "cafeName": zod.string(),
+  "synthetic": zod.boolean(),
+  "automation": zod.object({
+  "dailyPlanning": zod.boolean(),
+  "followUpHandling": zod.boolean(),
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "workflow": zod.enum(['daily-planning', 'follow-ups']),
+  "trigger": zod.enum(['automatic', 'manual']),
+  "time": zod.string(),
+  "date": zod.string(),
+  "detail": zod.string(),
+  "draftCount": zod.number().int(),
+  "riskCount": zod.number().int(),
+  "dueCount": zod.number().int(),
+  "overdueCount": zod.number().int(),
+  "predictedPortions": zod.number().int()
+}))
+}),
+  "ingredients": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quantity": zod.number().min(confirmIngredientPhotoUploadResponseIngredientsItemQuantityMin),
+  "unit": zod.string(),
+  "expiry": zod.string(),
+  "cost": zod.number().min(confirmIngredientPhotoUploadResponseIngredientsItemCostMin),
+  "category": zod.string(),
+  "deliveryQuantity": zod.number().min(confirmIngredientPhotoUploadResponseIngredientsItemDeliveryQuantityMin),
+  "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(confirmIngredientPhotoUploadResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
+})),
+  "sales": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "portions": zod.number().int().min(confirmIngredientPhotoUploadResponseSalesItemPortionsMin)
+})),
+  "results": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "prepared": zod.number().int().min(confirmIngredientPhotoUploadResponseResultsItemPreparedMin),
+  "sold": zod.number().int().min(confirmIngredientPhotoUploadResponseResultsItemSoldMin),
+  "leftover": zod.number().int().min(confirmIngredientPhotoUploadResponseResultsItemLeftoverMin)
+})),
+  "menu": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "price": zod.number(),
+  "cost": zod.number(),
+  "recipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number()
+}))
+})),
+  "forecasts": zod.array(zod.object({
+  "menuId": zod.string(),
+  "name": zod.string(),
+  "predicted": zod.number().int(),
+  "capacity": zod.number().int(),
+  "suggested": zod.number().int(),
+  "confidence": zod.string(),
+  "reason": zod.string()
+})),
+  "risks": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "daysLeft": zod.number().int(),
+  "level": zod.string(),
+  "expectedUse": zod.number(),
+  "atRisk": zod.number(),
+  "value": zod.number(),
+  "message": zod.string()
+})),
+  "recommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+})),
+  "activity": zod.array(zod.object({
+  "id": zod.string(),
+  "time": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "decision": zod.string(),
+  "impact": zod.number()
+})),
+  "summary": zod.object({
+  "predictedPortions": zod.number().int(),
+  "riskValue": zod.number(),
+  "pendingCount": zod.number().int(),
+  "estimatedSavings": zod.number(),
+  "baselineWasteCost": zod.number(),
+  "actualWasteCost": zod.number(),
+  "baselinePurchaseCost": zod.number(),
+  "plannedPurchaseCost": zod.number(),
+  "baselineWasteKg": zod.number(),
+  "actualWasteKg": zod.number()
+}),
+  "followUps": zod.array(zod.object({
+  "id": zod.string(),
+  "recommendationId": zod.string(),
+  "recommendation": zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}),
+  "approvedAction": zod.string(),
+  "approvedQuantity": zod.number(),
+  "approvedAt": zod.string().nullable(),
+  "snapshotAt": zod.string(),
+  "startingDate": zod.string(),
+  "scheduledDate": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['outstanding', 'completed', 'cancelled']),
+  "cancellationReason": zod.string().nullable(),
+  "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(confirmIngredientPhotoUploadResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "startingQuantity": zod.number(),
+  "expiry": zod.string(),
+  "deliveryQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "expectedUsage": zod.number(),
+  "expectedRemaining": zod.number()
+})),
+  "outcome": zod.union([zod.object({
+  "observationDate": zod.string(),
+  "actionTaken": zod.string(),
+  "recordedAt": zod.string(),
+  "rows": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "remaining": zod.number().min(confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin).max(confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax),
+  "wasted": zod.number().min(confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin).max(confirmIngredientPhotoUploadResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax)
+}).and(zod.object({
+  "assessment": zod.string(),
+  "nextAction": zod.string(),
+  "inventoryUpdate": zod.string()
+})))
+}),zod.null()])
+})),
+  "approvedRecommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}))
+})
+
+
+/**
+ * @summary Serve an ingredient photo to its owning café account
+ */
+export const getIngredientPhotoPathObjectKeyRegExp = new RegExp('^[a-f0-9]{96}$');
+
+
+export const GetIngredientPhotoParams = zod.object({
+  "objectKey": zod.coerce.string().regex(getIngredientPhotoPathObjectKeyRegExp)
+})
+
+export const GetIngredientPhotoResponse = zod.void()
+
+
 export const getInboxResponseThresholdsWarningDaysMax = 30;
 
 export const getInboxResponseThresholdsUpcomingDaysMax = 90;
@@ -209,6 +476,7 @@ export const SaveIngredientBatchResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(saveIngredientBatchResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),
@@ -719,6 +987,7 @@ export const GetReordersResponse = zod.object({
   "line": zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -764,6 +1033,7 @@ export const GetReordersResponse = zod.object({
   "analysis": zod.array(zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -865,6 +1135,7 @@ export const ScanReordersResponse = zod.object({
   "line": zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -910,6 +1181,7 @@ export const ScanReordersResponse = zod.object({
   "analysis": zod.array(zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -1038,6 +1310,7 @@ export const ConfigureReorderResponse = zod.object({
   "line": zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -1083,6 +1356,7 @@ export const ConfigureReorderResponse = zod.object({
   "analysis": zod.array(zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -1259,6 +1533,7 @@ export const DecideReorderResponse = zod.object({
   "line": zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -1304,6 +1579,7 @@ export const DecideReorderResponse = zod.object({
   "analysis": zod.array(zod.object({
   "ingredientId": zod.string(),
   "name": zod.string(),
+  "photoPath": zod.string().nullish(),
   "unit": zod.string(),
   "unitCost": zod.number(),
   "expiry": zod.string(),
@@ -1403,6 +1679,7 @@ export const UpdateAutomationResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(updateAutomationResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),
@@ -1620,6 +1897,7 @@ export const RunAutomationResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(runAutomationResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),
@@ -1833,6 +2111,7 @@ export const GetGuardStateResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(getGuardStateResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),
@@ -2055,6 +2334,7 @@ export const AddGuardRecordsResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(addGuardRecordsResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),
@@ -2285,6 +2565,7 @@ export const DecideRecommendationResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(decideRecommendationResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),
@@ -2508,6 +2789,7 @@ export const AttachFollowUpResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(attachFollowUpResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),
@@ -2747,6 +3029,7 @@ export const RecordFollowUpOutcomeResponse = zod.object({
   "category": zod.string(),
   "deliveryQuantity": zod.number().min(recordFollowUpOutcomeResponseIngredientsItemDeliveryQuantityMin),
   "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
   "measuredDate": zod.string().nullish(),
   "batches": zod.array(zod.object({
   "id": zod.string(),

@@ -45,7 +45,7 @@ const spec: ImportSpec = {
   }),
 };
 
-type FormState = { id?: string; name: string; quantity: string; unit: string; expiry: string; cost: string; category: string; deliveryQuantity: string; deliveryDate: string };
+type FormState = { id?: string; name: string; quantity: string; unit: string; expiry: string; cost: string; category: string; deliveryQuantity: string; deliveryDate: string; photoPath?: string | null };
 
 export default function Inventory() {
   const { data, isLoading, error, refetch } = useGuard();
@@ -56,6 +56,11 @@ export default function Inventory() {
   const [form, setForm] = useState<FormState | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoError, setPhotoError] = useState('');
+  const [photoSaving, setPhotoSaving] = useState(false);
+  const photoPreview = useMemo(() => photoFile ? URL.createObjectURL(photoFile) : null, [photoFile]);
+  useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
   const focus = useFocusItem();
   useEffect(() => { if (focus) { setQ(''); setCat('All'); } }, [focus]);
@@ -72,14 +77,62 @@ export default function Inventory() {
   const batchIngredient = data.ingredients.find(i => i.id === batchId);
   const multiBatch = (data.ingredients.find(i => i.id === form?.id)?.batches?.length ?? 0) > 1;
 
-  const open = (i?: Ingredient) => setForm(i ? { id: i.id, name: i.name, quantity: String(i.quantity), unit: i.unit, expiry: i.expiry.slice(0, 10), cost: String(i.cost), category: i.category, deliveryQuantity: String(i.deliveryQuantity || ''), deliveryDate: i.deliveryDate?.slice(0, 10) ?? '' }
-    : { name: '', quantity: '', unit: 'kg', expiry: addDays(data.today, 3), cost: '', category: '', deliveryQuantity: '', deliveryDate: '' });
+  const open = (i?: Ingredient) => {
+    setPhotoFile(null);
+    setPhotoError('');
+    setForm(i ? { id: i.id, name: i.name, quantity: String(i.quantity), unit: i.unit, expiry: i.expiry.slice(0, 10), cost: String(i.cost), category: i.category, deliveryQuantity: String(i.deliveryQuantity || ''), deliveryDate: i.deliveryDate?.slice(0, 10) ?? '', photoPath: i.photoPath }
+      : { name: '', quantity: '', unit: 'kg', expiry: addDays(data.today, 3), cost: '', category: '', deliveryQuantity: '', deliveryDate: '', photoPath: null });
+  };
+
+  const uploadIngredientPhoto = async (ingredientId: string, file: File) => {
+    const apiBase = `${import.meta.env.BASE_URL}api/storage`;
+    const request = await fetch(`${apiBase}/uploads/request-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ingredientId, name: file.name, size: file.size, contentType: file.type }),
+    });
+    const uploadInfo = await request.json() as { uploadURL?: string; objectKey?: string; error?: string };
+    if (!request.ok || !uploadInfo.uploadURL || !uploadInfo.objectKey) throw new Error(uploadInfo.error || 'Could not start the photo upload.');
+
+    const uploaded = await fetch(uploadInfo.uploadURL, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!uploaded.ok) throw new Error('The photo could not be uploaded. Please try again.');
+
+    const confirmed = await fetch(`${apiBase}/uploads/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ingredientId, objectKey: uploadInfo.objectKey }),
+    });
+    const result = await confirmed.json() as { error?: string };
+    if (!confirmed.ok) throw new Error(result.error || 'The photo could not be saved.');
+  };
 
   const formErr = form ? spec.validate(form as unknown as Record<string, string>) : null;
   const save = () => {
     if (!form || formErr) return;
+    const submittedForm = form;
     add.mutate({ data: { kind: 'inventory', rows: [spec.transform(form as unknown as Record<string, string>)] } }, {
-      onSuccess: () => { toast({ title: form.id ? 'Ingredient updated' : 'Ingredient added', description: form.name }); setForm(null); },
+      onSuccess: async (savedState) => {
+        const ingredient = savedState.ingredients.find(i => i.id === submittedForm.id || i.name.toLowerCase() === submittedForm.name.trim().toLowerCase());
+        if (photoFile && ingredient) {
+          setPhotoSaving(true);
+          try {
+            await uploadIngredientPhoto(ingredient.id, photoFile);
+            await refetch();
+          } catch (e) {
+            setPhotoSaving(false);
+            toast({ title: 'Ingredient saved; photo not saved', description: errorMessage(e), variant: 'destructive' });
+            return;
+          }
+          setPhotoSaving(false);
+        }
+        toast({ title: submittedForm.id ? 'Ingredient updated' : 'Ingredient added', description: submittedForm.name });
+        setPhotoFile(null);
+        setForm(null);
+      },
       onError: (e) => toast({ title: 'Not saved', description: errorMessage(e), variant: 'destructive' }),
     });
   };
@@ -131,12 +184,44 @@ export default function Inventory() {
         )}
       </Panel>
 
-      <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
+      <Dialog open={!!form} onOpenChange={(o) => { if (!o) { setForm(null); setPhotoFile(null); setPhotoError(''); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{form?.id ? 'Edit ingredient' : 'Add ingredient'}</DialogTitle></DialogHeader>
           {form && (
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2"><Label>Name</Label><Input value={form.name} onChange={set('name')} data-testid="input-name" /></div>
+              <div className="col-span-2 rounded-xl border p-3">
+                <Label htmlFor="ingredient-photo" className="mb-2 block">Ingredient photo</Label>
+                <div className="flex items-center gap-3">
+                  {photoPreview
+                    ? <img src={photoPreview} alt={`Selected photo for ${form.name || 'ingredient'}`} className="h-16 w-16 rounded-lg object-cover" />
+                    : <IngredientPhoto id={form.id} name={form.name || 'Ingredient'} photoPath={form.photoPath} className="h-16 w-16 rounded-lg" />}
+                  <div className="min-w-0 flex-1">
+                    <Input id="ingredient-photo" type="file" accept="image/jpeg,image/png,image/webp" className="min-h-10 cursor-pointer text-xs file:mr-2 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs file:font-semibold" data-testid="input-ingredient-photo" onChange={async e => {
+                      const file = e.target.files?.[0] ?? null;
+                      setPhotoError('');
+                      if (!file) { setPhotoFile(null); return; }
+                      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+                        setPhotoFile(null);
+                        setPhotoError('Choose a JPEG, PNG, or WebP photo up to 5 MB.');
+                        e.target.value = '';
+                        return;
+                      }
+                      try {
+                        const image = await createImageBitmap(file);
+                        image.close();
+                        setPhotoFile(file);
+                      } catch {
+                        setPhotoFile(null);
+                        setPhotoError('This file could not be opened as an image.');
+                        e.target.value = '';
+                      }
+                    }} />
+                    <p className="mt-1 text-[11px] text-muted-foreground">JPEG, PNG or WebP · max 5 MB · only visible to your account</p>
+                  </div>
+                </div>
+                {photoError && <p role="alert" className="mt-2 text-xs text-destructive">{photoError}</p>}
+              </div>
               {multiBatch && <p className="col-span-2 text-sm">Multiple expiry batches: use Batches / receive to correct stock quantities and dates. These totals are read-only.</p>}
               <div><Label>Quantity</Label><Input disabled={multiBatch} type="number" min={0} step="0.1" value={form.quantity} onChange={set('quantity')} data-testid="input-quantity" /></div>
               <div><Label>Unit</Label><Input disabled={multiBatch} value={form.unit} onChange={set('unit')} data-testid="input-unit" /></div>
@@ -146,7 +231,7 @@ export default function Inventory() {
               <div><Label>Delivery quantity</Label><Input type="number" min={0} value={form.deliveryQuantity} onChange={set('deliveryQuantity')} data-testid="input-delivery-qty" /></div>
               <div><Label>Delivery date</Label><Input type="date" value={form.deliveryDate} onChange={set('deliveryDate')} data-testid="input-delivery-date" /></div>
               {formErr && <div className="col-span-2 text-xs text-destructive">{formErr}</div>}
-              <Button className="col-span-2" disabled={!!formErr || add.isPending} onClick={save} data-testid="button-save-ingredient">{add.isPending ? 'Saving...' : 'Save ingredient'}</Button>
+              <Button className="col-span-2" disabled={!!formErr || !!photoError || add.isPending || photoSaving} onClick={save} data-testid="button-save-ingredient">{add.isPending ? 'Saving...' : photoSaving ? 'Uploading photo...' : 'Save ingredient'}</Button>
             </div>
           )}
         </DialogContent>

@@ -28,16 +28,18 @@ const photoByName: [RegExp, string][] = [
 export function IngredientPhoto({
   id,
   name,
+  photoPath,
   className,
 }: {
   id?: string;
   name: string;
+  photoPath?: string | null;
   className?: string;
 }) {
   const normalizedName = name.toLowerCase();
   const photo = photoById[id ?? ''] ?? photoByName.find(([pattern]) => pattern.test(normalizedName))?.[1];
 
-  if (!photo) {
+  if (!photo && !photoPath) {
     return (
       <span
         role="img"
@@ -49,9 +51,13 @@ export function IngredientPhoto({
     );
   }
 
+  const src = photoPath
+    ? `${import.meta.env.BASE_URL}api/storage/objects/${photoPath}`
+    : `${import.meta.env.BASE_URL}ingredients/${photo}.jpg`;
+
   return (
     <img
-      src={`${import.meta.env.BASE_URL}ingredients/${photo}.jpg`}
+      src={src}
       alt={name}
       className={cn('shrink-0 rounded-xl bg-muted object-cover', className)}
       loading="lazy"

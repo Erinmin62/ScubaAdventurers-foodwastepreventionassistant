@@ -10,6 +10,8 @@ import type { ReorderConfig } from './reorderConfig';
 export interface ReorderLine {
   ingredientId: string;
   name: string;
+  /** @nullable */
+  photoPath?: string | null;
   unit: string;
   unitCost: number;
   expiry: string;

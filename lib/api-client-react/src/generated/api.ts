@@ -29,6 +29,9 @@ import type {
   InboxState,
   InboxThresholds,
   InboxUpdateInput,
+  IngredientPhotoConfirmRequest,
+  IngredientPhotoUploadRequest,
+  IngredientPhotoUploadResponse,
   MonitorHeartbeatStatus,
   NotificationReview,
   NotificationReviewInput,
@@ -70,6 +73,259 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getRequestIngredientPhotoUploadUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/request-url`
+}
+
+/**
+ * @summary Request an owner-scoped ingredient photo upload
+ */
+export const requestIngredientPhotoUpload = async (ingredientPhotoUploadRequest: IngredientPhotoUploadRequest, options?: Parameters<typeof customFetch>[1]): Promise<IngredientPhotoUploadResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<IngredientPhotoUploadResponse>(getRequestIngredientPhotoUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(ingredientPhotoUploadRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestIngredientPhotoUploadMutationKey = () => ['requestIngredientPhotoUpload'] as const;
+
+export const getRequestIngredientPhotoUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestIngredientPhotoUpload>>, TError,RequestIngredientPhotoUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestIngredientPhotoUpload>>, TError,RequestIngredientPhotoUploadMutationVariables, TContext> => {
+
+const mutationKey = getRequestIngredientPhotoUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestIngredientPhotoUpload>>, RequestIngredientPhotoUploadMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestIngredientPhotoUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestIngredientPhotoUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestIngredientPhotoUpload>>>
+    export type RequestIngredientPhotoUploadMutationBody = BodyType<IngredientPhotoUploadRequest>
+    export type RequestIngredientPhotoUploadMutationError = ErrorType<void>
+    export type RequestIngredientPhotoUploadMutationVariables = {data: BodyType<IngredientPhotoUploadRequest>}
+
+    /**
+ * @summary Request an owner-scoped ingredient photo upload
+ */
+export const useRequestIngredientPhotoUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestIngredientPhotoUpload>>, TError,RequestIngredientPhotoUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestIngredientPhotoUpload>>,
+        TError,
+        RequestIngredientPhotoUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestIngredientPhotoUploadMutationOptions(options));
+    }
+
+export const getConfirmIngredientPhotoUploadUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/confirm`
+}
+
+/**
+ * @summary Confirm and save an uploaded ingredient photo
+ */
+export const confirmIngredientPhotoUpload = async (ingredientPhotoConfirmRequest: IngredientPhotoConfirmRequest, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getConfirmIngredientPhotoUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(ingredientPhotoConfirmRequest)
+  }
+);}
+
+
+
+
+
+export const getConfirmIngredientPhotoUploadMutationKey = () => ['confirmIngredientPhotoUpload'] as const;
+
+export const getConfirmIngredientPhotoUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmIngredientPhotoUpload>>, TError,ConfirmIngredientPhotoUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmIngredientPhotoUpload>>, TError,ConfirmIngredientPhotoUploadMutationVariables, TContext> => {
+
+const mutationKey = getConfirmIngredientPhotoUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmIngredientPhotoUpload>>, ConfirmIngredientPhotoUploadMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmIngredientPhotoUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmIngredientPhotoUploadMutationResult = NonNullable<Awaited<ReturnType<typeof confirmIngredientPhotoUpload>>>
+    export type ConfirmIngredientPhotoUploadMutationBody = BodyType<IngredientPhotoConfirmRequest>
+    export type ConfirmIngredientPhotoUploadMutationError = ErrorType<void>
+    export type ConfirmIngredientPhotoUploadMutationVariables = {data: BodyType<IngredientPhotoConfirmRequest>}
+
+    /**
+ * @summary Confirm and save an uploaded ingredient photo
+ */
+export const useConfirmIngredientPhotoUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmIngredientPhotoUpload>>, TError,ConfirmIngredientPhotoUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmIngredientPhotoUpload>>,
+        TError,
+        ConfirmIngredientPhotoUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmIngredientPhotoUploadMutationOptions(options));
+    }
+
+export const getGetIngredientPhotoUrl = (objectKey: string,) => {
+
+
+
+
+  return `/api/storage/objects/${objectKey}`
+}
+
+/**
+ * @summary Serve an ingredient photo to its owning café account
+ */
+export const getIngredientPhoto = async (objectKey: string, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getGetIngredientPhotoUrl(objectKey),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIngredientPhotoQueryKey = (objectKey: string,) => {
+    return [
+    `/api/storage/objects/${objectKey}`
+    ] as const;
+    }
+
+
+export const getGetIngredientPhotoQueryOptions = <TData = Awaited<ReturnType<typeof getIngredientPhoto>>, TError = ErrorType<void>>(objectKey: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIngredientPhoto>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIngredientPhotoQueryKey(objectKey);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIngredientPhoto>>> = ({ signal }) => getIngredientPhoto(objectKey, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: objectKey !== null && objectKey !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIngredientPhoto>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIngredientPhotoQueryResult = NonNullable<Awaited<ReturnType<typeof getIngredientPhoto>>>
+export type GetIngredientPhotoQueryError = ErrorType<void>
+
+
+/**
+ * @summary Serve an ingredient photo to its owning café account
+ */
+
+export function useGetIngredientPhoto<TData = Awaited<ReturnType<typeof getIngredientPhoto>>, TError = ErrorType<void>>(
+ objectKey: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIngredientPhoto>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIngredientPhotoQueryOptions(objectKey,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetInboxUrl = () => {
 

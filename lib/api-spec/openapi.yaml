@@ -16,6 +16,53 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /storage/uploads/request-url:
+    post:
+      operationId: requestIngredientPhotoUpload
+      summary: Request an owner-scoped ingredient photo upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IngredientPhotoUploadRequest" }
+      responses:
+        "200":
+          description: A short-lived upload URL and private object reference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IngredientPhotoUploadResponse" }
+        "400": { description: Invalid photo metadata or ingredient }
+        "401": { description: Sign-in required }
+  /storage/uploads/confirm:
+    post:
+      operationId: confirmIngredientPhotoUpload
+      summary: Confirm and save an uploaded ingredient photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IngredientPhotoConfirmRequest" }
+      responses:
+        "200":
+          description: Owner workspace with the confirmed photo reference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: "Invalid, missing, or oversized photo" }
+        "401": { description: Sign-in required }
+  /storage/objects/{objectKey}:
+    get:
+      operationId: getIngredientPhoto
+      summary: Serve an ingredient photo to its owning café account
+      parameters:
+        - name: objectKey
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[a-f0-9]{96}$" }
+      responses:
+        "302": { description: Temporary redirect to a short-lived private object URL }
+        "401": { description: Sign-in required }
+        "404": { description: Photo not found for this owner }
   /guard/inbox:
     get:
       operationId: getInbox
@@ -555,6 +602,7 @@ components:
       properties:
         ingredientId: { type: string }
         name: { type: string }
+        photoPath: { type: ["string", "null"] }
         unit: { type: string }
         unitCost: { type: number }
         expiry: { type: string }
@@ -668,6 +716,7 @@ components:
         category: { type: string }
         deliveryQuantity: { type: number, minimum: 0 }
         deliveryDate: { type: string }
+        photoPath: { type: ["string", "null"] }
         measuredDate: { type: ["string", "null"] }
         batches:
           type: array
@@ -899,6 +948,26 @@ components:
           items:
             type: object
             additionalProperties: true
+    IngredientPhotoUploadRequest:
+      type: object
+      required: [ingredientId, name, size, contentType]
+      properties:
+        ingredientId: { type: string, minLength: 1, maxLength: 160 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 5242880 }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+    IngredientPhotoUploadResponse:
+      type: object
+      required: [uploadURL, objectKey]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectKey: { type: string, pattern: "^[a-f0-9]{96}$" }
+    IngredientPhotoConfirmRequest:
+      type: object
+      required: [ingredientId, objectKey]
+      properties:
+        ingredientId: { type: string, minLength: 1, maxLength: 160 }
+        objectKey: { type: string, pattern: "^[a-f0-9]{96}$" }
     DecisionInput:
       type: object
       required: [decision]

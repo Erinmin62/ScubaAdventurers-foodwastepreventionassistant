@@ -373,6 +373,8 @@ export interface ReorderConfig {
 export interface ReorderLine {
   ingredientId: string;
   name: string;
+  /** @nullable */
+  photoPath?: string | null;
   unit: string;
   unitCost: number;
   expiry: string;
@@ -521,6 +523,8 @@ export interface Ingredient {
   /** @minimum 0 */
   deliveryQuantity: number;
   deliveryDate: string;
+  /** @nullable */
+  photoPath?: string | null;
   /** @nullable */
   measuredDate?: string | null;
   batches?: StockBatch[];
@@ -744,6 +748,50 @@ export interface RecordsInput {
      * @maxItems 2000
      */
   rows: RecordsInputRowsItem[];
+}
+
+export type IngredientPhotoUploadRequestContentType = typeof IngredientPhotoUploadRequestContentType[keyof typeof IngredientPhotoUploadRequestContentType];
+
+
+export const IngredientPhotoUploadRequestContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export interface IngredientPhotoUploadRequest {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  ingredientId: string;
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 5242880
+     */
+  size: number;
+  contentType: IngredientPhotoUploadRequestContentType;
+}
+
+export interface IngredientPhotoUploadResponse {
+  uploadURL: string;
+  /** @pattern ^[a-f0-9]{96}$ */
+  objectKey: string;
+}
+
+export interface IngredientPhotoConfirmRequest {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  ingredientId: string;
+  /** @pattern ^[a-f0-9]{96}$ */
+  objectKey: string;
 }
 
 export type DecisionInputDecision = typeof DecisionInputDecision[keyof typeof DecisionInputDecision];
