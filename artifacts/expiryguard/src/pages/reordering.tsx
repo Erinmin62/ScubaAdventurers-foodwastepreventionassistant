@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ReorderPreviewPanel, previewKey, type PreviewStatus } from '@/components/reorder-preview';
 import { addDays, errorMessage, fmt, niceDate, rm, useGuard } from '@/lib/guard';
+import { IngredientPhoto } from '@/components/ingredient-photo';
 
 function useInvalidate() {
   const qc = useQueryClient();
@@ -135,17 +136,21 @@ function PlanCard({ plan, today }: { plan: ReorderPlan; today: string }) {
 
   return (
     <div className={cn('rounded-xl border p-4 space-y-3', pending ? 'border-primary/30 bg-primary/[0.03]' : 'bg-background/60', plan.status === 'FAILED' && 'border-destructive/40 bg-destructive/[0.03]')} data-testid={`card-plan-${plan.id}`}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2"><PlanStatus s={plan.status} /><span className="num text-[11px] text-muted-foreground">drafted {niceDate(plan.createdAt.slice(0, 10))}</span></div>
+      <div className="flex items-start gap-3">
+        <IngredientPhoto id={l.ingredientId} name={l.name} className="h-16 w-16 rounded-xl sm:h-[4.5rem] sm:w-[4.5rem]" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2"><PlanStatus s={plan.status} /><span className="num text-[11px] text-muted-foreground">drafted {niceDate(plan.createdAt.slice(0, 10))}</span></div>
           <h3 ref={planTitle} tabIndex={-1} className="font-semibold text-lg mt-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{l.name}</h3>
+          <p className="text-[11px] text-muted-foreground">Current {fmt(l.currentStock)} {l.unit} · delivery {niceDate(l.deliveryDate)}</p>
         </div>
-        <div className="text-right num">
-          <div className="text-lg font-semibold">{fmt(l.recommendedQuantity)} <span className="text-xs text-muted-foreground">{l.unit}</span></div>
-          <div className="text-[11px] text-muted-foreground">was {fmt(l.originalQuantity)} {l.unit} · {rm(l.originalCost)}</div>
-          {l.originalCost - l.proposedCost > 0 && <div className="mt-1 text-jade"><div className="text-2xl font-extrabold">{rm(l.originalCost - l.proposedCost)}</div><div className="text-[10px] font-bold uppercase tracking-wider">less purchasing · est., not realised</div></div>}
+        <div className="shrink-0 text-right num">
+          <div className="text-lg font-bold">{fmt(l.recommendedQuantity)} <span className="text-xs font-medium text-muted-foreground">{l.unit}</span></div>
+          <div className="text-[11px] font-semibold text-primary">to restock</div>
+          <div className="text-[11px] text-muted-foreground">{rm(l.proposedCost)}</div>
         </div>
       </div>
+      <p className="text-[11px] text-muted-foreground">Draft only · owner approval required · no supplier order is placed.</p>
+      {l.wasteQuantity > 0 && <div className="flex gap-2 text-xs rounded-lg border border-destructive/20 bg-destructive/[0.04] p-2" data-testid={`text-expiry-risk-${plan.id}`}><AlertTriangle className="w-4 h-4 text-destructive shrink-0" /><span>Expiry risk: {fmt(l.wasteQuantity)} {l.unit} by {niceDate(l.expiry)}.</span></div>}
       {!l.demandAvailable && <div id={`review-required-${plan.id}`} role="status" className="flex gap-2 text-xs rounded-lg border border-destructive/30 bg-destructive/5 p-2"><AlertTriangle className="w-4 h-4 text-destructive shrink-0" />Review available. Approval stays disabled until the missing demand, delivery or planning information is resolved. You can still reject.</div>}
       {!mode && <details className="rounded-lg border bg-muted/20 p-3 text-xs">
         <summary className="cursor-pointer font-semibold">Review quantities, explanation and assumptions</summary>
@@ -312,7 +317,7 @@ export default function Reordering() {
         <Panel title="Live ingredient analysis" sub="Received batches are allocated by earliest expiry. The incoming delivery is a separate plan, not received stock.">
           {data.analysis.length ? <div className="space-y-4">{data.analysis.map((l) => (
             <div key={l.ingredientId} className="rounded-xl border p-4 space-y-3" data-testid={`card-analysis-${l.ingredientId}`}>
-              <div className="flex items-center gap-2 font-semibold"><Truck className="w-4 h-4 text-primary" />{l.name}</div>
+              <div className="flex items-center gap-3"><IngredientPhoto id={l.ingredientId} name={l.name} className="h-12 w-12 rounded-lg" /><div><div className="flex items-center gap-2 font-semibold"><Truck className="w-4 h-4 text-primary" />{l.name}</div><div className="text-xs text-muted-foreground">Current {fmt(l.currentStock)} {l.unit} · recommend {fmt(l.recommendedQuantity)} {l.unit}</div></div></div>
               {l.shortageBeforeDelivery > 0 && <div className="text-xs text-destructive font-semibold">Shortfall warning: {fmt(l.shortageBeforeDelivery)} {l.unit} short before delivery.</div>}
               <LineFacts l={l} />
               <Assumptions l={l} />

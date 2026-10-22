@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { addDays, daysBetween, errorMessage, fmt, isDate, isNum, niceDate, rm, useGuard, useGuardMutations } from '@/lib/guard';
 import { cn } from '@/lib/utils';
 import { StockBatches } from '@/components/stock-batches';
+import { IngredientPhoto } from '@/components/ingredient-photo';
 
 const spec: ImportSpec = {
   kind: 'inventory',
@@ -114,7 +115,7 @@ export default function Inventory() {
                   const r = riskMap.get(i.id);
                   return (
                     <tr key={i.id} id={`ingredient-${i.id}`} className="scroll-mt-24 border-b last:border-0 hover:bg-muted/40 transition-colors" data-testid={`row-ingredient-${i.id}`}>
-                      <td className="py-2.5 pr-3"><div className="font-semibold">{i.name}</div><div className="text-[11px] text-muted-foreground">{i.category || 'Other'}</div><Button variant="link" size="sm" className="px-0" onClick={() => setBatchId(i.id)}>Batches / receive ({i.batches?.length ?? 1})</Button></td>
+                      <td className="py-2.5 pr-3"><div className="flex min-w-40 items-center gap-3"><IngredientPhoto id={i.id} name={i.name} className="h-12 w-12 rounded-lg" /><div className="min-w-0"><div className="font-semibold">{i.name}</div><div className="text-[11px] text-muted-foreground">{i.category || 'Other'}</div><Button variant="link" size="sm" className="min-h-8 px-0" onClick={() => setBatchId(i.id)}>Batches / receive ({i.batches?.length ?? 1})</Button></div></div></td>
                       <td className="pr-3 num">{fmt(i.quantity)} {i.unit}</td>
                       <td className="pr-3"><div className="num text-xs">{niceDate(i.expiry)} (earliest)</div><div className={cn('text-[11px] font-semibold', days < 0 ? 'text-destructive' : days <= 1 ? 'text-primary' : 'text-muted-foreground')}>{days < 0 ? 'Expired batch excluded' : days === 0 ? 'Today' : `${days}d left`}</div></td>
                       <td className="pr-3">{days < 0 ? <LevelPill level="expired" /> : r ? <div className="flex items-center gap-2"><LevelPill level={r.level} /><span className="num text-xs">{rm(r.value)}</span></div> : <span className="text-xs text-muted-foreground">Clear</span>}</td>
