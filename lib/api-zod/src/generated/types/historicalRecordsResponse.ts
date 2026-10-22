@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { HistoricalBatch } from './historicalBatch';
 import type { HistoricalRecord } from './historicalRecord';
 
 export interface HistoricalRecordsResponse {
+  batches: HistoricalBatch[];
   records: HistoricalRecord[];
 }

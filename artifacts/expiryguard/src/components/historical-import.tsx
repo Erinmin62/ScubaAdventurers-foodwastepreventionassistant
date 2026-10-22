@@ -102,7 +102,7 @@ export function HistoricalImport({ state }: { state: GuardState }) {
   };
 
   const submit = () => {
-    importRecords.mutate({ data: { rows: readyRows } }, {
+    importRecords.mutate({ data: { rows: readyRows, fileName: file } }, {
       onSuccess: (result) => {
         toast({ title: `Imported ${result.records.length} historical records`, description: `${file} · kept separate from live sales, stock, orders, and AI inputs.` });
         setRows([]);

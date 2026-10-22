@@ -1004,6 +1004,11 @@ export interface HistoricalRecordInput {
 
 export interface HistoricalRecordsInput {
   /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  fileName?: string;
+  /**
      * @minItems 1
      * @maxItems 2000
      */
@@ -1021,6 +1026,8 @@ export const HistoricalRecordKind = {
 
 export interface HistoricalRecord {
   id: string;
+  batchId?: string;
+  fileName?: string;
   kind: HistoricalRecordKind;
   date: string;
   importedAt: string;
@@ -1034,8 +1041,21 @@ export interface HistoricalRecord {
   leftover?: number;
 }
 
+export interface HistoricalBatch {
+  id: string;
+  fileName: string;
+  importedAt: string;
+  /** @minimum 1 */
+  recordCount: number;
+}
+
 export interface HistoricalRecordsResponse {
+  batches: HistoricalBatch[];
   records: HistoricalRecord[];
+}
+
+export interface HistoricalBatchRemoval {
+  confirmed: true;
 }
 
 export type IngredientPhotoUploadRequestContentType = typeof IngredientPhotoUploadRequestContentType[keyof typeof IngredientPhotoUploadRequestContentType];

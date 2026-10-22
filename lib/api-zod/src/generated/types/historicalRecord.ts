@@ -9,6 +9,8 @@ import type { HistoricalRecordKind } from './historicalRecordKind';
 
 export interface HistoricalRecord {
   id: string;
+  batchId?: string;
+  fileName?: string;
   kind: HistoricalRecordKind;
   date: string;
   importedAt: Date;

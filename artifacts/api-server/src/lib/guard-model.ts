@@ -4,6 +4,8 @@ import { safeStock, stockBatches } from "./guard-batches";
 export type State = typeof GetGuardStateResponse._output;
 export type HistoricalRecord = {
   id: string;
+  batchId?: string;
+  fileName?: string;
   kind: "sales" | "preparation" | "stock";
   date: string;
   importedAt: string;

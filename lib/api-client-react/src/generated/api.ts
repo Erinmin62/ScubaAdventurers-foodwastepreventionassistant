@@ -28,6 +28,7 @@ import type {
   FollowUpScheduleInput,
   GuardState,
   HealthStatus,
+  HistoricalBatchRemoval,
   HistoricalRecordsInput,
   HistoricalRecordsResponse,
   InboxState,
@@ -2006,6 +2007,95 @@ export function useGetHistoricalRecords<TData = Awaited<ReturnType<typeof getHis
 
 
 
+
+export const getRemoveHistoricalBatchUrl = (batchId: string,) => {
+
+
+
+
+  return `/api/guard/history/batches/${batchId}`
+}
+
+/**
+ * @summary Remove only this owner's archive batch without changing operational records
+ */
+export const removeHistoricalBatch = async (batchId: string,
+    historicalBatchRemoval: HistoricalBatchRemoval, options?: Parameters<typeof customFetch>[1]): Promise<HistoricalRecordsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<HistoricalRecordsResponse>(getRemoveHistoricalBatchUrl(batchId),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(historicalBatchRemoval)
+  }
+);}
+
+
+
+
+
+export const getRemoveHistoricalBatchMutationKey = () => ['removeHistoricalBatch'] as const;
+
+export const getRemoveHistoricalBatchMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeHistoricalBatch>>, TError,RemoveHistoricalBatchMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeHistoricalBatch>>, TError,RemoveHistoricalBatchMutationVariables, TContext> => {
+
+const mutationKey = getRemoveHistoricalBatchMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeHistoricalBatch>>, RemoveHistoricalBatchMutationVariables> = (props) => {
+          const {batchId,data} = props ?? {};
+
+          return  removeHistoricalBatch(batchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveHistoricalBatchMutationResult = NonNullable<Awaited<ReturnType<typeof removeHistoricalBatch>>>
+    export type RemoveHistoricalBatchMutationBody = BodyType<HistoricalBatchRemoval>
+    export type RemoveHistoricalBatchMutationError = ErrorType<void>
+    export type RemoveHistoricalBatchMutationVariables = {batchId: string;data: BodyType<HistoricalBatchRemoval>}
+
+    /**
+ * @summary Remove only this owner's archive batch without changing operational records
+ */
+export const useRemoveHistoricalBatch = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeHistoricalBatch>>, TError,RemoveHistoricalBatchMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeHistoricalBatch>>,
+        TError,
+        RemoveHistoricalBatchMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveHistoricalBatchMutationOptions(options));
+    }
 
 export const getImportHistoricalRecordsUrl = () => {
 

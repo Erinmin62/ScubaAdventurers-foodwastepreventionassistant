@@ -35,6 +35,8 @@ export * from './followUpStatus';
 export * from './forecast';
 export * from './guardState';
 export * from './healthStatus';
+export * from './historicalBatch';
+export * from './historicalBatchRemoval';
 export * from './historicalRecord';
 export * from './historicalRecordInput';
 export * from './historicalRecordInputKind';

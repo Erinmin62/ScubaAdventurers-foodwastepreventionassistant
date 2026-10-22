@@ -7,6 +7,7 @@ import { scanNotificationEvents } from "./guard-notifications";
 import { migrateBatches } from "./guard-batches";
 import { syncInbox } from "./guard-inbox";
 import { currentWorkspaceId } from "./workspace-context";
+import { removeArchiveBatch } from "./guard-history";
 
 export async function changeWorkspace(action: (s: Stored) => void = () => {}, autoRun = true) {
   const id = currentWorkspaceId();
@@ -38,7 +39,8 @@ export async function readWorkspace(): Promise<Stored | null> {
 
 /** Append only to the isolated historical archive; do not run planning or mutate operational fields. */
 export async function appendHistoricalRecords(
-  records: Omit<HistoricalRecord, "id" | "importedAt">[],
+  records: Omit<HistoricalRecord, "id" | "importedAt" | "batchId" | "fileName">[],
+  fileName = "Unnamed import",
 ): Promise<HistoricalRecord[]> {
   const id = currentWorkspaceId();
   await db.insert(guardWorkspace).values({ id, data: seed() }).onConflictDoNothing();
@@ -47,10 +49,24 @@ export async function appendHistoricalRecords(
     if (!record) throw new Error("Workspace unavailable.");
     const stored = record.data as Stored;
     const importedAt = new Date().toISOString();
-    const added = records.map(value => ({ ...value, id: crypto.randomUUID(), importedAt }));
+    const batchId = crypto.randomUUID();
+    const added = records.map(value => ({ ...value, id: crypto.randomUUID(), importedAt, batchId, fileName }));
     stored.historicalRecords ??= [];
     stored.historicalRecords.push(...added);
     await tx.update(guardWorkspace).set({ data: stored }).where(eq(guardWorkspace.id, id));
     return added;
+  });
+}
+
+/** Lock the owner's document, remove only archive rows, and do not invoke changeWorkspace. */
+export async function removeHistoricalBatch(batchId: string): Promise<HistoricalRecord[] | null> {
+  const id = currentWorkspaceId();
+  return db.transaction(async tx => {
+    const [record] = await tx.select().from(guardWorkspace).where(eq(guardWorkspace.id, id)).for("update");
+    if (!record) return null;
+    const stored = record.data as Stored;
+    if (!removeArchiveBatch(stored, batchId)) return null;
+    await tx.update(guardWorkspace).set({ data: stored }).where(eq(guardWorkspace.id, id));
+    return stored.historicalRecords ?? [];
   });
 }

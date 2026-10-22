@@ -9,6 +9,11 @@ import type { HistoricalRecordInput } from './historicalRecordInput';
 
 export interface HistoricalRecordsInput {
   /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  fileName?: string;
+  /**
      * @minItems 1
      * @maxItems 2000
      */

@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
 import { AddGuardRecordsBody, GetHistoricalRecordsResponse, ImportHistoricalRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody } from "@workspace/api-zod";
 import { compute, today, round, seed, type HistoricalRecord } from "../lib/guard-model";
-import { appendHistoricalRecords, changeWorkspace as change, readWorkspace } from "../lib/guard-store";
+import { appendHistoricalRecords, removeHistoricalBatch, changeWorkspace as change, readWorkspace } from "../lib/guard-store";
+import { RemoveHistoricalBatchBody, RemoveHistoricalBatchParams } from "@workspace/api-zod";
+import { historicalArchive } from "../lib/guard-history";
 import { runWorkflows } from "../lib/guard-automation";
 import { InputError, cancelOutstanding, completeFollowUp, scheduleFollowUp } from "../lib/guard-follow-ups";
 import { safeStock, stockBatches, syncStock } from "../lib/guard-batches";
@@ -154,7 +156,17 @@ router.post("/guard/records", async (req, res): Promise<void> => {
 });
 router.get("/guard/history", async (_req, res): Promise<void> => {
   const stored = await readWorkspace();
-  res.json(GetHistoricalRecordsResponse.parse({ records: stored?.historicalRecords ?? [] }));
+  res.json(GetHistoricalRecordsResponse.parse(historicalArchive(stored?.historicalRecords)));
+});
+router.delete("/guard/history/batches/:batchId", async (req, res): Promise<void> => {
+  const params = RemoveHistoricalBatchParams.safeParse(req.params);
+  const body = RemoveHistoricalBatchBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Confirm archive batch removal before continuing." }); return;
+  }
+  const records = await removeHistoricalBatch(params.data.batchId);
+  if (records === null) { res.status(404).json({ error: "Archive batch not found. It may already have been removed." }); return; }
+  res.json(GetHistoricalRecordsResponse.parse(historicalArchive(records)));
 });
 router.post("/guard/history/import", async (req, res): Promise<void> => {
   const parsed = ImportHistoricalRecordsBody.safeParse(req.body);
@@ -196,8 +208,8 @@ router.post("/guard/history/import", async (req, res): Promise<void> => {
         throw error;
       }
     });
-    const added = await appendHistoricalRecords(validated);
-    res.json(GetHistoricalRecordsResponse.parse({ records: added }));
+    const added = await appendHistoricalRecords(validated, parsed.data.fileName?.trim() || "Unnamed import");
+    res.json(GetHistoricalRecordsResponse.parse(historicalArchive(added)));
   } catch (err) {
     if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
     throw err;

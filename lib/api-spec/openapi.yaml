@@ -327,6 +327,30 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/HistoricalRecordsResponse" }
+  /guard/history/batches/{batchId}:
+    delete:
+      operationId: removeHistoricalBatch
+      summary: Remove only this owner's archive batch without changing operational records
+      parameters:
+        - in: path
+          name: batchId
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HistoricalBatchRemoval" }
+      responses:
+        "200":
+          description: Remaining archive after removal
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalRecordsResponse" }
+        "400":
+          description: Explicit confirmation required
+        "404":
+          description: Batch not found in this owner's archive
   /guard/history/import:
     post:
       operationId: importHistoricalRecords
@@ -1194,6 +1218,7 @@ components:
       type: object
       required: [rows]
       properties:
+        fileName: { type: string, minLength: 1, maxLength: 255 }
         rows:
           type: array
           minItems: 1
@@ -1217,6 +1242,8 @@ components:
       required: [id, kind, date, importedAt]
       properties:
         id: { type: string }
+        batchId: { type: string }
+        fileName: { type: string }
         kind: { type: string, enum: [sales, preparation, stock] }
         date: { type: string }
         importedAt: { type: string, format: date-time }
@@ -1230,11 +1257,27 @@ components:
         leftover: { type: integer }
     HistoricalRecordsResponse:
       type: object
-      required: [records]
+      required: [records, batches]
       properties:
+        batches:
+          type: array
+          items: { $ref: "#/components/schemas/HistoricalBatch" }
         records:
           type: array
           items: { $ref: "#/components/schemas/HistoricalRecord" }
+    HistoricalBatch:
+      type: object
+      required: [id, fileName, importedAt, recordCount]
+      properties:
+        id: { type: string }
+        fileName: { type: string }
+        importedAt: { type: string, format: date-time }
+        recordCount: { type: integer, minimum: 1 }
+    HistoricalBatchRemoval:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed: { type: boolean, enum: [true] }
     IngredientPhotoUploadRequest:
       type: object
       required: [ingredientId, name, size, contentType]

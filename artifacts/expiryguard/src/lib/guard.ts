@@ -6,6 +6,7 @@ import {
   useGetHistoricalRecords,
   useAddGuardRecords,
   useImportHistoricalRecords,
+  useRemoveHistoricalBatch,
   useAttachFollowUp,
   useRecordFollowUpOutcome,
   useDecideRecommendation,
@@ -43,7 +44,15 @@ export function useHistoricalRecords() {
       onSuccess: () => qc.invalidateQueries({ queryKey: getGetHistoricalRecordsQueryKey() }),
     },
   });
-  return { records, importRecords };
+  const removeBatch = useRemoveHistoricalBatch({
+    mutation: {
+      onSuccess: data => {
+        qc.setQueryData(getGetHistoricalRecordsQueryKey(), data);
+        qc.invalidateQueries({ queryKey: getGetHistoricalRecordsQueryKey() });
+      },
+    },
+  });
+  return { records, importRecords, removeBatch };
 }
 
 export const rm = (n: number) => `RM ${(n ?? 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

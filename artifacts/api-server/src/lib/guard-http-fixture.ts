@@ -8,6 +8,7 @@ import { scanNotificationEvents } from "./guard-notifications";
 import { migrateBatches } from "./guard-batches";
 import { syncInbox } from "./guard-inbox";
 import { currentWorkspaceId } from "./workspace-context";
+import { removeArchiveBatch } from "./guard-history";
 
 const saved = new Map<string, Stored>();
 function workspace() {
@@ -19,14 +20,21 @@ let nextWorkspaceChangeError: Error | null = null;
 export function resetWorkspace(state: Stored, id = workspace()) { saved.set(id, structuredClone(state)); }
 export function snapshotWorkspace(id = workspace()) { return structuredClone(saved.get(id) ?? seed()); }
 export function readWorkspace() { return snapshotWorkspace(); }
-export async function appendHistoricalRecords(records: Omit<HistoricalRecord, "id" | "importedAt">[]) {
+export async function appendHistoricalRecords(records: Omit<HistoricalRecord, "id" | "importedAt">[], fileName = "Unnamed import") {
   const staged = snapshotWorkspace();
   const importedAt = new Date().toISOString();
-  const added = records.map(value => ({ ...value, id: crypto.randomUUID(), importedAt }));
+  const batchId = crypto.randomUUID();
+  const added = records.map(value => ({ ...value, id: crypto.randomUUID(), importedAt, batchId, fileName }));
   staged.historicalRecords ??= [];
   staged.historicalRecords.push(...added);
   saved.set(workspace(), staged);
   return added;
+}
+export async function removeHistoricalBatch(batchId: string) {
+  const staged = snapshotWorkspace();
+  if (!removeArchiveBatch(staged, batchId)) return null;
+  saved.set(workspace(), staged);
+  return staged.historicalRecords ?? [];
 }
 export function failNextWorkspaceChange(error = new Error("Simulated workspace persistence failure.")) {
   nextWorkspaceChangeError = error;

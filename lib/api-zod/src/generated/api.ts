@@ -2675,9 +2675,64 @@ export const GetGuardStateResponse = zod.object({
 /**
  * @summary List historical records kept separate from live planning inputs
  */
+
+
+
 export const GetHistoricalRecordsResponse = zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "fileName": zod.string(),
+  "importedAt": zod.coerce.date(),
+  "recordCount": zod.number().int().min(1)
+})),
   "records": zod.array(zod.object({
   "id": zod.string(),
+  "batchId": zod.string().optional(),
+  "fileName": zod.string().optional(),
+  "kind": zod.enum(['sales', 'preparation', 'stock']),
+  "date": zod.string(),
+  "importedAt": zod.coerce.date(),
+  "menuId": zod.string().optional(),
+  "menuName": zod.string().optional(),
+  "itemName": zod.string().optional(),
+  "quantity": zod.number().optional(),
+  "unit": zod.string().optional(),
+  "prepared": zod.number().int().optional(),
+  "sold": zod.number().int().optional(),
+  "leftover": zod.number().int().optional()
+}))
+})
+
+
+/**
+ * @summary Remove only this owner's archive batch without changing operational records
+ */
+export const removeHistoricalBatchPathBatchIdMax = 200;
+
+
+
+export const RemoveHistoricalBatchParams = zod.object({
+  "batchId": zod.coerce.string().min(1).max(removeHistoricalBatchPathBatchIdMax)
+})
+
+export const RemoveHistoricalBatchBody = zod.object({
+  "confirmed": zod.literal(true)
+})
+
+
+
+
+export const RemoveHistoricalBatchResponse = zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "fileName": zod.string(),
+  "importedAt": zod.coerce.date(),
+  "recordCount": zod.number().int().min(1)
+})),
+  "records": zod.array(zod.object({
+  "id": zod.string(),
+  "batchId": zod.string().optional(),
+  "fileName": zod.string().optional(),
   "kind": zod.enum(['sales', 'preparation', 'stock']),
   "date": zod.string(),
   "importedAt": zod.coerce.date(),
@@ -2696,6 +2751,8 @@ export const GetHistoricalRecordsResponse = zod.object({
 /**
  * @summary Append validated historical records without changing live stock, sales, or orders
  */
+export const importHistoricalRecordsBodyFileNameMax = 255;
+
 export const importHistoricalRecordsBodyRowsItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const importHistoricalRecordsBodyRowsItemMenuIdMax = 160;
 
@@ -2718,6 +2775,7 @@ export const importHistoricalRecordsBodyRowsMax = 2000;
 
 
 export const ImportHistoricalRecordsBody = zod.object({
+  "fileName": zod.string().min(1).max(importHistoricalRecordsBodyFileNameMax).optional(),
   "rows": zod.array(zod.object({
   "kind": zod.enum(['sales', 'preparation', 'stock']),
   "date": zod.string().regex(importHistoricalRecordsBodyRowsItemDateRegExp),
@@ -2731,9 +2789,20 @@ export const ImportHistoricalRecordsBody = zod.object({
 })).min(1).max(importHistoricalRecordsBodyRowsMax)
 })
 
+
+
+
 export const ImportHistoricalRecordsResponse = zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "fileName": zod.string(),
+  "importedAt": zod.coerce.date(),
+  "recordCount": zod.number().int().min(1)
+})),
   "records": zod.array(zod.object({
   "id": zod.string(),
+  "batchId": zod.string().optional(),
+  "fileName": zod.string().optional(),
   "kind": zod.enum(['sales', 'preparation', 'stock']),
   "date": zod.string(),
   "importedAt": zod.coerce.date(),

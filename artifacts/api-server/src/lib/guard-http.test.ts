@@ -140,7 +140,52 @@ test("HTTP: historical imports validate atomically and stay out of live stock, s
   assert.deepEqual(after.results, before.results);
   assert.deepEqual(after.decisions, before.decisions);
   assert.deepEqual(after.reordering, before.reordering);
-  assert.deepEqual((await request("/guard/history", undefined, "GET")).data, { records: importedRecords });
+  assert.deepEqual(((await request("/guard/history", undefined, "GET")).data as { records: unknown[] }).records, importedRecords);
+});
+test("HTTP: confirmed removal targets one import, persists, and leaves every operational field unchanged", async () => {
+  fixture();
+  const payload = { fileName: "wrong-file.csv", rows: [
+    { kind: "stock", date: shift(today(), -1), itemName: "Tomatoes", quantity: 3, unit: "kg" },
+    { kind: "stock", date: shift(today(), -2), itemName: "Tomatoes", quantity: 4, unit: "kg" },
+  ] };
+  const first = (await request("/guard/history/import", payload)).data as {
+    records: { batchId: string; importedAt: string; fileName: string }[];
+    batches: { id: string; fileName: string; recordCount: number }[];
+  };
+  const second = (await request("/guard/history/import", payload)).data as typeof first;
+  assert.equal(first.batches.length, 1);
+  assert.equal(first.batches[0]!.fileName, payload.fileName);
+  assert.equal(first.batches[0]!.recordCount, 2);
+  assert.ok(first.records.every(row => row.batchId === first.batches[0]!.id && row.importedAt === first.records[0]!.importedAt));
+  assert.notEqual(first.batches[0]!.id, second.batches[0]!.id, "same file imports remain distinct");
+  const before = snapshotWorkspace();
+  const path = `/guard/history/batches/${encodeURIComponent(first.batches[0]!.id)}`;
+  for (const body of [undefined, {}, { confirmed: false }, { confirmed: "true" }]) {
+    assert.equal((await request(path, body, "DELETE")).status, 400);
+    assert.deepEqual(snapshotWorkspace(), before);
+  }
+  assert.equal((await request("/guard/history/batches/missing", { confirmed: true }, "DELETE")).status, 404);
+  const removed = await request(path, { confirmed: true }, "DELETE");
+  assert.equal(removed.status, 200);
+  assert.deepEqual((removed.data as typeof first).batches, second.batches);
+  assert.deepEqual((await request("/guard/history")).data, removed.data, "reload sees removal");
+  const after = snapshotWorkspace();
+  assert.deepEqual({ ...after, historicalRecords: undefined }, { ...before, historicalRecords: undefined }, "all non-archive fields unchanged");
+  assert.equal((await request(path, { confirmed: true }, "DELETE")).status, 404);
+});
+test("HTTP: legacy timestamp batches can be reviewed and removed without inventing a file name", async () => {
+  const stored = fixture();
+  stored.historicalRecords = [
+    { id: "old-1", kind: "stock", date: shift(today(), -1), importedAt: "2026-01-01T01:00:00.000Z", itemName: "Flour", quantity: 2, unit: "kg" },
+    { id: "old-2", kind: "stock", date: shift(today(), -1), importedAt: "2026-01-02T01:00:00.000Z", itemName: "Flour", quantity: 3, unit: "kg" },
+  ];
+  resetWorkspace(stored);
+  const archive = (await request("/guard/history")).data as { batches: { id: string; fileName: string }[] };
+  assert.equal(archive.batches.length, 2);
+  assert.match(archive.batches[0]!.fileName, /unavailable/);
+  const result = await request(`/guard/history/batches/${encodeURIComponent(archive.batches[0]!.id)}`, { confirmed: true }, "DELETE");
+  assert.equal(result.status, 200);
+  assert.deepEqual(snapshotWorkspace().historicalRecords, [stored.historicalRecords[0]]);
 });
 test("HTTP: menu changes preserve history, update planning, and keep recipe drafts owner-inventory bounded", async () => {
   fixture();
@@ -289,6 +334,18 @@ test("HTTP auth: anonymous access is denied and owner data, approvals, preferenc
     assert.equal(historicalImport.status, 200);
     assert.equal(((await call("/guard/history", "auth-test-a")).data as { records: unknown[] }).records.length, 1);
     assert.equal(((await call("/guard/history", "auth-test-b")).data as { records: unknown[] }).records.length, 0, "another owner cannot read this archive");
+    const batchId = (historicalImport.data as unknown as { batches: { id: string }[] }).batches[0]!.id;
+    const archivePath = `/guard/history/batches/${encodeURIComponent(batchId)}`;
+    const archiveA = snapshotWorkspace(a), archiveB = snapshotWorkspace(b);
+    assert.equal((await call(archivePath, undefined, { confirmed: true }, "DELETE")).status, 401);
+    assert.equal((await call(archivePath, "auth-test-b", { confirmed: true }, "DELETE")).status, 404);
+    assert.deepEqual(snapshotWorkspace(a), archiveA);
+    assert.deepEqual(snapshotWorkspace(b), archiveB);
+    assert.equal((await call(archivePath, "auth-test-a", { confirmed: true }, "DELETE", { Origin: "https://attacker.example" })).status, 403);
+    assert.deepEqual(snapshotWorkspace(a), archiveA);
+    assert.equal((await call(archivePath, "auth-test-a", { confirmed: true }, "DELETE")).status, 200);
+    assert.deepEqual({ ...snapshotWorkspace(a), historicalRecords: undefined }, { ...archiveA, historicalRecords: undefined });
+    assert.deepEqual(snapshotWorkspace(b), archiveB);
     assert.equal((await call("/guard/state", "auth-test-a", undefined, undefined, { Origin: "https://attacker.example" })).status, 403);
     const plan = (await call("/guard/reorders/scan", "auth-test-a", {})).data.plans.find((p: { status: string }) => p.status === "PENDING_APPROVAL");
     assert.ok(plan);
