@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { emailRoutes, providerConfig } from "./config";
 import { emailRecord, runEmailWorker } from "./runner";
-import { klDay, scanEmailCandidates } from "./rules";
-import { resendSender, type EmailSender } from "./sender";
+import { expiryEmailCandidates, klDay, scanEmailCandidates } from "./rules";
+import { resendConnectorSender, resendSender, type EmailSender } from "./sender";
 import { MemoryEmailRepository, sampleEmailWorkspace, testRoute } from "./email-worker.test-support";
 import { seed, shift } from "../guard-model";
 
@@ -49,6 +49,20 @@ test("email dry-run previews without sender calls or any persistent writes", asy
   const result = await runEmailWorker(repo, { dryRun: true, routes: [], clock, sender: async () => { calls++; throw new Error("must not send"); } });
   assert.ok(result.wouldSend > 0); assert.equal(calls, 0); assert.equal(repo.writes, 0);
   assert.deepEqual(repo.workspaceRows, before);
+});
+
+test("expiry-only runs include expiry alerts and digests but exclude approvals", async () => {
+  const repo = repository();
+  const scanned = scanEmailCandidates(repo.workspaceRows[0]!.data, now);
+  const expiry = expiryEmailCandidates(scanned.candidates);
+  assert.ok(expiry.length > 0);
+  assert.ok(expiry.every(row => row.kind === "critical_expiry" || row.kind === "daily_digest"));
+  assert.ok(scanned.candidates.some(row => row.kind === "approval_initial"));
+  const result = await runEmailWorker(repo, {
+    dryRun: false, routes: [testRoute], expiryOnly: true, clock, pause, sender: accepted,
+  });
+  assert.equal(result.sent, expiry.length);
+  assert.ok([...repo.rows.values()].every(row => row.kind === "critical_expiry" || row.kind === "daily_digest"));
 });
 
 test("email repeat runs deduplicate; pending reminder waits a full 24 hours, then sends only once", async () => {
@@ -184,9 +198,31 @@ test("email sender uses fixed HTTPS and provider idempotency; receipts are accep
   assert.ok(!JSON.stringify(timeout).includes("private-secret"));
 });
 
+test("connected Resend sender uses the relative connector path and idempotency without exposing provider errors", async () => {
+  let calls = 0;
+  const sender = resendConnectorSender({ from: "alerts@example.invalid" }, async (path, init) => {
+    calls++;
+    assert.equal(path, "/emails");
+    assert.equal(init?.method, "POST");
+    assert.equal((init?.headers as Record<string, string>)["Idempotency-Key"], "expiryguard-email/connector-test");
+    return new Response(JSON.stringify({ id: "connector-message-id" }), { status: 200 });
+  });
+  assert.deepEqual(await sender("connector-test", testRoute.recipient, { subject: "test", text: "test" }),
+    { status: "accepted", providerId: "connector-message-id" });
+  assert.equal(calls, 1);
+  for (const code of [401, 403, 429, 500, 503]) {
+    const result = await resendConnectorSender({ from: "alerts@example.invalid" }, async () =>
+      new Response("private-provider-error", { status: code }))("id", testRoute.recipient, { subject: "", text: "" });
+    assert.equal(result.status, code >= 500 ? "uncertain" : "failed");
+    assert.ok(!JSON.stringify(result).includes("private-provider-error"));
+  }
+});
+
 test("email live mode requires explicit enablement and valid owner-only routing", () => {
   assert.throws(() => providerConfig({}), /email_sending_disabled/);
   assert.throws(() => providerConfig({ EMAIL_NOTIFICATIONS_ENABLED: "true" }), /not_configured/);
+  assert.deepEqual(providerConfig({ EMAIL_NOTIFICATIONS_ENABLED: "true", EMAIL_FROM: "onboarding@resend.dev" }),
+    { from: "onboarding@resend.dev" });
   assert.throws(() => emailRoutes({ EMAIL_WORKSPACE_RECIPIENTS_JSON: '{"demo":"owner@example.invalid"}' }), /invalid_recipient/);
   assert.throws(() => emailRoutes({ EMAIL_WORKSPACE_RECIPIENTS_JSON: '{"owner:user_test":"bad\\r\\naddress"}' }), /invalid_recipient/);
   assert.deepEqual(emailRoutes({}), []);

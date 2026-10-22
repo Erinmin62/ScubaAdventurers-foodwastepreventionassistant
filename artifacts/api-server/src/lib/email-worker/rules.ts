@@ -8,6 +8,9 @@ export type EmailMessage = { subject: string; text: string };
 export type EmailCandidate = {
   kind: EmailKind; eventKey: string; relatedIds: string[]; message: EmailMessage;
 };
+export function expiryEmailCandidates(candidates: EmailCandidate[]) {
+  return candidates.filter(candidate => candidate.kind === "critical_expiry" || candidate.kind === "daily_digest");
+}
 export type CandidateScan = {
   candidates: EmailCandidate[]; ingredientsChecked: number; batchesChecked: number;
   actionsChecked: number; invalidRecords: number;

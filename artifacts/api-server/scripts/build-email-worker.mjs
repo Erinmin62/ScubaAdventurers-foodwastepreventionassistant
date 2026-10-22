@@ -12,7 +12,7 @@ await build({
   outdir: path.join(root, "dist-workers"),
   outExtension: { ".js": ".mjs" },
   bundle: true, platform: "node", format: "esm", sourcemap: "linked", logLevel: "info",
-  external: ["pg-native"],
+  external: ["pg-native", "@replit/connectors-sdk"],
   plugins: [esbuildPluginPino({ transports: ["pino-pretty"] })],
   banner: { js: "import { createRequire as __createRequire } from 'node:module'; globalThis.require = __createRequire(import.meta.url);" },
 });

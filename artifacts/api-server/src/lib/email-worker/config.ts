@@ -2,7 +2,7 @@ import { z } from "zod";
 import { hash } from "./rules";
 
 export type EmailRoute = { workspaceId: string; recipient: string; recipientHash: string };
-export type EmailProviderConfig = { apiKey: string; from: string };
+export type EmailProviderConfig = { apiKey?: string; from: string };
 export function emailRoutes(env: NodeJS.ProcessEnv): EmailRoute[] {
   if (!env.EMAIL_WORKSPACE_RECIPIENTS_JSON) return [];
   let value: unknown;
@@ -16,6 +16,7 @@ export function emailRoutes(env: NodeJS.ProcessEnv): EmailRoute[] {
 }
 export function providerConfig(env: NodeJS.ProcessEnv): EmailProviderConfig {
   if (env.EMAIL_NOTIFICATIONS_ENABLED !== "true") throw new Error("email_sending_disabled");
-  if (!env.RESEND_API_KEY || !z.string().email().safeParse(env.EMAIL_FROM).success) throw new Error("email_provider_not_configured");
-  return { apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM! };
+  if (!z.string().email().safeParse(env.EMAIL_FROM).success) throw new Error("email_provider_not_configured");
+  const apiKey = env.RESEND_API_KEY?.trim();
+  return { ...(apiKey ? { apiKey } : {}), from: env.EMAIL_FROM! };
 }

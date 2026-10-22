@@ -1,11 +1,12 @@
 import type { EmailRoute } from "./config";
 import type { EmailRecord, EmailRepository } from "./repository";
-import { EMAIL_TIME_ZONE, hash, scanEmailCandidates, type EmailCandidate } from "./rules";
+import { EMAIL_TIME_ZONE, expiryEmailCandidates, hash, scanEmailCandidates, type EmailCandidate } from "./rules";
 import type { EmailSender, SendResult } from "./sender";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 type Options = {
   dryRun: boolean; routes: EmailRoute[]; sender?: EmailSender; maxPerRun?: number;
+  expiryOnly?: boolean;
   clock?: () => Date; pause?: () => Promise<void>;
   log?: (event: string, fields: Record<string, unknown>) => void;
 };
@@ -56,7 +57,10 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
       const recipientHash = route?.recipientHash ?? "dry-run-no-recipient";
       const now = clock();
       let scan: ReturnType<typeof scanEmailCandidates>;
-      try { scan = scanEmailCandidates(workspace.data, now); } catch {
+      try {
+        scan = scanEmailCandidates(workspace.data, now);
+        if (options.expiryOnly) scan = { ...scan, candidates: expiryEmailCandidates(scan.candidates) };
+      } catch {
         summary.failed++;
         log("email_worker_invalid_workspace", { workspace: hash(workspace.id).slice(0, 12) });
         continue;
@@ -90,7 +94,9 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
         }
         // A queued reminder may have been resolved, superseded, or removed since the hourly snapshot.
         const latest = await repository.workspace(workspace.id);
-        const current = latest && scanEmailCandidates(latest.data, clock()).candidates.find(candidate =>
+        const currentCandidates = latest ? scanEmailCandidates(latest.data, clock()).candidates : [];
+        const eligibleCurrent = options.expiryOnly ? expiryEmailCandidates(currentCandidates) : currentCandidates;
+        const current = eligibleCurrent.find(candidate =>
           candidate.eventKey === row.eventKey && (candidate.kind === row.kind || row.kind === "approval_reminder" && candidate.kind === "approval_initial"));
         if (!current) {
           await repository.cancel(row.id); summary.cancelled++; summary.skipped++; continue;

@@ -4,7 +4,7 @@ This adds a separate finite Node.js command to **ExpiryGuardAI**, not a replacem
 
 ## Current verification and activation boundary
 
-The implementation can be checked with synthetic fixtures and mocked email responses. Neither a connected email account, actual inbox delivery, nor an hourly production schedule should be considered verified by those tests. Production deployment settings and secrets are not changed by implementing the worker.
+The worker uses the Replit-managed Resend connection through the connectors SDK when no direct `RESEND_API_KEY` is configured. A direct API key remains an optional fallback. Neither a connected email account, actual inbox delivery, nor an hourly production schedule should be considered verified by tests alone.
 
 Replit's deployment inspection reported no active published deployment during implementation. Production database sharing and actual hourly execution must therefore be verified after publishing, not assumed from development results.
 
@@ -37,21 +37,21 @@ NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --li
 Run one sending pass **only after** reviewing the configuration, recipients, and sample-data warning:
 
 ```sh
-NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --send
+NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --send --expiry-only
 ```
 
-No flags defaults to dry-run. `--send` cannot be combined with dry-run/sample/list options. All modes exit when complete; none binds a port or starts a timer/server. A sending pass exits nonzero if a notification failed or its acceptance is uncertain. An overlapping invocation logs that it was skipped and exits successfully.
+No flags defaults to dry-run. `--expiry-only` limits mail to critical expiry alerts and the daily digest for items expiring in 2–3 days; it excludes approval and reminder emails. `--send` cannot be combined with dry-run/sample/list options. All modes exit when complete; none binds a port or starts a timer/server. A sending pass exits nonzero if a notification failed or its acceptance is uncertain. An overlapping invocation logs that it was skipped and exits successfully.
 
 ## Server-only configuration
 
-No connected email provider was found. A Resend HTTP API adapter is prepared using Node's native `fetch`; it needs no additional package. Resend is available as a Replit integration but was not connected automatically. Connect/configure a provider before attempting real delivery. Do not paste credentials or owner addresses into chat or commit them.
+The preferred sender uses the Resend integration attached to this Replit project; the connector keeps credentials in Replit. An optional direct `RESEND_API_KEY` selects the native HTTP fallback. Do not paste credentials or owner addresses into chat or commit them.
 
 | Variable | Needed for | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Database modes | Existing runtime-managed PostgreSQL connection. The published API and worker must use the **same production database**, not one development and one production database. |
 | `EMAIL_NOTIFICATIONS_ENABLED` | Sending | Must be exactly `true`; otherwise sending is refused. Leave unset until ready. |
-| `RESEND_API_KEY` | Sending | Resend API credential, supplied through the integration/secure Replit Secrets setup. Never frontend code. |
-| `EMAIL_FROM` | Sending | Plain sender email address on a domain verified with Resend. |
+| `RESEND_API_KEY` | Optional sending fallback | Direct Resend API credential. Omit when using the attached Replit Resend integration. Never frontend code. |
+| `EMAIL_FROM` | Sending | Plain sender address allowed by the connected Resend account. A verified domain is needed for general recipients; Resend's onboarding sender is restricted to the account's own verified email. |
 | `EMAIL_WORKSPACE_RECIPIENTS_JSON` | Sending | **Secret** JSON map from existing owner workspace ID to that owner's authorised email address. This is explicit administrative opt-in, not inferred from a browser or WhatsApp preferences. |
 | `EMAIL_MAX_PER_RUN` | Optional | Maximum provider attempts per run; default 100, allowed 1–500. Deferred queued items remain eligible next hour. |
 | `LOG_LEVEL` | Optional | Existing structured logger setting. |
@@ -126,12 +126,12 @@ Before enabling production sending:
 Use a **separate Scheduled Deployment** for this command in the same project, alongside the existing web/API deployments. **Do not switch the website or API deployment to Scheduled**; scheduled jobs do not serve web traffic.
 
 - Build command: `pnpm --filter @workspace/api-server run email-worker:build`
-- Initial run command: `NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --dry-run`
+- Initial run command: `NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --dry-run --expiry-only`
 - Schedule: **Every hour**, or cron **`0 * * * *`**.
 - Allow sufficient job time for the configured cap. With 100 attempts, a 30-minute allowance covers the approximately 26-minute worst case of repeated 15-second provider timeouts plus rate-limit pauses; normal runs exit much sooner. If using a 10-minute timeout, reduce `EMAIL_MAX_PER_RUN` to 25. The database lock also prevents overlapping jobs.
 - The hourly cron expression works for KL's whole-hour UTC offset even if the scheduler displays another zone; the worker's day boundaries and digest deduplication are always explicitly KL.
 - Check that the scheduled runtime receives the same production `DATABASE_URL` and the required server-only settings. A worker can run while the browser is closed because Replit, not the browser, starts the process.
-- Observe a scheduled dry-run execution in deployment logs. Only after review and a successful controlled delivery test change **the worker's** run command to the same command with `--send` and enable `EMAIL_NOTIFICATIONS_ENABLED=true`.
+- Observe a scheduled dry-run execution in deployment logs. Only after reviewing the real production workspace, confirming its inventory is not synthetic, and a successful controlled delivery test, change **the worker's** run command to the same command with `--send --expiry-only` and enable `EMAIL_NOTIFICATIONS_ENABLED=true`.
 - Keep the web/API production commands unchanged. If the UI offers only replacing an existing service, stop rather than replace it; add a separate scheduled deployment/artifact in the same project using the above command.
 
 Do not declare hourly scheduling verified merely because a manual shell command succeeded. Verification requires at least one actual scheduled execution, and email delivery requires evidence in the actual recipient inbox/provider.
