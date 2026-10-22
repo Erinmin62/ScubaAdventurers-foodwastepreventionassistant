@@ -207,7 +207,7 @@ export function parseSyntheticForecastOutput(raw: string, context: SyntheticFore
 export async function completeSyntheticForecast(context: SyntheticForecastContext): Promise<string> {
   const completion = await openai.chat.completions.create({
     model: "gpt-5-mini",
-    max_completion_tokens: 4096,
+    max_completion_tokens: 8192,
     response_format: { type: "json_object" },
     messages: [
       {
