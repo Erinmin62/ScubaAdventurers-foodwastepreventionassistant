@@ -4,13 +4,19 @@ Food-waste prevention assistant for café and restaurant owners using realistic 
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- Install dependencies with `pnpm install --frozen-lockfile`.
+- Start the managed workflows `artifacts/api-server: API Server` and `artifacts/expiryguard: web` in Replit. They supply the required port/base-path settings; the app is served at `/` and API requests at `/api`.
+- `pnpm --filter @workspace/api-server run dev` — API development command used by its managed workflow (port 8080).
+- For a new development database, run `pnpm --filter @workspace/db run push` to apply the existing schema.
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-server test` — follow-up snapshot, calendar, outcome and inventory-safety regression tests
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Clerk sign-in requires `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, and `VITE_CLERK_PUBLISHABLE_KEY`; these are provisioned through Replit-managed Clerk. Never commit their values. Development accounts are separate from production accounts.
+- `/api/healthz` returns `{"status":"ok"}` when the API is running. Anonymous requests to `/api/guard` must return 401.
+- The mockup-sandbox workflow is optional for design work and is not needed to run ExpiryGuardAI.
 
 ## Stack
 
