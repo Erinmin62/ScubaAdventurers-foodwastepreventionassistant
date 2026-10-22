@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { emailRoutes, providerConfig } from "./config";
 import { emailRecord, runEmailWorker } from "./runner";
-import { expiryEmailCandidates, expiryEmailPreview, klDay, scanEmailCandidates } from "./rules";
+import { expiryEmailCandidates, expiryEmailPreview, hash, klDay, scanEmailCandidates } from "./rules";
 import { resendConnectorSender, resendSender, type EmailSender } from "./sender";
 import { MemoryEmailRepository, sampleEmailWorkspace, testRoute } from "./email-worker.test-support";
 import { seed, shift } from "../guard-model";
@@ -292,4 +292,42 @@ test("email live mode requires explicit enablement and valid owner-only routing"
   assert.throws(() => emailRoutes({ EMAIL_WORKSPACE_RECIPIENTS_JSON: '{"owner:user_test":"bad\\r\\naddress"}' }), /invalid_recipient/);
   assert.deepEqual(emailRoutes({}), []);
   assert.equal(emailRoutes({ EMAIL_WORKSPACE_RECIPIENTS_JSON: '{"owner:user_test":"owner@example.invalid"}' }).length, 1);
+});
+
+test("test mode overrides owner recipients and is restricted to one explicit owner workspace", () => {
+  const routes = emailRoutes({
+    EMAIL_TEST_MODE: "true",
+    EMAIL_TEST_WORKSPACE_ID: "owner:test_owner",
+    TEST_EMAIL: " TestInbox@example.invalid ",
+    EMAIL_WORKSPACE_RECIPIENTS_JSON: '{"owner:real_owner":"real-owner@example.invalid"}',
+  });
+  assert.deepEqual(routes, [{
+    workspaceId: "owner:test_owner",
+    recipient: "testinbox@example.invalid",
+    recipientHash: hash("testinbox@example.invalid"),
+  }]);
+  assert.throws(() => emailRoutes({ EMAIL_TEST_MODE: "true", TEST_EMAIL: "test@example.invalid" }),
+    /invalid_email_test_configuration/);
+  assert.throws(() => emailRoutes({
+    EMAIL_TEST_MODE: "true", EMAIL_TEST_WORKSPACE_ID: "demo", TEST_EMAIL: "test@example.invalid",
+  }), /invalid_email_test_configuration/);
+  assert.throws(() => emailRoutes({ EMAIL_TEST_MODE: "yes" }), /invalid_email_test_configuration/);
+});
+
+test("test-mode expiry preview checks only its configured owner and performs no writes", async () => {
+  const route = emailRoutes({
+    EMAIL_TEST_MODE: "true",
+    EMAIL_TEST_WORKSPACE_ID: "owner:test_owner",
+    TEST_EMAIL: "test@example.invalid",
+  })[0]!;
+  const repo = new MemoryEmailRepository([
+    { id: route.workspaceId, data: sampleEmailWorkspace(now) },
+    { id: "owner:other_owner", data: sampleEmailWorkspace(now) },
+  ]);
+  const result = await runEmailWorker(repo, {
+    dryRun: true, routes: [route], expiryOnly: true, clock, pause,
+  });
+  assert.equal(result.workspacesChecked, 1);
+  assert.ok(result.wouldSend > 0);
+  assert.equal(repo.writes, 0);
 });

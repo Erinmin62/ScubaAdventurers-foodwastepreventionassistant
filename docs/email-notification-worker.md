@@ -56,12 +56,27 @@ The preferred sender uses the Resend integration attached to this Replit project
 | --- | --- | --- |
 | `DATABASE_URL` | Database modes | Existing runtime-managed PostgreSQL connection. The published API and worker must use the **same production database**, not one development and one production database. |
 | `EMAIL_NOTIFICATIONS_ENABLED` | Sending | Must be exactly `true`; otherwise sending is refused. Leave unset until ready. |
+| `EMAIL_TEST_MODE` | Test sending | Set exactly `true` to route test messages to `TEST_EMAIL`; set `false` or unset it for normal owner routes. |
+| `TEST_EMAIL` | Test sending | **Secret** address that receives test-mode notifications. |
+| `EMAIL_TEST_WORKSPACE_ID` | Test sending | **Secret** ID of the one `owner:` workspace being tested. Required in test mode to prevent cross-café data from being sent to the test inbox. |
 | `RESEND_API_KEY` | Optional sending fallback | Direct Resend API credential. Omit when using the attached Replit Resend integration. Never frontend code. |
 | `EMAIL_FROM` | Sending | Plain sender address allowed by the connected Resend account. A verified domain is needed for general recipients; Resend's onboarding sender is restricted to the account's own verified email. |
 | `EMAIL_WORKSPACE_RECIPIENTS_JSON` | Sending | **Secret** JSON map from existing owner workspace ID to that owner's authorised email address. This is explicit administrative opt-in, not inferred from a browser or WhatsApp preferences. |
 | `EMAIL_MAX_PER_RUN` | Optional | Maximum provider attempts per run; default 100, allowed 1–500. Deferred queued items remain eligible next hour. |
 | `LOG_LEVEL` | Optional | Existing structured logger setting. |
 | `NODE_ENV` | Recommended | Set `production` for JSON logs in the scheduled runtime. |
+
+### Test-only recipient override
+
+With `EMAIL_TEST_MODE=true`, the worker ignores `EMAIL_WORKSPACE_RECIPIENTS_JSON` and processes only `EMAIL_TEST_WORKSPACE_ID`, an explicit existing `owner:` workspace. Every eligible message for that workspace is addressed to `TEST_EMAIL`; no business-owner address is used. Invalid or missing test configuration fails closed. This extra workspace scope is intentional: the development database contains multiple workspaces, and routing all cafés' records to one test inbox could disclose one café's data to another owner.
+
+The sending switch and valid `EMAIL_FROM` are still required; test mode does not bypass either. For the first test, use `--expiry-only` to exclude pending-approval messages. First preview with:
+
+```sh
+NODE_ENV=development pnpm --filter @workspace/api-server run email-worker -- --dry-run --expiry-only
+```
+
+After checking that it is the intended test workspace and the candidate count is acceptable, a one-off development send can use `--send --expiry-only` with `EMAIL_MAX_PER_RUN=1`. Unset `EMAIL_NOTIFICATIONS_ENABLED` after that one-off test; do not leave a test recipient override on a recurring schedule. The real hourly schedule remains a separate production setup step.
 
 Placeholder routing format (replace privately in Secrets, not source code):
 

@@ -10,8 +10,9 @@ const help = `ExpiryGuardAI email worker (finite command; no web server)
   --dry-run          Read database and preview eligibility; no writes or emails (default).
   --sample           Use generated sample data instead of a database (dry-run only).
   --send             Send using configured owner routes; requires explicit enablement.
-  --expiry-only      Send only critical expiry alerts and the daily 2–3 day expiry digest.
+  --expiry-only      Include only critical expiry alerts and the daily 2–3 day expiry digest.
   --list-workspaces  Print workspace IDs for trusted recipient configuration; read-only.
+  EMAIL_TEST_MODE=true routes one configured owner workspace to TEST_EMAIL only.
   --help             Show this help.
 
 See docs/email-notification-worker.md for Secrets, schema, and scheduling setup.
@@ -70,6 +71,7 @@ async function main() {
 main().catch(error => {
   const allowed = new Set([
     "unknown_worker_option", "incompatible_worker_options", "invalid_recipient_configuration",
+    "invalid_email_test_configuration",
     "email_sending_disabled", "email_provider_not_configured", "owner_email_routes_required", "invalid_email_max_per_run",
   ]);
   const preflight = error instanceof Error && allowed.has(error.message);
