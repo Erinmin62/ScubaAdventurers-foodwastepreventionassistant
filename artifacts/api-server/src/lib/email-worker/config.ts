@@ -9,7 +9,9 @@ export function emailRoutes(env: NodeJS.ProcessEnv): EmailRoute[] {
   }
   if (env.EMAIL_TEST_MODE === "true") {
     const testConfig = z.object({
-      workspaceId: z.string().regex(/^owner:[A-Za-z0-9_-]+$/),
+      workspaceId: z.string().refine(
+        value => value === "demo" || /^owner:[A-Za-z0-9_-]+$/.test(value),
+      ),
       recipient: z.string().trim().email().max(254),
     }).safeParse({
       workspaceId: env.EMAIL_TEST_WORKSPACE_ID,

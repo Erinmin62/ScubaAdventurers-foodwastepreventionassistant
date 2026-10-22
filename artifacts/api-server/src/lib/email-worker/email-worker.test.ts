@@ -308,8 +308,11 @@ test("test mode overrides owner recipients and is restricted to one explicit own
   }]);
   assert.throws(() => emailRoutes({ EMAIL_TEST_MODE: "true", TEST_EMAIL: "test@example.invalid" }),
     /invalid_email_test_configuration/);
-  assert.throws(() => emailRoutes({
+  assert.equal(emailRoutes({
     EMAIL_TEST_MODE: "true", EMAIL_TEST_WORKSPACE_ID: "demo", TEST_EMAIL: "test@example.invalid",
+  })[0]?.workspaceId, "demo");
+  assert.throws(() => emailRoutes({
+    EMAIL_TEST_MODE: "true", EMAIL_TEST_WORKSPACE_ID: "not-a-workspace", TEST_EMAIL: "test@example.invalid",
   }), /invalid_email_test_configuration/);
   assert.throws(() => emailRoutes({ EMAIL_TEST_MODE: "yes" }), /invalid_email_test_configuration/);
 });

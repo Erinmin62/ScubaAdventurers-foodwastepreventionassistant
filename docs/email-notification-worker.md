@@ -58,7 +58,7 @@ The preferred sender uses the Resend integration attached to this Replit project
 | `EMAIL_NOTIFICATIONS_ENABLED` | Sending | Must be exactly `true`; otherwise sending is refused. Leave unset until ready. |
 | `EMAIL_TEST_MODE` | Test sending | Set exactly `true` to route test messages to `TEST_EMAIL`; set `false` or unset it for normal owner routes. |
 | `TEST_EMAIL` | Test sending | **Secret** address that receives test-mode notifications. |
-| `EMAIL_TEST_WORKSPACE_ID` | Test sending | **Secret** ID of the one `owner:` workspace being tested. Required in test mode to prevent cross-café data from being sent to the test inbox. |
+| `EMAIL_TEST_WORKSPACE_ID` | Test sending | **Secret** ID of the one `demo` or confirmed `owner:` workspace being tested. Required in test mode to prevent cross-café data from being sent to the test inbox. |
 | `RESEND_API_KEY` | Optional sending fallback | Direct Resend API credential. Omit when using the attached Replit Resend integration. Never frontend code. |
 | `EMAIL_FROM` | Sending | Plain sender address allowed by the connected Resend account. A verified domain is needed for general recipients; Resend's onboarding sender is restricted to the account's own verified email. |
 | `EMAIL_WORKSPACE_RECIPIENTS_JSON` | Sending | **Secret** JSON map from existing owner workspace ID to that owner's authorised email address. This is explicit administrative opt-in, not inferred from a browser or WhatsApp preferences. |
@@ -68,7 +68,7 @@ The preferred sender uses the Resend integration attached to this Replit project
 
 ### Test-only recipient override
 
-With `EMAIL_TEST_MODE=true`, the worker ignores `EMAIL_WORKSPACE_RECIPIENTS_JSON` and processes only `EMAIL_TEST_WORKSPACE_ID`, an explicit existing `owner:` workspace. Every eligible message for that workspace is addressed to `TEST_EMAIL`; no business-owner address is used. Invalid or missing test configuration fails closed. This extra workspace scope is intentional: the development database contains multiple workspaces, and routing all cafés' records to one test inbox could disclose one café's data to another owner.
+With `EMAIL_TEST_MODE=true`, the worker ignores `EMAIL_WORKSPACE_RECIPIENTS_JSON` and processes only `EMAIL_TEST_WORKSPACE_ID`, which must be `demo` or one explicitly confirmed existing `owner:` workspace. Every eligible message for that workspace is addressed to `TEST_EMAIL`; no business-owner address is used. Invalid or missing test configuration fails closed. This extra workspace scope is intentional: the development database contains multiple workspaces, and routing all cafés' records to one test inbox could disclose one café's data to another owner. Use `demo` for synthetic-data testing.
 
 The sending switch and valid `EMAIL_FROM` are still required; test mode does not bypass either. For the first test, use `--expiry-only` to exclude pending-approval messages. First preview with:
 
