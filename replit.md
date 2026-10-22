@@ -10,6 +10,7 @@ Food-waste prevention assistant for café and restaurant owners using realistic 
 - For a new development database, run `pnpm --filter @workspace/db run push` to apply the existing schema.
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-server test` — follow-up snapshot, calendar, outcome and inventory-safety regression tests
+- `pnpm --filter @workspace/api-server test:guard-store-db` — real PostgreSQL concurrent history-import persistence and owner isolation (development database only; cleans up its temporary workspaces)
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)

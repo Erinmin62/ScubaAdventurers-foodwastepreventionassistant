@@ -8,6 +8,7 @@
     "email-worker:build": "node scripts/build-email-worker.mjs",
     "email-worker": "node --enable-source-maps dist-workers/email-worker.mjs",
     "test:email-worker-db": "node scripts/test-email-worker-db.mjs",
+    "test:guard-store-db": "node scripts/test-guard-store-db.mjs",
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
