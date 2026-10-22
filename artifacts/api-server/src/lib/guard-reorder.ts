@@ -54,10 +54,10 @@ export function analyzeReorders(s: Stored): Line[] {
   const state = compute(s), d = today(), tomorrow = shift(d, 1);
   return s.ingredients.map(i => {
     const config = configFor(s, i.id);
-    const recipes = s.menu.filter(m => m.recipe.some(r => r.ingredientId === i.id));
+    const recipes = s.menu.filter(m => !m.archivedAt && m.recipe.some(r => r.ingredientId === i.id));
     const historyComplete = recipes.length > 0 && recipes.every(m => s.sales.some(r => r.menuId === m.id && r.date >= shift(d, -6) && r.date <= d));
     const usage = config.dailyUsage ?? round(state.forecasts.reduce((n, f) =>
-      n + f.predicted * (s.menu.find(m => m.id === f.menuId)?.recipe.find(r => r.ingredientId === i.id)?.amount ?? 0), 0));
+      n + f.predicted * (s.menu.find(m => m.id === f.menuId && !m.archivedAt)?.recipe.find(r => r.ingredientId === i.id)?.amount ?? 0), 0));
     const hasIncoming = i.deliveryQuantity > 0 && i.deliveryDate >= tomorrow;
     const arrival = hasIncoming ? i.deliveryDate : shift(d, config.leadDays);
     const original = hasIncoming ? i.deliveryQuantity : 0;

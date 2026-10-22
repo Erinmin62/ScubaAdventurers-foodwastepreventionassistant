@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { UserButton } from '@clerk/react';
 import { Link, useLocation } from 'wouter';
-import { BarChart3, BellRing, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Truck } from 'lucide-react';
+import { BarChart3, BellRing, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Truck, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { niceDate, useGuard } from '@/lib/guard';
 import { guardianSrc } from '@/components/bits';
@@ -14,6 +14,7 @@ const nav = [
   { href: '/', label: 'Today', icon: LayoutDashboard },
   { href: '/impact', label: 'Impact', icon: Leaf },
   { href: '/inventory', label: 'Pantry', icon: Package },
+  { href: '/menu', label: 'Menu', icon: UtensilsCrossed },
   { href: '/sales', label: 'Sales', icon: BarChart3 },
   { href: '/forecast', label: 'Tomorrow', icon: ChefHat },
   { href: '/recommendations', label: 'Decisions', icon: ClipboardCheck },

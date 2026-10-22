@@ -10,7 +10,10 @@ import type { RecipeItem } from './recipeItem';
 export interface MenuItem {
   id: string;
   name: string;
+  description: string;
   price: number;
   cost: number;
+  /** @nullable */
+  archivedAt: string | null;
   recipe: RecipeItem[];
 }

@@ -15,6 +15,7 @@ export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | 
   reordering?: Omit<import("./guard-reorder").Reorders, "analysis">;
   automation?: State["automation"];
   automationProgress?: { dailyDate?: string; followUpDate?: string; reminded?: Record<string, string> };
+  menuRevision?: number;
   followUps?: State["followUps"];
   decisions: Record<string, { decision: string; quantity: number | null; original: number; savings: number; approvedAt?: string; recommendation?: State["recommendations"][number] }>;
   baseline: { wasteCost: number; wasteKg: number };
@@ -42,10 +43,10 @@ export function seed(): Stored {
     { id: "cream", name: "Whipping cream", quantity: 0.8, unit: "L", expiry: shift(d, -1), cost: 18, category: "Dairy", deliveryQuantity: 0, deliveryDate: shift(d, 3) },
   ];
   const menu: State["menu"] = [
-    { id: "avo-toast", name: "Avocado Toast", price: 22, cost: 7.5, recipe: [{ ingredientId: "avocado", amount: 0.09 }, { ingredientId: "bread", amount: 0.08 }, { ingredientId: "tomato", amount: 0.04 }] },
-    { id: "chicken-bowl", name: "Harvest Chicken Bowl", price: 28, cost: 9, recipe: [{ ingredientId: "chicken", amount: 0.15 }, { ingredientId: "spinach", amount: 0.05 }, { ingredientId: "tomato", amount: 0.08 }] },
-    { id: "tomato-pasta", name: "Garden Tomato Pasta", price: 24, cost: 6, recipe: [{ ingredientId: "pasta", amount: 0.1 }, { ingredientId: "tomato", amount: 0.12 }, { ingredientId: "spinach", amount: 0.025 }] },
-    { id: "latte", name: "Signature Latte", price: 13, cost: 3.2, recipe: [{ ingredientId: "milk", amount: 0.2 }, { ingredientId: "coffee", amount: 0.018 }] },
+    { id: "avo-toast", name: "Avocado Toast", description: "Avocado, sourdough and cherry tomato.", price: 22, cost: 7.5, archivedAt: null, recipe: [{ ingredientId: "avocado", amount: 0.09 }, { ingredientId: "bread", amount: 0.08 }, { ingredientId: "tomato", amount: 0.04 }] },
+    { id: "chicken-bowl", name: "Harvest Chicken Bowl", description: "Chicken with spinach and cherry tomato.", price: 28, cost: 9, archivedAt: null, recipe: [{ ingredientId: "chicken", amount: 0.15 }, { ingredientId: "spinach", amount: 0.05 }, { ingredientId: "tomato", amount: 0.08 }] },
+    { id: "tomato-pasta", name: "Garden Tomato Pasta", description: "Penne with tomato and spinach.", price: 24, cost: 6, archivedAt: null, recipe: [{ ingredientId: "pasta", amount: 0.1 }, { ingredientId: "tomato", amount: 0.12 }, { ingredientId: "spinach", amount: 0.025 }] },
+    { id: "latte", name: "Signature Latte", description: "Espresso with fresh milk.", price: 13, cost: 3.2, archivedAt: null, recipe: [{ ingredientId: "milk", amount: 0.2 }, { ingredientId: "coffee", amount: 0.018 }] },
   ];
   const sales: State["sales"] = [];
   const results: State["results"] = [];
@@ -63,14 +64,15 @@ export function seed(): Stored {
   const baselineResults = results.filter(r => r.date >= shift(d, -13) && r.date < shift(d, -6));
   const wasteCost = baselineResults.reduce((s, r) => s + r.leftover * menu.find(m => m.id === r.menuId)!.cost, 0);
   const wasteKg = baselineResults.reduce((s, r) => s + r.leftover * menu.find(m => m.id === r.menuId)!.recipe.reduce((a, v) => a + (ingredients.find(i => i.id === v.ingredientId)?.unit === "kg" ? v.amount : 0), 0), 0);
-  return { ingredients, menu, sales, results, decisions: {}, baseline: { wasteCost, wasteKg }, activity: [{ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Your café workspace is ready", detail: "28 days of synthetic sales and waste results loaded. No real orders are placed.", decision: "system", impact: 0 }] };
+  return { ingredients, menu, menuRevision: 0, sales, results, decisions: {}, baseline: { wasteCost, wasteKg }, activity: [{ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Your café workspace is ready", detail: "28 days of synthetic sales and waste results loaded. No real orders are placed.", decision: "system", impact: 0 }] };
 }
 
 export function compute(s: Stored): State {
   const d = today(), tomorrow = shift(d, 1);
   const weekday = new Date(`${tomorrow}T00:00Z`).getUTCDay();
   const available = Object.fromEntries(s.ingredients.map(i => [i.id, safeStock(i, tomorrow)]));
-  const forecasts: State["forecasts"] = s.menu.map(m => {
+  const activeMenu = s.menu.filter(m => !m.archivedAt);
+  const forecasts: State["forecasts"] = activeMenu.map(m => {
     const history = s.sales.filter(r => r.menuId === m.id && r.date <= d && r.date >= shift(d, -6));
     const avg = history.length ? history.reduce((n, r) => n + r.portions, 0) / history.length : 0;
     const factor = [0, 6].includes(weekday) ? 1.15 : 0.97;
@@ -80,7 +82,7 @@ export function compute(s: Stored): State {
     for (const r of m.recipe) available[r.ingredientId] = Math.max(0, (available[r.ingredientId] ?? 0) - suggested * r.amount);
     return { menuId: m.id, name: m.name, predicted, capacity, suggested, confidence: history.length >= 7 ? "High" : "Limited data", reason: `${history.length}-day mean × ${factor} ${[0, 6].includes(weekday) ? "weekend" : "weekday"} factor. Stock shared across menu items; expired stock excluded. Rules-based estimate, not a guarantee.` };
   });
-  const dailyUse = (id: string) => forecasts.reduce((n, f) => n + f.predicted * (s.menu.find(m => m.id === f.menuId)?.recipe.find(r => r.ingredientId === id)?.amount ?? 0), 0);
+  const dailyUse = (id: string) => forecasts.reduce((n, f) => n + f.predicted * (activeMenu.find(m => m.id === f.menuId)?.recipe.find(r => r.ingredientId === id)?.amount ?? 0), 0);
   const risks: State["risks"] = s.ingredients.map(i => {
     const daysLeft = daysBetween(d, i.expiry);
     const expectedUse = round(dailyUse(i.id) * Math.max(0, daysLeft));
@@ -95,11 +97,13 @@ export function compute(s: Stored): State {
     return { ingredientId: i.id, name: i.name, daysLeft, level, expectedUse, atRisk, value: round(atRisk * i.cost), message: daysLeft < 0 ? "Expired — isolate and discard safely. Never use in preparation." : daysLeft === 0 ? "Expires today. Do not use in tomorrow's plan." : atRisk > 0 ? `${atRisk} ${i.unit} may remain unused before expiry. Prioritize safe stock first.` : "Expected demand covers stock before expiry." };
   });
   const recommendations: State["recommendations"] = [];
+  const menuRevision = s.menuRevision ?? 0;
+  const revisionKey = `:m${menuRevision}`;
   const add = (r: Omit<State["recommendations"][number], "status" | "approvedQuantity">) => {
     const decision = s.decisions[r.id];
     recommendations.push({ ...r, ...(decision ? { original: decision.original, savings: decision.savings } : {}), status: decision?.decision ?? "pending", approvedQuantity: decision?.quantity ?? null });
   };
-  for (const f of forecasts) add({ id: `${tomorrow}:prep:${f.menuId}`, type: "preparation", targetId: f.menuId, title: `Prepare ${f.suggested} ${f.name}`, description: f.reason, original: f.predicted, suggested: f.suggested, unit: "portions", savings: 0 });
+  for (const f of forecasts) add({ id: `${tomorrow}:prep:${f.menuId}${revisionKey}`, type: "preparation", targetId: f.menuId, title: `Prepare ${f.suggested} ${f.name}`, description: f.reason, original: f.predicted, suggested: f.suggested, unit: "portions", savings: 0 });
   for (const i of s.ingredients) {
     const daily = dailyUse(i.id);
     const leadDays = Math.max(1, daysBetween(d, i.deliveryDate));
@@ -110,14 +114,17 @@ export function compute(s: Stored): State {
       return remaining + (b.expiry >= i.deliveryDate ? b.quantity - used : 0);
     }, 0);
     const need = round(Math.max(0, daily * 2 - remainingAtDelivery));
-    const purchaseId = `${tomorrow}:purchase:${i.id}`;
+    const purchaseId = `${tomorrow}:purchase:${i.id}${revisionKey}`;
     if (i.deliveryQuantity > 0 || need > 0 || s.decisions[purchaseId]) add({ id: purchaseId, type: "purchase", targetId: i.id, title: need < i.deliveryQuantity ? `Reduce the next ${i.name.toLowerCase()} order` : `Review ${i.name.toLowerCase()} purchasing`, description: `Current stock: ${i.quantity} ${i.unit}. Forecast use: ${round(daily)} ${i.unit}/day. Plan ${need} ${i.unit} for the ${i.deliveryDate} delivery and following day, considering expiry. This only changes your internal purchasing plan.`, original: i.deliveryQuantity, suggested: need, unit: i.unit, savings: round(Math.max(0, i.deliveryQuantity - need) * i.cost) });
     const risk = risks.find(r => r.ingredientId === i.id)!;
-    if (stockBatches(i).some(b => b.quantity > 0 && b.expiry >= tomorrow && b.expiry <= shift(d, 3))) add({ id: `${tomorrow}:first:${i.id}`, type: "use-first", targetId: i.id, title: `Use ${i.name.toLowerCase()} first`, description: "Use first-expiring safe batches in compatible menu recipes. Isolate expired batches; do not exceed forecast portions to use up stock.", original: safeStock(i, tomorrow), suggested: round(Math.min(safeStock(i, tomorrow), daily)), unit: i.unit, savings: 0 });
+    if (stockBatches(i).some(b => b.quantity > 0 && b.expiry >= tomorrow && b.expiry <= shift(d, 3))) add({ id: `${tomorrow}:first:${i.id}${revisionKey}`, type: "use-first", targetId: i.id, title: `Use ${i.name.toLowerCase()} first`, description: "Use first-expiring safe batches in compatible menu recipes. Isolate expired batches; do not exceed forecast portions to use up stock.", original: safeStock(i, tomorrow), suggested: round(Math.min(safeStock(i, tomorrow), daily)), unit: i.unit, savings: 0 });
   }
   const recent = s.results.filter(r => r.date >= shift(d, -6) && r.date <= d);
-  const actualWasteCost = round(recent.reduce((n, r) => n + r.leftover * (s.menu.find(m => m.id === r.menuId)?.cost ?? 0), 0));
-  const actualWasteKg = round(recent.reduce((n, r) => n + r.leftover * (s.menu.find(m => m.id === r.menuId)?.recipe.reduce((a, v) => a + (s.ingredients.find(i => i.id === v.ingredientId)?.unit === "kg" ? v.amount : 0), 0) ?? 0), 0));
+  const actualWasteCost = round(recent.reduce((n, r) => n + r.leftover * (r.menuCost ?? s.menu.find(m => m.id === r.menuId)?.cost ?? 0), 0));
+  const actualWasteKg = round(recent.reduce((n, r) => {
+    const recipe = r.menuRecipe ?? s.menu.find(m => m.id === r.menuId)?.recipe ?? [];
+    return n + r.leftover * recipe.reduce((a, v) => a + (s.ingredients.find(i => i.id === v.ingredientId)?.unit === "kg" ? v.amount : 0), 0);
+  }, 0));
   const purchaseRecs = recommendations.filter(r => r.type === "purchase");
   const baselinePurchaseCost = round(purchaseRecs.reduce((n, r) => n + r.original * (s.ingredients.find(i => i.id === r.targetId)?.cost ?? 0), 0));
   const plannedPurchaseCost = round(purchaseRecs.reduce((n, r) => n + (r.approvedQuantity ?? r.original) * (s.ingredients.find(i => i.id === r.targetId)?.cost ?? 0), 0));
@@ -133,5 +140,6 @@ export function compute(s: Stored): State {
     if (!type || !target || !targetId) return [];
     return [{ id, type, targetId, title: `Previously approved ${type}: ${target.name}`, description: "Legacy decision: original recommendation wording, approval time and historical stock were not saved. Only the recorded action and amounts are known. A follow-up starts from an explicitly attached current snapshot.", original: decision.original, suggested: decision.quantity, unit: "unit" in target ? target.unit : "portions", savings: decision.savings, status: decision.decision, approvedQuantity: decision.quantity }];
   });
-  return { today: d, tomorrow, cafeName: "Little Leaf Café", synthetic: true, ingredients: s.ingredients.map(i => ({ ...i, photoPath: i.photoPath ?? null })), sales: s.sales, results: s.results, menu: s.menu, forecasts, risks, recommendations, activity: s.activity, followUps: s.followUps ?? [], approvedRecommendations, automation: s.automation ?? { dailyPlanning: true, followUpHandling: true, runs: [] }, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
+  const menu = s.menu.map(m => ({ ...m, description: m.description ?? "", archivedAt: m.archivedAt ?? null }));
+  return { today: d, tomorrow, cafeName: "Little Leaf Café", synthetic: true, ingredients: s.ingredients.map(i => ({ ...i, photoPath: i.photoPath ?? null })), sales: s.sales, results: s.results, menu, forecasts, risks, recommendations, activity: s.activity, followUps: s.followUps ?? [], approvedRecommendations, automation: s.automation ?? { dailyPlanning: true, followUpHandling: true, runs: [] }, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
 }

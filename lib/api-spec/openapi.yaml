@@ -331,6 +331,67 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/menu:
+    post:
+      operationId: createMenuItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuItemInput" }
+      responses:
+        "201":
+          description: Menu item created in the owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: "Invalid name, recipe or price details" }
+  /guard/menu/{id}:
+    patch:
+      operationId: updateMenuItem
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuItemUpdate" }
+      responses:
+        "200":
+          description: Menu item updated; historical sales and waste snapshots are preserved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid menu update }
+        "404": { description: Menu item not found }
+    delete:
+      operationId: deleteMenuItem
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Unused item removed or item with historical records archived
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "404": { description: Menu item not found }
+  /guard/menu/recipe-draft:
+    post:
+      operationId: draftMenuRecipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuRecipeDraftInput" }
+      responses:
+        "200":
+          description: AI-suggested recipe using only ingredients in this owner's inventory
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MenuRecipeDraft" }
+        "400": { description: Invalid dish details or no inventory ingredients }
+        "429": { description: Recipe drafting request limit reached }
+        "503": { description: Recipe drafting is temporarily unavailable }
   /guard/recommendations/{id}/decision:
     post:
       operationId: decideRecommendation
@@ -745,6 +806,12 @@ components:
         date: { type: string }
         menuId: { type: string }
         portions: { type: integer, minimum: 0 }
+        menuName: { type: string }
+        menuPrice: { type: number, minimum: 0 }
+        menuCost: { type: number, minimum: 0 }
+        menuRecipe:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeItem" }
     Result:
       type: object
       required: [date, menuId, prepared, sold, leftover]
@@ -754,23 +821,78 @@ components:
         prepared: { type: integer, minimum: 0 }
         sold: { type: integer, minimum: 0 }
         leftover: { type: integer, minimum: 0 }
+        menuName: { type: string }
+        menuPrice: { type: number, minimum: 0 }
+        menuCost: { type: number, minimum: 0 }
+        menuRecipe:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeItem" }
     RecipeItem:
       type: object
       required: [ingredientId, amount]
       properties:
         ingredientId: { type: string }
-        amount: { type: number }
+        amount: { type: number, exclusiveMinimum: 0 }
     MenuItem:
       type: object
-      required: [id, name, price, cost, recipe]
+      required: [id, name, description, price, cost, recipe, archivedAt]
       properties:
         id: { type: string }
         name: { type: string }
+        description: { type: string }
         price: { type: number }
         cost: { type: number }
+        archivedAt: { type: ["string", "null"] }
         recipe:
           type: array
           items: { $ref: "#/components/schemas/RecipeItem" }
+    MenuItemInput:
+      type: object
+      additionalProperties: false
+      required: [name, description, price, cost, recipe]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 500 }
+        price: { type: number, minimum: 0, maximum: 1000000 }
+        cost: { type: number, minimum: 0, maximum: 1000000 }
+        recipe:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    MenuItemUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 500 }
+        price: { type: number, minimum: 0, maximum: 1000000 }
+        cost: { type: number, minimum: 0, maximum: 1000000 }
+        active: { type: boolean }
+        recipe:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    MenuRecipeDraftInput:
+      type: object
+      additionalProperties: false
+      required: [name, description]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, minLength: 5, maxLength: 500 }
+    MenuRecipeDraft:
+      type: object
+      additionalProperties: false
+      required: [recipe, explanation, notice]
+      properties:
+        recipe:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items: { $ref: "#/components/schemas/RecipeItem" }
+        explanation: { type: string, maxLength: 500 }
+        notice: { type: string, maxLength: 500 }
     Forecast:
       type: object
       required: [menuId, name, predicted, capacity, suggested, confidence, reason]

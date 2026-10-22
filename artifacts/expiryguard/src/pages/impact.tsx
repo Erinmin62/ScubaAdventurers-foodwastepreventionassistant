@@ -16,7 +16,8 @@ export default function Impact() {
   const { toast } = useToast();
   const [date, setDate] = useState('');
   const [vals, setVals] = useState<Record<string, Row>>({});
-  const menuIds = useMemo(() => (data?.menu ?? []).map((m) => m.id), [data]);
+  const activeMenu = useMemo(() => (data?.menu ?? []).filter((m) => m.archivedAt === null), [data?.menu]);
+  const menuIds = useMemo(() => activeMenu.map((m) => m.id), [activeMenu]);
   const spec: ImportSpec = useMemo(() => ({
     kind: 'results',
     columns: [
@@ -90,9 +91,9 @@ export default function Impact() {
         </Panel>
         <Panel title="Record actual results" sub="Leftover fills in automatically: prepared = sold + leftover">
           <div className="mb-3 max-w-xs"><Label>Service date</Label><Input type="date" max={data.today.slice(0, 10)} value={entryDate} onChange={(e) => setDate(e.target.value)} data-testid="input-results-date" /></div>
-          <div className="space-y-1.5">
+          {activeMenu.length === 0 ? <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">No active dishes are available. Add or restore a dish in Menu before recording new results.</div> : <div className="space-y-1.5">
             <div className="grid grid-cols-[1fr_64px_64px_64px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground"><span>Dish</span><span>Prep</span><span>Sold</span><span>Left</span></div>
-            {data.menu.map((m) => (
+            {activeMenu.map((m) => (
               <div key={m.id} className="grid grid-cols-[1fr_64px_64px_64px] gap-2 items-center">
                 <span className="text-sm truncate">{m.name}</span>
                 {(['prepared', 'sold', 'leftover'] as const).map((k) => (
@@ -100,7 +101,7 @@ export default function Impact() {
                 ))}
               </div>
             ))}
-          </div>
+          </div>}
           {rowErr && <div className="text-xs text-destructive mt-2">{rowErr}</div>}
           <Button className="mt-3" disabled={!filled.length || !!rowErr || add.isPending} onClick={submit} data-testid="button-save-results">{add.isPending ? 'Saving...' : `Record ${filled.length} results`}</Button>
         </Panel>
@@ -110,8 +111,8 @@ export default function Impact() {
           {recent.length === 0 ? <EmptyState title="No results yet" body="Record what was prepared and sold to measure waste." /> : (
             <div className="overflow-x-auto"><table className="w-full text-sm num">
               <thead><tr className="text-[11px] uppercase text-muted-foreground border-b font-sans"><th className="text-left py-2">Date</th><th className="text-left">Dish</th><th className="text-right">Prep</th><th className="text-right">Sold</th><th className="text-right">Left</th><th className="text-right">Waste</th></tr></thead>
-              <tbody>{recent.map((r, i) => (
-                <tr key={i} className="border-b last:border-0"><td className="py-1.5">{niceDate(r.date)}</td><td className="font-sans">{data.menu.find((m) => m.id === r.menuId)?.name ?? r.menuId}</td><td className="text-right">{r.prepared}</td><td className="text-right">{r.sold}</td><td className="text-right">{r.leftover}</td><td className="text-right text-primary">{rm(r.leftover * cost(r.menuId))}</td></tr>
+               <tbody>{recent.map((r, i) => (
+                 <tr key={i} className="border-b last:border-0" data-testid={`row-result-history-${i}`}><td className="py-1.5">{niceDate(r.date)}</td><td className="font-sans">{r.menuName ?? data.menu.find((m) => m.id === r.menuId)?.name ?? r.menuId}</td><td className="text-right">{r.prepared}</td><td className="text-right">{r.sold}</td><td className="text-right">{r.leftover}</td><td className="text-right text-primary">{rm(r.leftover * (r.menuCost ?? cost(r.menuId)))}</td></tr>
               ))}</tbody>
             </table></div>
           )}

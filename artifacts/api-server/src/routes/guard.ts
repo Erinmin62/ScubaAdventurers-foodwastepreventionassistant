@@ -109,20 +109,36 @@ router.post("/guard/records", async (req, res): Promise<void> => {
             } else s.ingredients.push({ ...ingredient, batches: [{ id: crypto.randomUUID(), quantity: ingredient.quantity, expiry: ingredient.expiry, receivedDate: null }] });
           } else {
             const menuId = requiredString(row.menuId, "menuId");
-            if (!s.menu.some(m => m.id === menuId)) throw new InputError(`Unknown menuId '${menuId}'. Select an existing menu item.`);
+            const menu = s.menu.find(m => m.id === menuId);
+            if (!menu) throw new InputError(`Unknown menuId '${menuId}'. Select an existing menu item.`);
             const recordDate = date(row.date, "date");
             if (recordDate > today()) throw new InputError("Actual sales and results cannot be dated in the future.");
             if (kind === "sales") {
-              const value = { date: recordDate, menuId, portions: numeric(row.portions, "portions", true) };
               const existing = s.sales.find(r => r.date === recordDate && r.menuId === menuId);
+              if (menu.archivedAt && !existing) throw new InputError("Archived dishes cannot be used for new sales entries.");
+              const value = {
+                date: recordDate, menuId, portions: numeric(row.portions, "portions", true),
+                menuName: existing?.menuName ?? menu.name, menuPrice: existing?.menuPrice ?? menu.price,
+                menuCost: existing?.menuCost ?? menu.cost, menuRecipe: existing?.menuRecipe ?? structuredClone(menu.recipe),
+              };
               if (existing) Object.assign(existing, value); else s.sales.push(value);
             } else {
-              const value = { date: recordDate, menuId, prepared: numeric(row.prepared, "prepared", true), sold: numeric(row.sold, "sold", true), leftover: numeric(row.leftover, "leftover", true) };
-              if (value.prepared !== value.sold + value.leftover) throw new InputError("Prepared must equal sold + leftover.");
               const existing = s.results.find(r => r.date === recordDate && r.menuId === menuId);
+              if (menu.archivedAt && !existing) throw new InputError("Archived dishes cannot be used for new results entries.");
+              const value = {
+                date: recordDate, menuId, prepared: numeric(row.prepared, "prepared", true),
+                sold: numeric(row.sold, "sold", true), leftover: numeric(row.leftover, "leftover", true),
+                menuName: existing?.menuName ?? menu.name, menuPrice: existing?.menuPrice ?? menu.price,
+                menuCost: existing?.menuCost ?? menu.cost, menuRecipe: existing?.menuRecipe ?? structuredClone(menu.recipe),
+              };
+              if (value.prepared !== value.sold + value.leftover) throw new InputError("Prepared must equal sold + leftover.");
               if (existing) Object.assign(existing, value); else s.results.push(value);
               const sale = s.sales.find(r => r.date === recordDate && r.menuId === menuId);
-              if (sale) sale.portions = value.sold; else s.sales.push({ date: recordDate, menuId, portions: value.sold });
+              if (sale) sale.portions = value.sold;
+              else s.sales.push({
+                date: recordDate, menuId, portions: value.sold, menuName: menu.name,
+                menuPrice: menu.price, menuCost: menu.cost, menuRecipe: structuredClone(menu.recipe),
+              });
             }
           }
         } catch (e) { if (e instanceof InputError) throw new InputError(`Row ${index + 1}: ${e.message}`); throw e; }

@@ -18,8 +18,10 @@ export default function Recommendations() {
   useScrollHighlight(focus ? 'focus-target' : null, !!data);
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
-  const list = data.recommendations.filter((r) => (t === 'all' || r.type === t) && (s === 'all' || r.status === s));
-  const count = (st: string) => data.recommendations.filter((r) => (t === 'all' || r.type === t) && (st === 'all' || r.status === st)).length;
+  const activeMenuIds = new Set(data.menu.filter((m) => m.archivedAt === null).map((m) => m.id));
+  const availableRecommendations = data.recommendations.filter((r) => r.type !== 'preparation' || activeMenuIds.has(r.targetId));
+  const list = availableRecommendations.filter((r) => (t === 'all' || r.type === t) && (s === 'all' || r.status === s));
+  const count = (st: string) => availableRecommendations.filter((r) => (t === 'all' || r.type === t) && (st === 'all' || r.status === st)).length;
   const impact = impactNumbers(data);
 
   return (
@@ -27,7 +29,7 @@ export default function Recommendations() {
       <PageHeader kicker="Decisions" title="You decide. Yuzu suggests.">
         Purchasing suggestions are never sent to suppliers — approving records your intent only. Edit any amount before approving, or reject.
       </PageHeader>
-      {focus && (() => { const f = data.recommendations.find((r) => r.id === focus); return (
+      {focus && (() => { const f = availableRecommendations.find((r) => r.id === focus); return (
         <div id="focus-target" className="scroll-mt-24"><FocusBanner found={!!f} clearHref="/recommendations" label={f ? `${f.title} (${f.status})` : ''}>
           {f && <div className="max-w-2xl"><RecCard rec={f} /></div>}
         </FocusBanner></div>); })()}

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import express from "express";
 import type { Server } from "node:http";
 import guardRouter from "../routes/guard";
+import { createGuardMenuRouter } from "../routes/guard-menu";
 import reorderRouter from "../routes/guard-reorders";
 import notificationsRouter from "../routes/guard-notifications";
 import inboxRouter from "../routes/guard-inbox";
@@ -19,7 +20,11 @@ let server: Server, base: string;
 before(async () => {
   const app = express();
   app.use("/guard/notifications/webhook", express.raw({ type: "application/json" }));
-  app.use(express.json(), guardRouter, reorderRouter, notificationsRouter, inboxRouter);
+  const menuRouter = createGuardMenuRouter(async (_name, _description, pantry) => ({
+    recipe: [{ ingredientId: pantry[0]!.id, amount: 0.08 }],
+    explanation: "A draft using one available pantry ingredient.",
+  }));
+  app.use(express.json(), guardRouter, menuRouter, reorderRouter, notificationsRouter, inboxRouter);
   server = app.listen(0, "127.0.0.1");
   await new Promise<void>(resolve => server.once("listening", resolve));
   const address = server.address();
@@ -28,9 +33,9 @@ before(async () => {
 });
 after(() => new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve())));
 
-async function request(path: string, body?: unknown, method = "POST") {
+async function request(path: string, body?: unknown, method?: string) {
   const response = await fetch(base + path, {
-    method: body === undefined ? "GET" : method,
+    method: method ?? (body === undefined ? "GET" : "POST"),
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -51,6 +56,51 @@ function fixture() {
   resetWorkspace(s);
   return s;
 }
+test("HTTP: menu changes preserve history, update planning, and keep recipe drafts owner-inventory bounded", async () => {
+  fixture();
+  const ingredients = (await request("/guard/state")).data as { ingredients: { id: string }[] };
+  const newBody = {
+    name: "Tomato toast",
+    description: "Toasted bread with cherry tomato.",
+    price: 18,
+    cost: 5,
+    recipe: [{ ingredientId: "tomato", amount: 0.1 }],
+  };
+  assert.equal((await request("/guard/menu", { ...newBody, recipe: [{ ingredientId: "missing", amount: 0.1 }] })).status, 400);
+  const created = await request("/guard/menu", newBody);
+  assert.equal(created.status, 201);
+  const createdState = created.data as { menu: { id: string; name: string; archivedAt: string | null }[]; forecasts: { menuId: string }[] };
+  const id = createdState.menu.find(m => m.name === "Tomato toast")!.id;
+  assert.ok(createdState.forecasts.some(f => f.menuId === id));
+
+  const drafted = await request("/guard/menu/recipe-draft", { name: "Tomato toast", description: "A simple café toast." });
+  assert.equal(drafted.status, 200);
+  assert.deepEqual((drafted.data as { recipe: { ingredientId: string; amount: number }[] }).recipe, [{ ingredientId: ingredients.ingredients[0]!.id, amount: 0.08 }]);
+
+  assert.equal((await request("/guard/records", { kind: "sales", rows: [{ date: today(), menuId: id, portions: 7 }] })).status, 200);
+  const updated = await request(`/guard/menu/${id}`, { name: "Tomato toast special", price: 19, cost: 6 }, "PATCH");
+  assert.equal(updated.status, 200);
+  const updatedState = updated.data as {
+    menu: { id: string; name: string }[];
+    sales: { menuId: string; menuName?: string; menuPrice?: number; menuCost?: number }[];
+  };
+  const sale = updatedState.sales.find(r => r.menuId === id)!;
+  assert.equal(updatedState.menu.find(m => m.id === id)!.name, "Tomato toast special");
+  assert.deepEqual([sale.menuName, sale.menuPrice, sale.menuCost], ["Tomato toast", 18, 5]);
+
+  const archived = await request(`/guard/menu/${id}`, { active: false }, "PATCH");
+  assert.equal((archived.data as { menu: { id: string; archivedAt: string | null }[] }).menu.find(m => m.id === id)!.archivedAt === null, false);
+  assert.equal((archived.data as { forecasts: { menuId: string }[] }).forecasts.some(f => f.menuId === id), false);
+  assert.equal((await request("/guard/records", { kind: "sales", rows: [{ date: today(), menuId: id, portions: 8 }] })).status, 200, "an existing date can be corrected after archive");
+  assert.equal((await request("/guard/records", { kind: "sales", rows: [{ date: "2026-10-21", menuId: id, portions: 8 }] })).status, 400, "archived dishes cannot be added to a new date");
+
+  const removed = await request(`/guard/menu/${id}`, undefined, "DELETE");
+  assert.equal((removed.data as { menu: { id: string; archivedAt: string | null }[] }).menu.some(m => m.id === id && m.archivedAt !== null), true, "historical dishes are archived instead of erased");
+  const unused = await request("/guard/menu", { ...newBody, name: "Unused dish" });
+  const unusedId = (unused.data as { menu: { id: string; name: string }[] }).menu.find(m => m.name === "Unused dish")!.id;
+  const deleted = await request(`/guard/menu/${unusedId}`, undefined, "DELETE");
+  assert.equal((deleted.data as { menu: { id: string }[] }).menu.some(m => m.id === unusedId), false, "unused dishes can be permanently removed");
+});
 async function scan() {
   const response = await request("/guard/reorders/scan", {});
   assert.equal(response.status, 200);

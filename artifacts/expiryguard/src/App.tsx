@@ -17,6 +17,7 @@ import Automation from '@/pages/automation';
 import Reordering from '@/pages/reordering';
 import Notifications from '@/pages/notifications';
 import NotificationReview from '@/pages/notification-review';
+import Menu from '@/pages/menu';
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/sign-up/*?"><Redirect to="/" /></Route>
           <Route path="/" component={Dashboard} />
           <Route path="/inventory" component={Inventory} />
+          <Route path="/menu" component={Menu} />
           <Route path="/sales" component={Sales} />
           <Route path="/forecast" component={Forecast} />
           <Route path="/recommendations" component={Recommendations} />

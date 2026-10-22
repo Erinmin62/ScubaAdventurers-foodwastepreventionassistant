@@ -5,10 +5,17 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { RecipeItem } from './recipeItem';
 
 export interface Sale {
   date: string;
   menuId: string;
   /** @minimum 0 */
   portions: number;
+  menuName?: string;
+  /** @minimum 0 */
+  menuPrice?: number;
+  /** @minimum 0 */
+  menuCost?: number;
+  menuRecipe?: RecipeItem[];
 }

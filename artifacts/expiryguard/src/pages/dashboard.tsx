@@ -26,7 +26,9 @@ export default function Dashboard() {
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
   const s = data.summary;
-  const pending = data.recommendations.filter((r) => r.status === 'pending');
+  const activeMenuIds = new Set(data.menu.filter((m) => m.archivedAt === null).map((m) => m.id));
+  const pending = data.recommendations.filter((r) => r.status === 'pending' && (r.type !== 'preparation' || activeMenuIds.has(r.targetId)));
+  const activePredicted = data.forecasts.filter((f) => activeMenuIds.has(f.menuId)).reduce((sum, f) => sum + f.predicted, 0);
   const deliveries = data.ingredients.filter((i) => i.deliveryQuantity > 0 && i.deliveryDate).sort((a, b) => a.deliveryDate.localeCompare(b.deliveryDate)).slice(0, 6);
   const risks = data.risks.filter(r => r.level !== 'low').sort((a, b) => b.value - a.value).slice(0, 6);
 
@@ -40,7 +42,7 @@ export default function Dashboard() {
           <div>
             <div className="text-[11px] uppercase tracking-[0.25em] text-primary font-bold">Morning briefing · {niceDate(data.today)}</div>
             <h1 className="text-3xl md:text-5xl font-extrabold mt-2 leading-[1.05]">
-              Tomorrow, prep <span className="text-primary num">{fmt(s.predictedPortions, 0)}</span> portions.<br />
+              Tomorrow, prep <span className="text-primary num">{fmt(activePredicted, 0)}</span> portions.<br />
               {s.riskValue > 0 ? <><span className="text-amber num">{rm(s.riskValue)}</span> of stock needs review.</> : <>Your pantry is calm.</>}
             </h1>
             <p className="mt-3 text-sm opacity-75 max-w-xl">Yuzu read yesterday's till and every expiry label. {s.pendingCount} decision{s.pendingCount === 1 ? '' : 's'} wait for your sign-off — nothing moves without you.</p>
@@ -52,7 +54,7 @@ export default function Dashboard() {
       </section>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Predicted portions" value={fmt(s.predictedPortions, 0)} note={`for ${niceDate(data.tomorrow)}`} tone="primary" testId="text-predicted" />
+        <Stat label="Predicted portions" value={fmt(activePredicted, 0)} note={`for ${niceDate(data.tomorrow)}`} tone="primary" testId="text-predicted" />
         <Stat label="Stock value at risk" value={rm(s.riskValue)} note={`${data.risks.filter(r => r.level !== 'low').length} ingredients flagged`} tone="amber" testId="text-risk" />
         <Stat label="Pending decisions" value={String(s.pendingCount)} note="human approval required" tone="ink" testId="text-pending" />
         <Stat label="Approved projection" value={rm(s.estimatedSavings)} note="estimate, not yet realised" tone="jade" />

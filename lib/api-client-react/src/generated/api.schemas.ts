@@ -530,11 +530,23 @@ export interface Ingredient {
   batches?: StockBatch[];
 }
 
+export interface RecipeItem {
+  ingredientId: string;
+  /** @exclusiveMinimum 0 */
+  amount: number;
+}
+
 export interface Sale {
   date: string;
   menuId: string;
   /** @minimum 0 */
   portions: number;
+  menuName?: string;
+  /** @minimum 0 */
+  menuPrice?: number;
+  /** @minimum 0 */
+  menuCost?: number;
+  menuRecipe?: RecipeItem[];
 }
 
 export interface Result {
@@ -546,19 +558,99 @@ export interface Result {
   sold: number;
   /** @minimum 0 */
   leftover: number;
-}
-
-export interface RecipeItem {
-  ingredientId: string;
-  amount: number;
+  menuName?: string;
+  /** @minimum 0 */
+  menuPrice?: number;
+  /** @minimum 0 */
+  menuCost?: number;
+  menuRecipe?: RecipeItem[];
 }
 
 export interface MenuItem {
   id: string;
   name: string;
+  description: string;
   price: number;
   cost: number;
+  /** @nullable */
+  archivedAt: string | null;
   recipe: RecipeItem[];
+}
+
+export interface MenuItemInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /** @maxLength 500 */
+  description: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  price: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  cost: number;
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  recipe: RecipeItem[];
+}
+
+export interface MenuItemUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name?: string;
+  /** @maxLength 500 */
+  description?: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  price?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  cost?: number;
+  active?: boolean;
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  recipe?: RecipeItem[];
+}
+
+export interface MenuRecipeDraftInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /**
+     * @minLength 5
+     * @maxLength 500
+     */
+  description: string;
+}
+
+export interface MenuRecipeDraft {
+  /**
+     * @minItems 1
+     * @maxItems 30
+     */
+  recipe: RecipeItem[];
+  /** @maxLength 500 */
+  explanation: string;
+  /** @maxLength 500 */
+  notice: string;
 }
 
 export interface Forecast {

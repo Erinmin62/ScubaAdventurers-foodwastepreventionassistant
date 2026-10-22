@@ -8,5 +8,6 @@
 
 export interface RecipeItem {
   ingredientId: string;
+  /** @exclusiveMinimum 0 */
   amount: number;
 }

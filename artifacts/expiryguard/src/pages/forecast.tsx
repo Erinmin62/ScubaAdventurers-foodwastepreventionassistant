@@ -6,9 +6,11 @@ export default function Forecast() {
   const { data, isLoading, error, refetch } = useGuard();
   if (isLoading) return <LoadingState />;
   if (error || !data) return <ErrorState error={error} onRetry={() => refetch()} />;
-  const preps = data.recommendations.filter((r) => r.type === 'preparation');
+  const activeIds = new Set(data.menu.filter((m) => m.archivedAt === null).map((m) => m.id));
+  const forecasts = data.forecasts.filter((f) => activeIds.has(f.menuId));
+  const preps = data.recommendations.filter((r) => r.type === 'preparation' && activeIds.has(r.targetId));
   const approved = preps.filter((r) => r.status === 'approved' || r.status === 'edited');
-  const max = Math.max(1, ...data.forecasts.map((f) => Math.max(f.predicted, f.capacity, f.suggested)));
+  const max = Math.max(1, ...forecasts.map((f) => Math.max(f.predicted, f.capacity, f.suggested)));
 
   return (
     <div className="space-y-5">
@@ -16,15 +18,15 @@ export default function Forecast() {
         Demand = last 7 days' average adjusted by a weekday factor. Capacity is limited by non-expired stock, with shared ingredients allocated across dishes.
       </PageHeader>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Predicted portions" value={fmt(data.summary.predictedPortions, 0)} tone="primary" />
-        <Stat label="Suggested prep" value={fmt(data.forecasts.reduce((a, f) => a + f.suggested, 0), 0)} tone="ink" />
+        <Stat label="Predicted portions" value={fmt(forecasts.reduce((sum, f) => sum + f.predicted, 0), 0)} tone="primary" />
+        <Stat label="Suggested prep" value={fmt(forecasts.reduce((a, f) => a + f.suggested, 0), 0)} tone="ink" />
         <Stat label="Prep plans approved" value={`${approved.length} / ${preps.length}`} tone="jade" />
-        <Stat label="Capacity-limited" value={String(data.forecasts.filter((f) => f.capacity < f.predicted).length)} note="dishes short on stock" tone="amber" />
+        <Stat label="Capacity-limited" value={String(forecasts.filter((f) => f.capacity < f.predicted).length)} note="dishes short on stock" tone="amber" />
       </div>
       <Panel title="Demand by dish" sub="Bar = predicted, marker = stock capacity, number = suggested prep">
-        {data.forecasts.length === 0 ? <EmptyState title="No forecast yet" body="Add at least a few days of sales." /> : (
+        {forecasts.length === 0 ? <EmptyState title="No active dishes to forecast" body="Add or restore a dish in Menu to include it in future demand and preparation plans." /> : (
           <div className="space-y-4">
-            {data.forecasts.map((f) => {
+            {forecasts.map((f) => {
               const rec = preps.find((r) => r.targetId === f.menuId);
               const plan = rec && (rec.status === 'approved' || rec.status === 'edited') ? rec.approvedQuantity ?? rec.suggested : null;
               return (
