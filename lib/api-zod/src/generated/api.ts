@@ -3752,6 +3752,70 @@ export const DraftMenuRecipeResponse = zod.object({
 })
 
 
+export const GenerateAiDemoForecastBody = zod.object({
+  "demoOnly": zod.literal(true)
+})
+
+export const generateAiDemoForecastResponseSummaryMax = 500;
+
+export const generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayItemMin = 0;
+export const generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayItemMax = 1000;
+
+export const generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayMin = 7;
+export const generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayMax = 7;
+
+export const generateAiDemoForecastResponseDemandForecastsItemTotalPredictedPortionsMin = 0;
+export const generateAiDemoForecastResponseDemandForecastsItemTotalPredictedPortionsMax = 7000;
+
+export const generateAiDemoForecastResponseDemandForecastsItemExplanationMax = 500;
+
+export const generateAiDemoForecastResponseWastePredictionsItemEstimatedAtRiskMin = 0;
+export const generateAiDemoForecastResponseWastePredictionsItemEstimatedAtRiskMax = 1000000;
+
+export const generateAiDemoForecastResponseWastePredictionsItemExplanationMax = 500;
+
+export const generateAiDemoForecastResponseOrderRecommendationsItemSuggestedOrderQuantityMin = 0;
+export const generateAiDemoForecastResponseOrderRecommendationsItemSuggestedOrderQuantityMax = 1000000;
+
+export const generateAiDemoForecastResponseOrderRecommendationsItemExplanationMax = 500;
+
+
+
+export const GenerateAiDemoForecastResponse = zod.object({
+  "mode": zod.enum(['synthetic_demo']),
+  "model": zod.string(),
+  "generatedAt": zod.coerce.date(),
+  "historyDays": zod.literal(28),
+  "horizonStart": zod.coerce.date(),
+  "horizonEnd": zod.coerce.date(),
+  "summary": zod.string().min(1).max(generateAiDemoForecastResponseSummaryMax),
+  "demandForecasts": zod.array(zod.object({
+  "menuId": zod.string(),
+  "name": zod.string(),
+  "predictedPortionsByDay": zod.array(zod.number().int().min(generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayItemMin).max(generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayItemMax)).min(generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayMin).max(generateAiDemoForecastResponseDemandForecastsItemPredictedPortionsByDayMax),
+  "totalPredictedPortions": zod.number().int().min(generateAiDemoForecastResponseDemandForecastsItemTotalPredictedPortionsMin).max(generateAiDemoForecastResponseDemandForecastsItemTotalPredictedPortionsMax),
+  "explanation": zod.string().min(1).max(generateAiDemoForecastResponseDemandForecastsItemExplanationMax)
+})),
+  "wastePredictions": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "estimatedAtRisk": zod.number().min(generateAiDemoForecastResponseWastePredictionsItemEstimatedAtRiskMin).max(generateAiDemoForecastResponseWastePredictionsItemEstimatedAtRiskMax),
+  "unit": zod.enum(['kg', 'L', 'pcs']),
+  "expiryDate": zod.coerce.date(),
+  "explanation": zod.string().min(1).max(generateAiDemoForecastResponseWastePredictionsItemExplanationMax)
+})),
+  "orderRecommendations": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "suggestedOrderQuantity": zod.number().min(generateAiDemoForecastResponseOrderRecommendationsItemSuggestedOrderQuantityMin).max(generateAiDemoForecastResponseOrderRecommendationsItemSuggestedOrderQuantityMax),
+  "unit": zod.enum(['kg', 'L', 'pcs']),
+  "proposedDeliveryDate": zod.coerce.date(),
+  "explanation": zod.string().min(1).max(generateAiDemoForecastResponseOrderRecommendationsItemExplanationMax)
+})),
+  "disclaimer": zod.string()
+})
+
+
 export const DecideRecommendationParams = zod.object({
   "id": zod.coerce.string()
 })

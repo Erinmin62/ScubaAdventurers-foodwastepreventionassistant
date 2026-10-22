@@ -7,6 +7,15 @@
  */
 
 export * from './activity';
+export * from './aiDemoDishForecast';
+export * from './aiDemoOrderRecommendation';
+export * from './aiDemoOrderRecommendationUnit';
+export * from './aiDemoWastePrediction';
+export * from './aiDemoWastePredictionUnit';
+export * from './aiForecastDemoInput';
+export * from './aiForecastDemoResponse';
+export * from './aiForecastDemoResponseHistoryDays';
+export * from './aiForecastDemoResponseMode';
 export * from './automationRun';
 export * from './automationRunInput';
 export * from './automationRunInputWorkflow';

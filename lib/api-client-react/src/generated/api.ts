@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AiForecastDemoInput,
+  AiForecastDemoResponse,
   AutomationRunInput,
   AutomationSettingsInput,
   DecisionInput,
@@ -2321,6 +2323,88 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDraftMenuRecipeMutationOptions(options));
+    }
+
+export const getGenerateAiDemoForecastUrl = () => {
+
+
+
+
+  return `/api/guard/ai-forecast/demo`
+}
+
+export const generateAiDemoForecast = async (aiForecastDemoInput: AiForecastDemoInput, options?: Parameters<typeof customFetch>[1]): Promise<AiForecastDemoResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AiForecastDemoResponse>(getGenerateAiDemoForecastUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(aiForecastDemoInput)
+  }
+);}
+
+
+
+
+
+export const getGenerateAiDemoForecastMutationKey = () => ['generateAiDemoForecast'] as const;
+
+export const getGenerateAiDemoForecastMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiDemoForecast>>, TError,GenerateAiDemoForecastMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateAiDemoForecast>>, TError,GenerateAiDemoForecastMutationVariables, TContext> => {
+
+const mutationKey = getGenerateAiDemoForecastMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateAiDemoForecast>>, GenerateAiDemoForecastMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateAiDemoForecast(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateAiDemoForecastMutationResult = NonNullable<Awaited<ReturnType<typeof generateAiDemoForecast>>>
+    export type GenerateAiDemoForecastMutationBody = BodyType<AiForecastDemoInput>
+    export type GenerateAiDemoForecastMutationError = ErrorType<void>
+    export type GenerateAiDemoForecastMutationVariables = {data: BodyType<AiForecastDemoInput>}
+
+    export const useGenerateAiDemoForecast = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiDemoForecast>>, TError,GenerateAiDemoForecastMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateAiDemoForecast>>,
+        TError,
+        GenerateAiDemoForecastMutationVariables,
+        TContext
+      > => {
+      return useMutation(getGenerateAiDemoForecastMutationOptions(options));
     }
 
 export const getDecideRecommendationUrl = (id: string,) => {

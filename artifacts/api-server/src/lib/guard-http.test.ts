@@ -4,6 +4,7 @@ import express from "express";
 import type { Server } from "node:http";
 import guardRouter from "../routes/guard";
 import { createGuardMenuRouter } from "../routes/guard-menu";
+import { createGuardAiForecastDemoRouter } from "../routes/guard-ai-forecast-demo";
 import reorderRouter from "../routes/guard-reorders";
 import notificationsRouter from "../routes/guard-notifications";
 import inboxRouter from "../routes/guard-inbox";
@@ -15,6 +16,7 @@ import { seed, shift, today, compute, type State } from "./guard-model";
 import type { Reorders } from "./guard-reorder";
 import { createOwnerAuth } from "../middlewares/owner-auth";
 import { currentWorkspaceId, inWorkspace, ownerWorkspaceId } from "./workspace-context";
+import type { SyntheticForecastContext } from "./ai-forecast-demo";
 
 let server: Server, base: string;
 before(async () => {
@@ -24,7 +26,8 @@ before(async () => {
     recipe: [{ ingredientId: pantry[0]!.id, amount: 0.08 }],
     explanation: "A draft using one available pantry ingredient.",
   }));
-  app.use(express.json(), guardRouter, menuRouter, reorderRouter, notificationsRouter, inboxRouter);
+  const aiForecastDemoRouter = createGuardAiForecastDemoRouter(async context => syntheticAiForecast(context));
+  app.use(express.json(), guardRouter, aiForecastDemoRouter, menuRouter, reorderRouter, notificationsRouter, inboxRouter);
   server = app.listen(0, "127.0.0.1");
   await new Promise<void>(resolve => server.once("listening", resolve));
   const address = server.address();
@@ -56,6 +59,51 @@ function fixture() {
   resetWorkspace(s);
   return s;
 }
+function syntheticAiForecast(context: SyntheticForecastContext) {
+  return JSON.stringify({
+    summary: "Synthetic test output only.",
+    demandForecasts: context.menu.map(item => ({
+      menuId: item.id,
+      predictedPortionsByDay: [1, 2, 3, 4, 5, 6, 7],
+      totalPredictedPortions: 28,
+      explanation: "A stable sample trend.",
+    })),
+    wastePredictions: context.ingredients.map(item => ({
+      ingredientId: item.id,
+      estimatedAtRisk: 0,
+      explanation: "No sample stock is projected at risk.",
+    })),
+    orderRecommendations: context.ingredients.map(item => ({
+      ingredientId: item.id,
+      suggestedOrderQuantity: 0,
+      proposedDeliveryDate: context.horizonDates[0],
+      explanation: "No sample order is suggested.",
+    })),
+  });
+}
+test("HTTP: AI forecast demo uses synthetic data, does not write workspace state, and limits runs", async () => {
+  fixture();
+  const before = snapshotWorkspace();
+  assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: false })).status, 400);
+  const first = await request("/guard/ai-forecast/demo", { demoOnly: true });
+  assert.equal(first.status, 200);
+  const demo = first.data as {
+    mode: string;
+    historyDays: number;
+    demandForecasts: unknown[];
+    wastePredictions: unknown[];
+    orderRecommendations: unknown[];
+  };
+  assert.equal(demo.mode, "synthetic_demo");
+  assert.equal(demo.historyDays, 28);
+  assert.ok(demo.demandForecasts.length > 0);
+  assert.ok(demo.wastePredictions.length > 1);
+  assert.ok(demo.orderRecommendations.length > 1);
+  assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 200);
+  assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 200);
+  assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 429);
+  assert.deepEqual(snapshotWorkspace(), before);
+});
 test("HTTP: menu changes preserve history, update planning, and keep recipe drafts owner-inventory bounded", async () => {
   fixture();
   const ingredients = (await request("/guard/state")).data as { ingredients: { id: string }[] };

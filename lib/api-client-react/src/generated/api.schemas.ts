@@ -653,6 +653,116 @@ export interface MenuRecipeDraft {
   notice: string;
 }
 
+export interface AiForecastDemoInput {
+  demoOnly: true;
+}
+
+export interface AiDemoDishForecast {
+  menuId: string;
+  name: string;
+  /**
+     * @minItems 7
+     * @maxItems 7
+     * @items.minimum 0
+     * @items.maximum 1000
+     */
+  predictedPortionsByDay: number[];
+  /**
+     * @minimum 0
+     * @maximum 7000
+     */
+  totalPredictedPortions: number;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  explanation: string;
+}
+
+export type AiDemoWastePredictionUnit = typeof AiDemoWastePredictionUnit[keyof typeof AiDemoWastePredictionUnit];
+
+
+export const AiDemoWastePredictionUnit = {
+  kg: 'kg',
+  L: 'L',
+  pcs: 'pcs',
+} as const;
+
+export interface AiDemoWastePrediction {
+  ingredientId: string;
+  name: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  estimatedAtRisk: number;
+  unit: AiDemoWastePredictionUnit;
+  expiryDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  explanation: string;
+}
+
+export type AiDemoOrderRecommendationUnit = typeof AiDemoOrderRecommendationUnit[keyof typeof AiDemoOrderRecommendationUnit];
+
+
+export const AiDemoOrderRecommendationUnit = {
+  kg: 'kg',
+  L: 'L',
+  pcs: 'pcs',
+} as const;
+
+export interface AiDemoOrderRecommendation {
+  ingredientId: string;
+  name: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  suggestedOrderQuantity: number;
+  unit: AiDemoOrderRecommendationUnit;
+  proposedDeliveryDate: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  explanation: string;
+}
+
+export type AiForecastDemoResponseMode = typeof AiForecastDemoResponseMode[keyof typeof AiForecastDemoResponseMode];
+
+
+export const AiForecastDemoResponseMode = {
+  synthetic_demo: 'synthetic_demo',
+} as const;
+
+export type AiForecastDemoResponseHistoryDays = typeof AiForecastDemoResponseHistoryDays[keyof typeof AiForecastDemoResponseHistoryDays];
+
+
+export const AiForecastDemoResponseHistoryDays = {
+  NUMBER_28: 28,
+} as const;
+
+export interface AiForecastDemoResponse {
+  mode: AiForecastDemoResponseMode;
+  model: string;
+  generatedAt: string;
+  historyDays: AiForecastDemoResponseHistoryDays;
+  horizonStart: string;
+  horizonEnd: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  summary: string;
+  demandForecasts: AiDemoDishForecast[];
+  wastePredictions: AiDemoWastePrediction[];
+  orderRecommendations: AiDemoOrderRecommendation[];
+  disclaimer: string;
+}
+
 export interface Forecast {
   menuId: string;
   name: string;

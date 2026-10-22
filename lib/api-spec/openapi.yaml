@@ -392,6 +392,23 @@ paths:
         "400": { description: Invalid dish details or no inventory ingredients }
         "429": { description: Recipe drafting request limit reached }
         "503": { description: Recipe drafting is temporarily unavailable }
+  /guard/ai-forecast/demo:
+    post:
+      operationId: generateAiDemoForecast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiForecastDemoInput" }
+      responses:
+        "200":
+          description: Experimental LLM forecast generated only from synthetic demo data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiForecastDemoResponse" }
+        "400": { description: Demo-only acknowledgement is required }
+        "429": { description: AI forecast demo request limit reached }
+        "503": { description: AI forecast demo is temporarily unavailable }
   /guard/recommendations/{id}/decision:
     post:
       operationId: decideRecommendation
@@ -893,6 +910,66 @@ components:
           items: { $ref: "#/components/schemas/RecipeItem" }
         explanation: { type: string, maxLength: 500 }
         notice: { type: string, maxLength: 500 }
+    AiForecastDemoInput:
+      type: object
+      additionalProperties: false
+      required: [demoOnly]
+      properties:
+        demoOnly: { type: boolean, enum: [true] }
+    AiDemoDishForecast:
+      type: object
+      required: [menuId, name, predictedPortionsByDay, totalPredictedPortions, explanation]
+      properties:
+        menuId: { type: string }
+        name: { type: string }
+        predictedPortionsByDay:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items: { type: integer, minimum: 0, maximum: 1000 }
+        totalPredictedPortions: { type: integer, minimum: 0, maximum: 7000 }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiDemoWastePrediction:
+      type: object
+      required: [ingredientId, name, estimatedAtRisk, unit, expiryDate, explanation]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        estimatedAtRisk: { type: number, minimum: 0, maximum: 1000000 }
+        unit: { type: string, enum: [kg, L, pcs] }
+        expiryDate: { type: string, format: date }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiDemoOrderRecommendation:
+      type: object
+      required: [ingredientId, name, suggestedOrderQuantity, unit, proposedDeliveryDate, explanation]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        suggestedOrderQuantity: { type: number, minimum: 0, maximum: 1000000 }
+        unit: { type: string, enum: [kg, L, pcs] }
+        proposedDeliveryDate: { type: string, format: date }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiForecastDemoResponse:
+      type: object
+      required: [mode, model, generatedAt, historyDays, horizonStart, horizonEnd, summary, demandForecasts, wastePredictions, orderRecommendations, disclaimer]
+      properties:
+        mode: { type: string, enum: [synthetic_demo] }
+        model: { type: string }
+        generatedAt: { type: string, format: date-time }
+        historyDays: { type: integer, enum: [28] }
+        horizonStart: { type: string, format: date }
+        horizonEnd: { type: string, format: date }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        demandForecasts:
+          type: array
+          items: { $ref: "#/components/schemas/AiDemoDishForecast" }
+        wastePredictions:
+          type: array
+          items: { $ref: "#/components/schemas/AiDemoWastePrediction" }
+        orderRecommendations:
+          type: array
+          items: { $ref: "#/components/schemas/AiDemoOrderRecommendation" }
+        disclaimer: { type: string }
     Forecast:
       type: object
       required: [menuId, name, predicted, capacity, suggested, confidence, reason]
