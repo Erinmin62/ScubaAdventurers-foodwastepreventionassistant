@@ -1,0 +1,28 @@
+kind = "slides"
+previewPath = "/expiryguardai-website-walkthrough/"
+title = "ExpiryGuardAI Website Walkthrough"
+description = "An approximately six-minute guided presentation explaining the main ExpiryGuardAI website buttons, workflows, and demo limits for food and beverage SMEs."
+version = "1.0.0"
+id = "artifacts/expiryguardai-website-walkthrough"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/expiryguardai-website-walkthrough/" ]
+localPort = 23635
+
+[services.development]
+run = "pnpm --filter @workspace/expiryguardai-website-walkthrough run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/expiryguardai-website-walkthrough", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/expiryguardai-website-walkthrough/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23635"
+BASE_PATH = "/expiryguardai-website-walkthrough/"

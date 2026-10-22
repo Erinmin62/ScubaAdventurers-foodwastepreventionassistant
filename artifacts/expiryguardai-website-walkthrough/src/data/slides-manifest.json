@@ -1,0 +1,66 @@
+[
+  {
+    "id": "a1000001-0000-4000-8000-000000000001",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide1.tsx",
+    "title": "ExpiryGuardAI: a guided website tour",
+    "description": "A six-minute walkthrough of the main buttons and how they fit together.",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1000002-0000-4000-8000-000000000002",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide2.tsx",
+    "title": "Choose the workspace before you begin",
+    "description": "Choose the workspace before you begin",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1000003-0000-4000-8000-000000000003",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide3.tsx",
+    "title": "The sidebar is your tour map",
+    "description": "The sidebar is your tour map",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1000004-0000-4000-8000-000000000004",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide4.tsx",
+    "title": "Pantry: record what is on hand",
+    "description": "Pantry: record what is on hand",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1000005-0000-4000-8000-000000000005",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide5.tsx",
+    "title": "Menu and Sales: describe service",
+    "description": "Menu and Sales: describe service",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1000006-0000-4000-8000-000000000006",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide6.tsx",
+    "title": "Tomorrow and Decisions: plan, then review",
+    "description": "Tomorrow and Decisions: plan, then review",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1000007-0000-4000-8000-000000000007",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide7.tsx",
+    "title": "Reordering and Automations: keep control",
+    "description": "Reordering and Automations: keep control",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1000008-0000-4000-8000-000000000008",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide8.tsx",
+    "title": "Close with records, not assumptions",
+    "description": "Close with records, not assumptions",
+    "speakerNotes": ""
+  }
+]
