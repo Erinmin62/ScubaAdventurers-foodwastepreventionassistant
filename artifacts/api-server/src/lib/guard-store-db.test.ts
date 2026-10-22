@@ -103,6 +103,92 @@ test("PostgreSQL: simultaneous history imports retain both batches after reload 
   }
 });
 
+for (const firstWriter of ["remove", "import"] as const) {
+  test(`PostgreSQL: removing an archive batch preserves an overlapping import (${firstWriter} queued first)`,
+    { timeout: 20_000 }, async () => {
+      const owner = ownerWorkspaceId(`history-remove-db-test-${randomUUID()}`);
+      const original = seed();
+      original.historicalRecords = [];
+      const blocker = await pool.connect();
+      const observer = await pool.connect();
+      const writes: Promise<unknown>[] = [];
+      let importPromise: ReturnType<typeof appendHistoricalRecords> | undefined;
+      let removalPromise: ReturnType<typeof removeHistoricalBatch> | undefined;
+      try {
+        await observer.query("INSERT INTO guard_workspace (id, data) VALUES ($1, $2::jsonb)",
+          [owner, JSON.stringify(original)]);
+        const makeRows = (name: string) => [
+          { kind: "stock" as const, date: shift(today(), -2), itemName: `${name} flour`, quantity: 2, unit: "kg" as const },
+          { kind: "stock" as const, date: shift(today(), -1), itemName: `${name} milk`, quantity: 3, unit: "L" as const },
+        ];
+        const removed = await inWorkspace(owner, () => appendHistoricalRecords(makeRows("Old"), "old.csv"));
+        const untouched = await inWorkspace(owner, () => appendHistoricalRecords(makeRows("Keep"), "keep.csv"));
+        const removedBatchId = removed[0]!.batchId!;
+        assert.ok(removedBatchId);
+        assert.notEqual(removedBatchId, untouched[0]!.batchId);
+        const rows = makeRows("New");
+
+        await blocker.query("BEGIN");
+        await blocker.query("SELECT id FROM guard_workspace WHERE id = $1 FOR UPDATE", [owner]);
+        const { rows: [{ pid }] } = await blocker.query("SELECT pg_backend_pid() AS pid");
+        const startWriter = (writer: typeof firstWriter) => {
+          const promise = writer === "remove"
+            ? (removalPromise = inWorkspace(owner, () => removeHistoricalBatch(removedBatchId)))
+            : (importPromise = inWorkspace(owner, () => appendHistoricalRecords(rows, "new.csv")));
+          writes.push(promise);
+          // Observe rejections even when an overlap assertion fails.
+          void promise.catch(() => {});
+        };
+        startWriter(firstWriter);
+        await waitForBlockedWriters(observer, pid, 1);
+        startWriter(firstWriter === "remove" ? "import" : "remove");
+        await waitForBlockedWriters(observer, pid, 2);
+        await blocker.query("COMMIT");
+        await Promise.all(writes);
+        assert.ok(removalPromise);
+        assert.ok(await removalPromise, "the seeded batch must be found and removed");
+        assert.ok(importPromise);
+        const added = await importPromise;
+        assert.equal(added.length, rows.length);
+        assert.ok(added[0]!.batchId);
+        assert.notEqual(added[0]!.batchId, removedBatchId);
+        assert.notEqual(added[0]!.batchId, untouched[0]!.batchId);
+        assert.ok(added.every(row => row.batchId === added[0]!.batchId && row.fileName === "new.csv"));
+        assert.deepEqual(added.map(({ id, importedAt, batchId, fileName, ...row }) => row), rows);
+
+        // Neither read reuses the document returned by either racing mutation.
+        const reloaded = await inWorkspace(owner, readWorkspace);
+        assert.ok(reloaded);
+        const persisted = (await observer.query("SELECT data FROM guard_workspace WHERE id = $1", [owner])).rows[0].data as Stored;
+        assert.deepEqual(reloaded, persisted, "store reload must agree with an independent PostgreSQL connection");
+        assert.deepEqual(persisted.historicalRecords, [...untouched, ...added],
+          "only the selected batch may disappear; untouched and newly imported rows must survive intact");
+        const archive = historicalArchive(reloaded.historicalRecords);
+        assert.equal(archive.records.length, 4);
+        assert.equal(new Set(archive.records.map(row => row.id)).size, 4);
+        assert.equal(archive.batches.length, 2);
+        assert.ok(!archive.records.some(row => row.batchId === removedBatchId));
+        for (const batch of [untouched, added]) {
+          assert.equal(archive.batches.find(value => value.id === batch[0]!.batchId)?.recordCount, 2);
+        }
+        assert.deepEqual({ ...persisted, historicalRecords: [] }, original,
+          "archive removal and import must not change operational data");
+      } finally {
+        // Release the lock before draining writers, then delete only this test's owner.
+        try {
+          await blocker.query("ROLLBACK");
+          await Promise.allSettled(writes);
+          await observer.query("DELETE FROM guard_workspace WHERE id = $1", [owner]);
+          const remaining = await observer.query("SELECT id FROM guard_workspace WHERE id = $1", [owner]);
+          assert.equal(remaining.rowCount, 0, "temporary workspace must be removed");
+        } finally {
+          blocker.release();
+          observer.release();
+        }
+      }
+    });
+}
+
 for (const firstWriter of ["inventory", "archive"] as const) {
   test(`PostgreSQL: inventory edit and archive import both survive reload (${firstWriter} queued first)`,
     { timeout: 20_000 }, async () => {
