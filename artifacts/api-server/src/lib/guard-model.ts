@@ -91,13 +91,19 @@ export function compute(s: Stored, d = today()): State {
   const activeMenu = s.menu.filter(m => !m.archivedAt);
   const forecasts: State["forecasts"] = activeMenu.map(m => {
     const history = s.sales.filter(r => r.menuId === m.id && r.date <= d && r.date >= shift(d, -6));
-    const avg = history.length ? history.reduce((n, r) => n + r.portions, 0) / history.length : 0;
+    // A business day may be recorded in several entries. Match backtesting:
+    // sum each dish's entries by calendar date, then average distinct daily totals.
+    const salesByDay = new Map<string, number>();
+    for (const row of history) salesByDay.set(row.date, (salesByDay.get(row.date) ?? 0) + row.portions);
+    const avg = salesByDay.size
+      ? [...salesByDay.values()].reduce((sum, portions) => sum + portions, 0) / salesByDay.size
+      : 0;
     const factor = [0, 6].includes(weekday) ? 1.15 : 0.97;
     const predicted = Math.max(0, Math.round(avg * factor));
     const capacity = Math.max(0, Math.floor(Math.min(...m.recipe.map(r => (available[r.ingredientId] ?? 0) / r.amount))));
     const suggested = Math.min(capacity, predicted);
     for (const r of m.recipe) available[r.ingredientId] = Math.max(0, (available[r.ingredientId] ?? 0) - suggested * r.amount);
-    return { menuId: m.id, name: m.name, predicted, capacity, suggested, confidence: history.length >= 7 ? "High" : "Limited data", reason: `${history.length}-day mean × ${factor} ${[0, 6].includes(weekday) ? "weekend" : "weekday"} factor. Stock shared across menu items; expired stock excluded. Rules-based estimate, not a guarantee.` };
+    return { menuId: m.id, name: m.name, predicted, capacity, suggested, confidence: salesByDay.size >= 7 ? "High" : "Limited data", reason: `${salesByDay.size}-day mean × ${factor} ${[0, 6].includes(weekday) ? "weekend" : "weekday"} factor. Stock shared across menu items; expired stock excluded. Rules-based estimate, not a guarantee.` };
   });
   const dailyUse = (id: string) => forecasts.reduce((n, f) => n + f.predicted * (activeMenu.find(m => m.id === f.menuId)?.recipe.find(r => r.ingredientId === id)?.amount ?? 0), 0);
   const risks: State["risks"] = s.ingredients.map(i => {
