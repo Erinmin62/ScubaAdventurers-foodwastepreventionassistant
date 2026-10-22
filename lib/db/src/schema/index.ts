@@ -18,3 +18,4 @@
 //   export type Post = typeof postsTable.$inferSelect;
 
 export * from "./guard-workspace";
+export * from "./guard-email-notifications";

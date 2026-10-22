@@ -82,8 +82,8 @@ export function seed(): Stored {
   return { ingredients, menu, menuRevision: 0, sales, results, decisions: {}, baseline: { wasteCost, wasteKg }, activity: [{ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Your café workspace is ready", detail: "28 days of synthetic sales and waste results loaded. No real orders are placed.", decision: "system", impact: 0 }] };
 }
 
-export function compute(s: Stored): State {
-  const d = today(), tomorrow = shift(d, 1);
+export function compute(s: Stored, d = today()): State {
+  const tomorrow = shift(d, 1);
   const weekday = new Date(`${tomorrow}T00:00Z`).getUTCDay();
   const available = Object.fromEntries(s.ingredients.map(i => [i.id, safeStock(i, tomorrow)]));
   const activeMenu = s.menu.filter(m => !m.archivedAt);

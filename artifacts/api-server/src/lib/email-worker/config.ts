@@ -1,0 +1,21 @@
+import { z } from "zod";
+import { hash } from "./rules";
+
+export type EmailRoute = { workspaceId: string; recipient: string; recipientHash: string };
+export type EmailProviderConfig = { apiKey: string; from: string };
+export function emailRoutes(env: NodeJS.ProcessEnv): EmailRoute[] {
+  if (!env.EMAIL_WORKSPACE_RECIPIENTS_JSON) return [];
+  let value: unknown;
+  try { value = JSON.parse(env.EMAIL_WORKSPACE_RECIPIENTS_JSON); } catch { throw new Error("invalid_recipient_configuration"); }
+  const parsed = z.record(z.string().regex(/^owner:[A-Za-z0-9_-]+$/), z.string().email().max(254)).safeParse(value);
+  if (!parsed.success) throw new Error("invalid_recipient_configuration");
+  return Object.entries(parsed.data).map(([workspaceId, address]) => {
+    const recipient = address.trim().toLowerCase();
+    return { workspaceId, recipient, recipientHash: hash(recipient) };
+  });
+}
+export function providerConfig(env: NodeJS.ProcessEnv): EmailProviderConfig {
+  if (env.EMAIL_NOTIFICATIONS_ENABLED !== "true") throw new Error("email_sending_disabled");
+  if (!env.RESEND_API_KEY || !z.string().email().safeParse(env.EMAIL_FROM).success) throw new Error("email_provider_not_configured");
+  return { apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM! };
+}

@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "esbuild src/lib/guard-follow-ups.test.ts src/lib/guard-automation.test.ts src/lib/guard-reorder.test.ts src/lib/guard-notifications.test.ts src/lib/guard-sandbox.test.ts src/lib/guard-inbox.test.ts src/lib/guard-scheduler.test.ts src/lib/guard-menu.test.ts src/lib/menu-recipe-ai.test.ts --bundle --platform=node --format=esm --outdir=/tmp/expiryguard-tests && node --test /tmp/expiryguard-tests/*.test.js && node scripts/test-guard-http.mjs && node scripts/test-ingredient-photos.mjs",
+    "test": "esbuild src/lib/guard-follow-ups.test.ts src/lib/guard-automation.test.ts src/lib/guard-reorder.test.ts src/lib/guard-notifications.test.ts src/lib/guard-sandbox.test.ts src/lib/guard-inbox.test.ts src/lib/guard-scheduler.test.ts src/lib/guard-menu.test.ts src/lib/menu-recipe-ai.test.ts src/lib/email-worker/email-worker.test.ts --bundle --platform=node --format=esm --outdir=/tmp/expiryguard-tests && node --test /tmp/expiryguard-tests/*.test.js /tmp/expiryguard-tests/email-worker/*.test.js && node scripts/test-guard-http.mjs && node scripts/test-ingredient-photos.mjs",
+    "email-worker:build": "node scripts/build-email-worker.mjs",
+    "email-worker": "node --enable-source-maps dist-workers/email-worker.mjs",
+    "test:email-worker-db": "node scripts/test-email-worker-db.mjs",
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",

@@ -36,6 +36,7 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 - Automation is limited to daily planning reviews and follow-up scheduling/reminders. Unattended production checks require the Reserved VM deployment target; the minute monitor and authenticated `/api/guard/notifications/tick` share a single-flight runner. External schedulers must set `NOTIFICATIONS_CRON_SECRET` and send it as a bearer token. The workspace development process only runs while active.
 - Pausing automation never disables live expiry checks or deletes existing follow-ups. Automation never approves plans, places orders, or invents measured stock/waste records.
+- A separate hourly email CLI is prepared, not activated. It reads the existing PostgreSQL workspace and writes only a persistent email outbox. See `docs/email-notification-worker.md` for dry-run/send commands, recipient opt-in, duplicate/crash handling, and separate Scheduled Deployment setup. Never replace the web/API service with a scheduled job or add schema mutation to production startup.
 
 - Clerk sign-in is required for café data. Each owner has a separate workspace seeded with synthetic samples; legacy shared demo data is never assigned to a new account. Only trusted server jobs may enter the legacy demo workspace. Twilio Sandbox remains confined to legacy synthetic data and its server-configured recipient, never owner records or browser preferences.
 - Forecasts are transparent rules-based estimates, not an external LLM or a trained ML model.
