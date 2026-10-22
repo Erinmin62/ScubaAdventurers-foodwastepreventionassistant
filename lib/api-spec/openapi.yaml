@@ -16,6 +16,19 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /guard/email-preview:
+    get:
+      operationId: getEmailPreview
+      summary: Read-only expiry email preview for the signed-in owner's workspace
+      responses:
+        "200":
+          description: Current urgent expiry alerts and 2–3 day digest preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailPreview"
+        "401": { description: Sign-in required }
+        "503": { description: Email preview unavailable }
   /guard/email-history:
     get:
       operationId: getEmailHistory
@@ -592,6 +605,28 @@ components:
       scheme: bearer
       description: Separate server-configured scheduler credential; a user session cannot run global checks.
   schemas:
+    EmailPreview:
+      type: object
+      required: [workspaceName, synthetic, generatedAt, timeZone, urgentAlerts, digest]
+      properties:
+        workspaceName: { type: string }
+        synthetic: { type: boolean }
+        generatedAt: { type: string, format: date-time }
+        timeZone: { type: string }
+        urgentAlerts:
+          type: array
+          items: { $ref: "#/components/schemas/ExpiryEmailPreviewItem" }
+        digest:
+          type: array
+          items: { $ref: "#/components/schemas/ExpiryEmailPreviewItem" }
+    ExpiryEmailPreviewItem:
+      type: object
+      required: [kind, subject, text, itemCount]
+      properties:
+        kind: { type: string, enum: [critical_expiry, daily_digest] }
+        subject: { type: string }
+        text: { type: string }
+        itemCount: { type: integer, minimum: 1 }
     EmailHistoryRecord:
       type: object
       required: [id, kind, subject, attemptStatus, observedAt, attemptedAt, acceptedAt, deliveryStatus, deliveryUpdatedAt]

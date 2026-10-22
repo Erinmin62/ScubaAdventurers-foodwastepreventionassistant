@@ -9,3 +9,4 @@
 - [Resend worker builds](resend-worker-builds.md) — keep the Replit connectors SDK external to ESM bundles and load it lazily for sends.
 - [Email webhook verification](email-webhook-verification.md) — Svix verification return contracts vary; exercise the installed verifier with signed raw-byte tests.
 - [Legacy archive recovery](legacy-archive-recovery.md) — old imports have timestamps but no original file names; preserve that uncertainty when offering batch recovery.
+- [API test bundle isolation](api-test-bundle-isolation.md) — keep ESM-glob and CommonJS HTTP test outputs isolated to prevent stale bundles from rerunning.

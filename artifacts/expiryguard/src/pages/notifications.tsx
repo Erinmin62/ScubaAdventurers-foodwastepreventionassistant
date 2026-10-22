@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, Clock3, RefreshCw, XCircle } from 'lucide-re
 import { PageHeader } from '@/components/bits';
 import { InboxCentre } from '@/components/inbox/inbox-centre';
 import { EmailHistory } from '@/components/inbox/email-history';
+import { ExpiryEmailPreview } from '@/components/inbox/expiry-email-preview';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -177,6 +178,7 @@ export default function Notifications() {
       </PageHeader>
       <ExpiryCheckStatus />
       <MonitorStatus />
+      <ExpiryEmailPreview />
       <InboxCentre />
       <EmailHistory />
     </div>

@@ -5,6 +5,31 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type ExpiryEmailPreviewItemKind = typeof ExpiryEmailPreviewItemKind[keyof typeof ExpiryEmailPreviewItemKind];
+
+
+export const ExpiryEmailPreviewItemKind = {
+  critical_expiry: 'critical_expiry',
+  daily_digest: 'daily_digest',
+} as const;
+
+export interface ExpiryEmailPreviewItem {
+  kind: ExpiryEmailPreviewItemKind;
+  subject: string;
+  text: string;
+  /** @minimum 1 */
+  itemCount: number;
+}
+
+export interface EmailPreview {
+  workspaceName: string;
+  synthetic: boolean;
+  generatedAt: string;
+  timeZone: string;
+  urgentAlerts: ExpiryEmailPreviewItem[];
+  digest: ExpiryEmailPreviewItem[];
+}
+
 export type EmailHistoryRecordAttemptStatus = typeof EmailHistoryRecordAttemptStatus[keyof typeof EmailHistoryRecordAttemptStatus];
 
 

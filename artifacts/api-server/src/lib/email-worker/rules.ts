@@ -11,6 +11,19 @@ export type EmailCandidate = {
 export function expiryEmailCandidates(candidates: EmailCandidate[]) {
   return candidates.filter(candidate => candidate.kind === "critical_expiry" || candidate.kind === "daily_digest");
 }
+export function expiryEmailPreview(s: Stored, now: Date) {
+  const candidates = expiryEmailCandidates(scanEmailCandidates(s, now).candidates);
+  const summarize = (candidate: EmailCandidate) => ({
+    kind: candidate.kind as "critical_expiry" | "daily_digest",
+    subject: candidate.message.subject,
+    text: candidate.message.text,
+    itemCount: candidate.kind === "critical_expiry" ? 1 : candidate.relatedIds.length,
+  });
+  return {
+    urgentAlerts: candidates.filter(candidate => candidate.kind === "critical_expiry").map(summarize),
+    digest: candidates.filter(candidate => candidate.kind === "daily_digest").map(summarize),
+  };
+}
 export type CandidateScan = {
   candidates: EmailCandidate[]; ingredientsChecked: number; batchesChecked: number;
   actionsChecked: number; invalidRecords: number;

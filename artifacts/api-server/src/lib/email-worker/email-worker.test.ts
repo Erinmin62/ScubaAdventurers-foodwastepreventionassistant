@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { emailRoutes, providerConfig } from "./config";
 import { emailRecord, runEmailWorker } from "./runner";
-import { expiryEmailCandidates, klDay, scanEmailCandidates } from "./rules";
+import { expiryEmailCandidates, expiryEmailPreview, klDay, scanEmailCandidates } from "./rules";
 import { resendConnectorSender, resendSender, type EmailSender } from "./sender";
 import { MemoryEmailRepository, sampleEmailWorkspace, testRoute } from "./email-worker.test-support";
 import { seed, shift } from "../guard-model";
@@ -33,6 +33,20 @@ test("email rules separate critical batches and the 2–3 day digest, validate d
   const invalid = scanEmailCandidates(state, now);
   assert.equal(invalid.invalidRecords, 1);
   assert.ok(invalid.candidates.every(row => !row.message.text.includes("NaN")));
+});
+
+test("expiry email preview mirrors the send rules, labels both categories, and leaves workspace untouched", () => {
+  const state = sampleEmailWorkspace();
+  const before = structuredClone(state);
+  const preview = expiryEmailPreview(state, now);
+  const scanned = scanEmailCandidates(state, now);
+  assert.ok(preview.urgentAlerts.length > 0);
+  assert.equal(preview.urgentAlerts.length, scanned.candidates.filter(row => row.kind === "critical_expiry").length);
+  assert.equal(preview.digest.length, scanned.candidates.filter(row => row.kind === "daily_digest").length);
+  assert.ok(preview.urgentAlerts.every(row => row.kind === "critical_expiry" && row.itemCount === 1));
+  assert.ok(preview.digest.every(row => row.kind === "daily_digest" && row.itemCount > 0));
+  assert.ok(preview.urgentAlerts.every(row => !row.text.includes("Approval required")));
+  assert.deepEqual(state, before);
 });
 
 test("email calendar follows KL midnight rather than UTC midnight and handles next-day expiry conservatively", () => {

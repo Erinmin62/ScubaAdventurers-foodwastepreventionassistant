@@ -25,6 +25,7 @@ import type {
   AutomationRunInput,
   AutomationSettingsInput,
   DecisionInput,
+  EmailPreview,
   ExpiryCheckStatus,
   FollowUpScheduleInput,
   GetEmailHistory200,
@@ -84,6 +85,83 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetEmailPreviewUrl = () => {
+
+
+
+
+  return `/api/guard/email-preview`
+}
+
+/**
+ * @summary Read-only expiry email preview for the signed-in owner's workspace
+ */
+export const getEmailPreview = async ( options?: Parameters<typeof customFetch>[1]): Promise<EmailPreview> => {
+
+  return customFetch<EmailPreview>(getGetEmailPreviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailPreviewQueryKey = () => {
+    return [
+    `/api/guard/email-preview`
+    ] as const;
+    }
+
+
+export const getGetEmailPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getEmailPreview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailPreviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailPreview>>> = ({ signal }) => getEmailPreview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmailPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmailPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailPreview>>>
+export type GetEmailPreviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read-only expiry email preview for the signed-in owner's workspace
+ */
+
+export function useGetEmailPreview<TData = Awaited<ReturnType<typeof getEmailPreview>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmailPreviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetEmailHistoryUrl = () => {
 

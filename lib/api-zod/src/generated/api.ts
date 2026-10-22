@@ -9,6 +9,33 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Read-only expiry email preview for the signed-in owner's workspace
+ */
+
+
+
+
+export const GetEmailPreviewResponse = zod.object({
+  "workspaceName": zod.string(),
+  "synthetic": zod.boolean(),
+  "generatedAt": zod.coerce.date(),
+  "timeZone": zod.string(),
+  "urgentAlerts": zod.array(zod.object({
+  "kind": zod.enum(['critical_expiry', 'daily_digest']),
+  "subject": zod.string(),
+  "text": zod.string(),
+  "itemCount": zod.number().int().min(1)
+})),
+  "digest": zod.array(zod.object({
+  "kind": zod.enum(['critical_expiry', 'daily_digest']),
+  "subject": zod.string(),
+  "text": zod.string(),
+  "itemCount": zod.number().int().min(1)
+}))
+})
+
+
+/**
  * @summary Latest 50 notification email attempts for the signed-in owner
  */
 export const GetEmailHistoryResponse = zod.object({
