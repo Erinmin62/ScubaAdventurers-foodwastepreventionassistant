@@ -25,6 +25,17 @@ const test: Record<F, (n: InboxNotification) => boolean> = {
   failures: (n) => n.kind === 'failures' && isActive(n),
 };
 
+function filterHeading(filter: F) {
+  switch (filter) {
+    case 'all': return 'All notifications';
+    case 'unread': return 'Unread notifications';
+    case 'critical': return 'Critical expiry risks';
+    case 'expiry': return 'Expiry notifications';
+    case 'approval': return 'Pending approval';
+    case 'failures': return 'Failures';
+  }
+}
+
 export function InboxCentre() {
   const search = useSearch();
   const initial = new URLSearchParams(search).get('filter') as F | null;
@@ -35,6 +46,14 @@ export function InboxCentre() {
   const { toast } = useToast();
 
   const list = data ? sortInbox(data.items.filter((n) => !n.dismissedAt && test[f](n) && (f !== 'all' || showResolved || !n.resolvedAt))) : [];
+  const activeList = list.filter(isActive);
+  const visibleCounts = {
+    critical: new Set(activeList.filter((n) => n.kind === 'expiry' && n.severity === 'critical').map((n) => n.relatedId)).size,
+    approaching: new Set(activeList.filter((n) => n.kind === 'expiry' && n.severity !== 'critical').map((n) => n.relatedId)).size,
+    pendingApproval: activeList.filter((n) => n.kind === 'approvals').length,
+    failed: activeList.filter((n) => n.kind === 'failures').length,
+  };
+  const visibleSummary = summaryParts(visibleCounts).join(' · ');
 
   const readAll = () => update.mutate({ data: { action: 'read-all' } }, {
     onSuccess: () => toast({ title: 'All notifications marked read' }),
@@ -48,9 +67,18 @@ export function InboxCentre() {
         <div className="flex-1 min-w-0">
           <div className="text-[10px] uppercase tracking-widest font-bold text-primary">In-app notification centre</div>
           <h2 className="text-lg font-bold">
-            {data ? <><span className="num" data-testid="text-inbox-unread">{data.unreadCount}</span> unread</> : 'Your notifications'}
+            {data ? (
+              <>
+                <span data-testid="text-inbox-filter-summary">{filterHeading(f)}</span>
+                <span className="num ml-2 text-sm font-semibold text-muted-foreground" data-testid="text-inbox-filter-count">({list.length})</span>
+              </>
+            ) : 'Your notifications'}
           </h2>
-          {data && <p className="text-xs text-muted-foreground">{summaryParts(data.counts).join(' · ') || 'Nothing urgent right now.'} Checked {when(data.checkedAt)}.</p>}
+          {data && (
+            <p className="text-xs text-muted-foreground" data-testid="text-inbox-filter-details">
+              {visibleSummary || (list.length ? 'No urgent items in this view.' : 'No notifications in this view.')} Checked {when(data.checkedAt)}.
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-inbox" aria-label="Refresh notifications"><RefreshCw className={cn('w-4 h-4', isFetching && 'animate-spin')} /></Button>
