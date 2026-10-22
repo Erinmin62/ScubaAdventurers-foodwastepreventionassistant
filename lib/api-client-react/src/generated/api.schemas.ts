@@ -952,6 +952,92 @@ export interface RecordsInput {
   rows: RecordsInputRowsItem[];
 }
 
+export type HistoricalRecordInputKind = typeof HistoricalRecordInputKind[keyof typeof HistoricalRecordInputKind];
+
+
+export const HistoricalRecordInputKind = {
+  sales: 'sales',
+  preparation: 'preparation',
+  stock: 'stock',
+} as const;
+
+export type HistoricalRecordInputUnit = typeof HistoricalRecordInputUnit[keyof typeof HistoricalRecordInputUnit];
+
+
+export const HistoricalRecordInputUnit = {
+  portions: 'portions',
+  kg: 'kg',
+  L: 'L',
+  pcs: 'pcs',
+} as const;
+
+export interface HistoricalRecordInput {
+  kind: HistoricalRecordInputKind;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  date: string;
+  /** @maxLength 160 */
+  menuId?: string;
+  /** @maxLength 160 */
+  itemName?: string;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  quantity?: number;
+  unit?: HistoricalRecordInputUnit;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  prepared?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  sold?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  leftover?: number;
+}
+
+export interface HistoricalRecordsInput {
+  /**
+     * @minItems 1
+     * @maxItems 2000
+     */
+  rows: HistoricalRecordInput[];
+}
+
+export type HistoricalRecordKind = typeof HistoricalRecordKind[keyof typeof HistoricalRecordKind];
+
+
+export const HistoricalRecordKind = {
+  sales: 'sales',
+  preparation: 'preparation',
+  stock: 'stock',
+} as const;
+
+export interface HistoricalRecord {
+  id: string;
+  kind: HistoricalRecordKind;
+  date: string;
+  importedAt: string;
+  menuId?: string;
+  menuName?: string;
+  itemName?: string;
+  quantity?: number;
+  unit?: string;
+  prepared?: number;
+  sold?: number;
+  leftover?: number;
+}
+
+export interface HistoricalRecordsResponse {
+  records: HistoricalRecord[];
+}
+
 export type IngredientPhotoUploadRequestContentType = typeof IngredientPhotoUploadRequestContentType[keyof typeof IngredientPhotoUploadRequestContentType];
 
 

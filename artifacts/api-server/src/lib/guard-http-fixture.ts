@@ -1,7 +1,7 @@
 // Used only by the HTTP test bundler, which substitutes this for guard-store.
 // Never connects to the shared demo database. Clone/commit + a queue model the
 // store's transaction boundary; PostgreSQL locking is not tested by this fixture.
-import { compute, seed, type Stored } from "./guard-model";
+import { compute, seed, type HistoricalRecord, type Stored } from "./guard-model";
 import { runWorkflows } from "./guard-automation";
 import { GetGuardStateResponse } from "@workspace/api-zod";
 import { scanNotificationEvents } from "./guard-notifications";
@@ -19,6 +19,15 @@ let nextWorkspaceChangeError: Error | null = null;
 export function resetWorkspace(state: Stored, id = workspace()) { saved.set(id, structuredClone(state)); }
 export function snapshotWorkspace(id = workspace()) { return structuredClone(saved.get(id) ?? seed()); }
 export function readWorkspace() { return snapshotWorkspace(); }
+export async function appendHistoricalRecords(records: Omit<HistoricalRecord, "id" | "importedAt">[]) {
+  const staged = snapshotWorkspace();
+  const importedAt = new Date().toISOString();
+  const added = records.map(value => ({ ...value, id: crypto.randomUUID(), importedAt }));
+  staged.historicalRecords ??= [];
+  staged.historicalRecords.push(...added);
+  saved.set(workspace(), staged);
+  return added;
+}
 export function failNextWorkspaceChange(error = new Error("Simulated workspace persistence failure.")) {
   nextWorkspaceChangeError = error;
 }

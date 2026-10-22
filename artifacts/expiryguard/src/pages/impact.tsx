@@ -1,17 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CsvImport, EmptyState, ErrorState, LoadingState, PageHeader, Panel, Stat, type ImportSpec } from '@/components/bits';
+import { HistoricalImport } from '@/components/historical-import';
 import { ImpactBoard } from '@/components/money';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { addDays, errorMessage, fmt, isDate, isNum, niceDate, rm, useGuard, useGuardMutations } from '@/lib/guard';
+import { addDays, errorMessage, fmt, isDate, isNum, niceDate, rm, useGuard, useGuardMutations, useHistoricalRecords } from '@/lib/guard';
 
 type Row = { prepared: string; sold: string; leftover: string };
 
 export default function Impact() {
   const { data, isLoading, error, refetch } = useGuard();
+  const historical = useHistoricalRecords();
   const { add } = useGuardMutations();
   const { toast } = useToast();
   const [date, setDate] = useState('');
@@ -117,8 +119,33 @@ export default function Impact() {
             </table></div>
           )}
         </Panel>
-        <Panel title="Import results CSV"><CsvImport spec={spec} /></Panel>
+        <Panel title="Record live results CSV"><CsvImport spec={spec} /></Panel>
       </div>
+      <Panel title="Imported historical archive" sub="Separate from current waste totals and forecasting inputs">
+        {historical.records.isLoading ? <div className="text-sm text-muted-foreground">Loading archived records…</div> :
+          historical.records.error ? <div className="text-sm text-destructive">Could not load archived records. Refresh the page to try again.</div> :
+            !historical.records.data?.records.length ? <EmptyState title="No archived records yet" body="Import past sales, preparation, leftover, and stock history from the Sales page." /> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm num">
+                  <thead><tr className="border-b text-[11px] uppercase text-muted-foreground">
+                    <th className="py-2 text-left font-sans">Date</th><th className="text-left font-sans">Type</th><th className="text-left font-sans">Item</th><th className="text-right font-sans">Details</th>
+                  </tr></thead>
+                  <tbody>{[...historical.records.data.records].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20).map(record => (
+                    <tr key={record.id} className="border-b last:border-0" data-testid={`row-archived-history-${record.id}`}>
+                      <td className="py-1.5">{niceDate(record.date)}</td>
+                      <td className="capitalize">{record.kind}</td>
+                      <td>{record.menuName ?? record.itemName ?? '—'}</td>
+                      <td className="text-right">
+                        {record.kind === 'sales' ? `${record.quantity} ${record.unit}` :
+                          record.kind === 'preparation' ? `Prepared ${record.prepared} · sold ${record.sold} · leftover ${record.leftover} ${record.unit}` :
+                            `${record.quantity} ${record.unit}`}
+                      </td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
+      </Panel>
     </div>
   );
 }

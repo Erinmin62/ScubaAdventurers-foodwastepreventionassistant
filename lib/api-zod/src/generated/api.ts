@@ -2672,6 +2672,83 @@ export const GetGuardStateResponse = zod.object({
 })
 
 
+/**
+ * @summary List historical records kept separate from live planning inputs
+ */
+export const GetHistoricalRecordsResponse = zod.object({
+  "records": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['sales', 'preparation', 'stock']),
+  "date": zod.string(),
+  "importedAt": zod.coerce.date(),
+  "menuId": zod.string().optional(),
+  "menuName": zod.string().optional(),
+  "itemName": zod.string().optional(),
+  "quantity": zod.number().optional(),
+  "unit": zod.string().optional(),
+  "prepared": zod.number().int().optional(),
+  "sold": zod.number().int().optional(),
+  "leftover": zod.number().int().optional()
+}))
+})
+
+
+/**
+ * @summary Append validated historical records without changing live stock, sales, or orders
+ */
+export const importHistoricalRecordsBodyRowsItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const importHistoricalRecordsBodyRowsItemMenuIdMax = 160;
+
+export const importHistoricalRecordsBodyRowsItemItemNameMax = 160;
+
+export const importHistoricalRecordsBodyRowsItemQuantityMin = 0;
+export const importHistoricalRecordsBodyRowsItemQuantityMax = 1000000;
+
+export const importHistoricalRecordsBodyRowsItemPreparedMin = 0;
+export const importHistoricalRecordsBodyRowsItemPreparedMax = 1000000;
+
+export const importHistoricalRecordsBodyRowsItemSoldMin = 0;
+export const importHistoricalRecordsBodyRowsItemSoldMax = 1000000;
+
+export const importHistoricalRecordsBodyRowsItemLeftoverMin = 0;
+export const importHistoricalRecordsBodyRowsItemLeftoverMax = 1000000;
+
+export const importHistoricalRecordsBodyRowsMax = 2000;
+
+
+
+export const ImportHistoricalRecordsBody = zod.object({
+  "rows": zod.array(zod.object({
+  "kind": zod.enum(['sales', 'preparation', 'stock']),
+  "date": zod.string().regex(importHistoricalRecordsBodyRowsItemDateRegExp),
+  "menuId": zod.string().max(importHistoricalRecordsBodyRowsItemMenuIdMax).optional(),
+  "itemName": zod.string().max(importHistoricalRecordsBodyRowsItemItemNameMax).optional(),
+  "quantity": zod.number().min(importHistoricalRecordsBodyRowsItemQuantityMin).max(importHistoricalRecordsBodyRowsItemQuantityMax).optional(),
+  "unit": zod.enum(['portions', 'kg', 'L', 'pcs']).optional(),
+  "prepared": zod.number().int().min(importHistoricalRecordsBodyRowsItemPreparedMin).max(importHistoricalRecordsBodyRowsItemPreparedMax).optional(),
+  "sold": zod.number().int().min(importHistoricalRecordsBodyRowsItemSoldMin).max(importHistoricalRecordsBodyRowsItemSoldMax).optional(),
+  "leftover": zod.number().int().min(importHistoricalRecordsBodyRowsItemLeftoverMin).max(importHistoricalRecordsBodyRowsItemLeftoverMax).optional()
+})).min(1).max(importHistoricalRecordsBodyRowsMax)
+})
+
+export const ImportHistoricalRecordsResponse = zod.object({
+  "records": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['sales', 'preparation', 'stock']),
+  "date": zod.string(),
+  "importedAt": zod.coerce.date(),
+  "menuId": zod.string().optional(),
+  "menuName": zod.string().optional(),
+  "itemName": zod.string().optional(),
+  "quantity": zod.number().optional(),
+  "unit": zod.string().optional(),
+  "prepared": zod.number().int().optional(),
+  "sold": zod.number().int().optional(),
+  "leftover": zod.number().int().optional()
+}))
+})
+
+
 export const addGuardRecordsBodyRowsMax = 2000;
 
 

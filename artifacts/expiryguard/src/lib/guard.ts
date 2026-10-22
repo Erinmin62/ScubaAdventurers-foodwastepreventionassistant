@@ -1,8 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetGuardStateQueryKey,
+  getGetHistoricalRecordsQueryKey,
   getGetReordersQueryKey,
+  useGetHistoricalRecords,
   useAddGuardRecords,
+  useImportHistoricalRecords,
   useAttachFollowUp,
   useRecordFollowUpOutcome,
   useDecideRecommendation,
@@ -28,6 +31,19 @@ export function useGuardMutations() {
   const updateAutomation = useUpdateAutomation({ mutation: { onSuccess } });
   const runAutomation = useRunAutomation({ mutation: { onSuccess } });
   return { add, decide, attach, record, updateAutomation, runAutomation };
+}
+
+export function useHistoricalRecords() {
+  const qc = useQueryClient();
+  const records = useGetHistoricalRecords({
+    query: { queryKey: getGetHistoricalRecordsQueryKey(), refetchInterval: 30000 },
+  });
+  const importRecords = useImportHistoricalRecords({
+    mutation: {
+      onSuccess: () => qc.invalidateQueries({ queryKey: getGetHistoricalRecordsQueryKey() }),
+    },
+  });
+  return { records, importRecords };
 }
 
 export const rm = (n: number) => `RM ${(n ?? 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

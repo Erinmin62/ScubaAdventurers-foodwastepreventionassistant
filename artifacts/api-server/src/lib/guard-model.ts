@@ -2,6 +2,20 @@ import { GetGuardStateResponse } from "@workspace/api-zod";
 import { safeStock, stockBatches } from "./guard-batches";
 
 export type State = typeof GetGuardStateResponse._output;
+export type HistoricalRecord = {
+  id: string;
+  kind: "sales" | "preparation" | "stock";
+  date: string;
+  importedAt: string;
+  menuId?: string;
+  menuName?: string;
+  itemName?: string;
+  quantity?: number;
+  unit?: "portions" | "kg" | "L" | "pcs";
+  prepared?: number;
+  sold?: number;
+  leftover?: number;
+};
 export type MonitorHeartbeat = {
   lastAttemptAt?: string;
   lastSuccessfulAt?: string;
@@ -9,6 +23,7 @@ export type MonitorHeartbeat = {
   failureStartedAt?: string;
 };
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
+  historicalRecords?: HistoricalRecord[];
   inbox?: import("./guard-inbox").InboxStore;
   notifications?: import("./guard-notifications").NotificationStore;
   monitorHeartbeat?: MonitorHeartbeat;

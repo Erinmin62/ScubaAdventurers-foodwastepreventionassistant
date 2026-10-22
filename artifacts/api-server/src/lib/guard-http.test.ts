@@ -19,6 +19,7 @@ import { currentWorkspaceId, inWorkspace, ownerWorkspaceId } from "./workspace-c
 import type { SyntheticForecastContext } from "./ai-forecast-demo";
 
 let server: Server, base: string;
+let latestAiContext: SyntheticForecastContext | null = null;
 before(async () => {
   const app = express();
   app.use("/guard/notifications/webhook", express.raw({ type: "application/json" }));
@@ -26,7 +27,10 @@ before(async () => {
     recipe: [{ ingredientId: pantry[0]!.id, amount: 0.08 }],
     explanation: "A draft using one available pantry ingredient.",
   }));
-  const aiForecastDemoRouter = createGuardAiForecastDemoRouter(async context => syntheticAiForecast(context));
+  const aiForecastDemoRouter = createGuardAiForecastDemoRouter(async context => {
+    latestAiContext = structuredClone(context);
+    return syntheticAiForecast(context);
+  });
   app.use(express.json(), guardRouter, aiForecastDemoRouter, menuRouter, reorderRouter, notificationsRouter, inboxRouter);
   server = app.listen(0, "127.0.0.1");
   await new Promise<void>(resolve => server.once("listening", resolve));
@@ -83,6 +87,11 @@ function syntheticAiForecast(context: SyntheticForecastContext) {
 }
 test("HTTP: AI forecast demo uses synthetic data, does not write workspace state, and limits runs", async () => {
   fixture();
+  const archiveOnlyName = "archive-only test stock";
+  const archived = await request("/guard/history/import", { rows: [
+    { kind: "stock", date: shift(today(), -1), itemName: archiveOnlyName, quantity: 987, unit: "kg" },
+  ] });
+  assert.equal(archived.status, 200);
   const before = snapshotWorkspace();
   assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: false })).status, 400);
   const first = await request("/guard/ai-forecast/demo", { demoOnly: true });
@@ -99,10 +108,39 @@ test("HTTP: AI forecast demo uses synthetic data, does not write workspace state
   assert.ok(demo.demandForecasts.length > 0);
   assert.ok(demo.wastePredictions.length > 1);
   assert.ok(demo.orderRecommendations.length > 1);
+  assert.ok(latestAiContext);
+  assert.equal(JSON.stringify(latestAiContext).includes(archiveOnlyName), false, "historical imports are not passed into the AI demo context");
   assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 200);
   assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 200);
   assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 429);
   assert.deepEqual(snapshotWorkspace(), before);
+});
+test("HTTP: historical imports validate atomically and stay out of live stock, sales, results, and orders", async () => {
+  const before = fixture();
+  const menuId = before.menu[0]!.id;
+  const historicalDate = shift(today(), -1);
+  const rejected = await request("/guard/history/import", { rows: [
+    { kind: "sales", date: historicalDate, menuId, quantity: 6, unit: "portions" },
+    { kind: "stock", date: shift(today(), 1), itemName: "Cherry tomatoes", quantity: 2, unit: "kg" },
+  ] });
+  assert.equal(rejected.status, 400, "a future-dated row rejects the whole import");
+  assert.deepEqual(snapshotWorkspace(), before, "invalid rows must not partially save");
+
+  const imported = await request("/guard/history/import", { rows: [
+    { kind: "sales", date: historicalDate, menuId, quantity: 6, unit: "portions" },
+    { kind: "preparation", date: historicalDate, menuId, prepared: 11, sold: 8, leftover: 3, unit: "portions" },
+    { kind: "stock", date: historicalDate, itemName: "Cherry tomatoes", quantity: 3.5, unit: "kg" },
+  ] });
+  assert.equal(imported.status, 200);
+  const importedRecords = (imported.data as { records: { id: string; kind: string }[] }).records;
+  assert.deepEqual(importedRecords.map(row => row.kind), ["sales", "preparation", "stock"]);
+  const after = snapshotWorkspace();
+  assert.deepEqual(after.ingredients, before.ingredients);
+  assert.deepEqual(after.sales, before.sales);
+  assert.deepEqual(after.results, before.results);
+  assert.deepEqual(after.decisions, before.decisions);
+  assert.deepEqual(after.reordering, before.reordering);
+  assert.deepEqual((await request("/guard/history", undefined, "GET")).data, { records: importedRecords });
 });
 test("HTTP: menu changes preserve history, update planning, and keep recipe drafts owner-inventory bounded", async () => {
   fixture();
@@ -245,6 +283,12 @@ test("HTTP auth: anonymous access is denied and owner data, approvals, preferenc
     }
     assert.equal((await call("/guard/state?workspaceId=owner:auth-test-a", "auth-test-b")).data.ingredients[0]!.name, "Private owner B");
     assert.equal((await call("/guard/state", "auth-test-a")).data.ingredients[0]!.name, "Private owner A");
+    const historicalImport = await call("/guard/history/import", "auth-test-a", { rows: [
+      { kind: "stock", date: shift(today(), -1), itemName: "Owner A archive item", quantity: 4, unit: "kg" },
+    ] });
+    assert.equal(historicalImport.status, 200);
+    assert.equal(((await call("/guard/history", "auth-test-a")).data as { records: unknown[] }).records.length, 1);
+    assert.equal(((await call("/guard/history", "auth-test-b")).data as { records: unknown[] }).records.length, 0, "another owner cannot read this archive");
     assert.equal((await call("/guard/state", "auth-test-a", undefined, undefined, { Origin: "https://attacker.example" })).status, 403);
     const plan = (await call("/guard/reorders/scan", "auth-test-a", {})).data.plans.find((p: { status: string }) => p.status === "PENDING_APPROVAL");
     assert.ok(plan);

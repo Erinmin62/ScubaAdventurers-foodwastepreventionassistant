@@ -28,6 +28,8 @@ import type {
   FollowUpScheduleInput,
   GuardState,
   HealthStatus,
+  HistoricalRecordsInput,
+  HistoricalRecordsResponse,
   InboxState,
   InboxThresholds,
   InboxUpdateInput,
@@ -1927,6 +1929,171 @@ export function useGetGuardState<TData = Awaited<ReturnType<typeof getGuardState
 
 
 
+
+export const getGetHistoricalRecordsUrl = () => {
+
+
+
+
+  return `/api/guard/history`
+}
+
+/**
+ * @summary List historical records kept separate from live planning inputs
+ */
+export const getHistoricalRecords = async ( options?: Parameters<typeof customFetch>[1]): Promise<HistoricalRecordsResponse> => {
+
+  return customFetch<HistoricalRecordsResponse>(getGetHistoricalRecordsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHistoricalRecordsQueryKey = () => {
+    return [
+    `/api/guard/history`
+    ] as const;
+    }
+
+
+export const getGetHistoricalRecordsQueryOptions = <TData = Awaited<ReturnType<typeof getHistoricalRecords>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHistoricalRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHistoricalRecordsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHistoricalRecords>>> = ({ signal }) => getHistoricalRecords({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHistoricalRecords>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetHistoricalRecordsQueryResult = NonNullable<Awaited<ReturnType<typeof getHistoricalRecords>>>
+export type GetHistoricalRecordsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List historical records kept separate from live planning inputs
+ */
+
+export function useGetHistoricalRecords<TData = Awaited<ReturnType<typeof getHistoricalRecords>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHistoricalRecords>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetHistoricalRecordsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getImportHistoricalRecordsUrl = () => {
+
+
+
+
+  return `/api/guard/history/import`
+}
+
+/**
+ * @summary Append validated historical records without changing live stock, sales, or orders
+ */
+export const importHistoricalRecords = async (historicalRecordsInput: HistoricalRecordsInput, options?: Parameters<typeof customFetch>[1]): Promise<HistoricalRecordsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<HistoricalRecordsResponse>(getImportHistoricalRecordsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(historicalRecordsInput)
+  }
+);}
+
+
+
+
+
+export const getImportHistoricalRecordsMutationKey = () => ['importHistoricalRecords'] as const;
+
+export const getImportHistoricalRecordsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHistoricalRecords>>, TError,ImportHistoricalRecordsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importHistoricalRecords>>, TError,ImportHistoricalRecordsMutationVariables, TContext> => {
+
+const mutationKey = getImportHistoricalRecordsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importHistoricalRecords>>, ImportHistoricalRecordsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  importHistoricalRecords(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportHistoricalRecordsMutationResult = NonNullable<Awaited<ReturnType<typeof importHistoricalRecords>>>
+    export type ImportHistoricalRecordsMutationBody = BodyType<HistoricalRecordsInput>
+    export type ImportHistoricalRecordsMutationError = ErrorType<void>
+    export type ImportHistoricalRecordsMutationVariables = {data: BodyType<HistoricalRecordsInput>}
+
+    /**
+ * @summary Append validated historical records without changing live stock, sales, or orders
+ */
+export const useImportHistoricalRecords = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importHistoricalRecords>>, TError,ImportHistoricalRecordsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importHistoricalRecords>>,
+        TError,
+        ImportHistoricalRecordsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getImportHistoricalRecordsMutationOptions(options));
+    }
 
 export const getAddGuardRecordsUrl = () => {
 

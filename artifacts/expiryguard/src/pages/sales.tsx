@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CsvImport, EmptyState, ErrorState, LoadingState, PageHeader, Panel, type ImportSpec } from '@/components/bits';
+import { HistoricalImport } from '@/components/historical-import';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,7 +57,7 @@ export default function Sales() {
 
   return (
     <div className="space-y-5">
-      <PageHeader kicker="Sales" title="Yesterday's till, tomorrow's plan.">Daily portions per menu item feed the 7-day forecast. Enter a day by hand or import a CSV.</PageHeader>
+      <PageHeader kicker="Sales" title="Yesterday's till, tomorrow's plan.">Daily portions feed the live 7-day forecast. Use the separate historical archive below for past sales, preparation, leftovers, and stock records.</PageHeader>
       <div className="grid lg:grid-cols-2 gap-5">
         <Panel title="Daily entry" sub="Leave blank to skip an item">
           <div className="mb-3 max-w-xs"><Label>Sales date</Label><Input type="date" max={data.today.slice(0, 10)} value={entryDate} onChange={(e) => setDate(e.target.value)} data-testid="input-sales-date" /></div>
@@ -71,8 +72,11 @@ export default function Sales() {
           {invalid && <div className="text-xs text-destructive mt-2">Portions must be numbers 0 or more.</div>}
           <Button className="mt-3" disabled={!filled.length || invalid || add.isPending || !isDate(entryDate)} onClick={submit} data-testid="button-save-sales">{add.isPending ? 'Saving...' : `Record ${filled.length} items`}</Button>
         </Panel>
-        <Panel title="Import sales CSV"><CsvImport spec={spec} /></Panel>
+        <Panel title="Record live sales CSV"><CsvImport spec={spec} /></Panel>
       </div>
+      <Panel title="Import past café history" sub="Review every row before saving to the separate archive">
+        <HistoricalImport state={data} />
+      </Panel>
       <Panel title="Sales history" sub="Portions per item, most recent 14 days with data">
         {dates.length === 0 ? <EmptyState title="No sales yet" body="Record a day to start forecasting." /> : (
           <div className="overflow-x-auto">

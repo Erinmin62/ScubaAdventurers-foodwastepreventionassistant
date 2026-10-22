@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { AddGuardRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody } from "@workspace/api-zod";
-import { compute, today, round } from "../lib/guard-model";
-import { changeWorkspace as change } from "../lib/guard-store";
+import { AddGuardRecordsBody, GetHistoricalRecordsResponse, ImportHistoricalRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody } from "@workspace/api-zod";
+import { compute, today, round, seed, type HistoricalRecord } from "../lib/guard-model";
+import { appendHistoricalRecords, changeWorkspace as change, readWorkspace } from "../lib/guard-store";
 import { runWorkflows } from "../lib/guard-automation";
 import { InputError, cancelOutstanding, completeFollowUp, scheduleFollowUp } from "../lib/guard-follow-ups";
 import { safeStock, stockBatches, syncStock } from "../lib/guard-batches";
@@ -147,6 +147,57 @@ router.post("/guard/records", async (req, res): Promise<void> => {
       if (s.automationProgress) s.automationProgress.dailyDate = undefined;
     });
     res.json(state);
+  } catch (err) {
+    if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
+    throw err;
+  }
+});
+router.get("/guard/history", async (_req, res): Promise<void> => {
+  const stored = await readWorkspace();
+  res.json(GetHistoricalRecordsResponse.parse({ records: stored?.historicalRecords ?? [] }));
+});
+router.post("/guard/history/import", async (req, res): Promise<void> => {
+  const parsed = ImportHistoricalRecordsBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Provide 1–2,000 historical rows with valid dates and values." }); return; }
+  try {
+    const stored = await readWorkspace() ?? seed();
+    const validated: Omit<HistoricalRecord, "id" | "importedAt">[] = parsed.data.rows.map((row, index) => {
+      try {
+        const recordDate = date(row.date, "date");
+        if (recordDate > today()) throw new InputError("date cannot be in the future.");
+        if (row.kind === "sales" || row.kind === "preparation") {
+          const menuId = requiredString(row.menuId, "menuId");
+          const menu = stored.menu.find(item => item.id === menuId);
+          if (!menu) throw new InputError(`Unknown menuId '${menuId}'. Select an existing menu item.`);
+          if (row.unit !== "portions") throw new InputError("unit must be portions for sales and preparation records.");
+          if (row.kind === "sales") {
+            if (row.quantity === undefined) throw new InputError("quantity is required for sales and must be measured in portions.");
+            return { kind: row.kind, date: recordDate, menuId, menuName: menu.name, quantity: numeric(row.quantity, "quantity", true), unit: "portions" };
+          }
+          if (row.prepared === undefined || row.sold === undefined || row.leftover === undefined) {
+            throw new InputError("prepared, sold, and leftover are all required for preparation records.");
+          }
+          const prepared = numeric(row.prepared, "prepared", true);
+          const sold = numeric(row.sold, "sold", true);
+          const leftover = numeric(row.leftover, "leftover", true);
+          if (prepared !== sold + leftover) throw new InputError("prepared must equal sold + leftover.");
+          return { kind: row.kind, date: recordDate, menuId, menuName: menu.name, unit: "portions", prepared, sold, leftover };
+        }
+        const itemName = requiredString(row.itemName, "itemName");
+        if (row.quantity === undefined) throw new InputError("quantity is required for stock records.");
+        const quantity = numeric(row.quantity, "quantity");
+        const unit = requiredString(row.unit, "unit");
+        if (!["kg", "L", "pcs"].includes(unit)) throw new InputError("unit must be kg, L, or pcs for stock records.");
+        const matchingIngredient = stored.ingredients.find(item => item.name.toLowerCase() === itemName.toLowerCase());
+        if (matchingIngredient && matchingIngredient.unit !== unit) throw new InputError(`unit must match ${matchingIngredient.name} (${matchingIngredient.unit}).`);
+        return { kind: "stock", date: recordDate, itemName, quantity, unit: unit as "kg" | "L" | "pcs" };
+      } catch (error) {
+        if (error instanceof InputError) throw new InputError(`Row ${index + 1}: ${error.message}`);
+        throw error;
+      }
+    });
+    const added = await appendHistoricalRecords(validated);
+    res.json(GetHistoricalRecordsResponse.parse({ records: added }));
   } catch (err) {
     if (err instanceof InputError) { res.status(400).json({ error: err.message }); return; }
     throw err;

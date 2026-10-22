@@ -1,7 +1,7 @@
 import { db, guardWorkspace } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { GetGuardStateResponse } from "@workspace/api-zod";
-import { compute, seed, type Stored } from "./guard-model";
+import { compute, seed, type HistoricalRecord, type Stored } from "./guard-model";
 import { runWorkflows } from "./guard-automation";
 import { scanNotificationEvents } from "./guard-notifications";
 import { migrateBatches } from "./guard-batches";
@@ -34,4 +34,23 @@ export async function readWorkspace(): Promise<Stored | null> {
   const id = currentWorkspaceId();
   const [record] = await db.select({ data: guardWorkspace.data }).from(guardWorkspace).where(eq(guardWorkspace.id, id));
   return record ? record.data as Stored : null;
+}
+
+/** Append only to the isolated historical archive; do not run planning or mutate operational fields. */
+export async function appendHistoricalRecords(
+  records: Omit<HistoricalRecord, "id" | "importedAt">[],
+): Promise<HistoricalRecord[]> {
+  const id = currentWorkspaceId();
+  await db.insert(guardWorkspace).values({ id, data: seed() }).onConflictDoNothing();
+  return db.transaction(async tx => {
+    const [record] = await tx.select().from(guardWorkspace).where(eq(guardWorkspace.id, id)).for("update");
+    if (!record) throw new Error("Workspace unavailable.");
+    const stored = record.data as Stored;
+    const importedAt = new Date().toISOString();
+    const added = records.map(value => ({ ...value, id: crypto.randomUUID(), importedAt }));
+    stored.historicalRecords ??= [];
+    stored.historicalRecords.push(...added);
+    await tx.update(guardWorkspace).set({ data: stored }).where(eq(guardWorkspace.id, id));
+    return added;
+  });
 }

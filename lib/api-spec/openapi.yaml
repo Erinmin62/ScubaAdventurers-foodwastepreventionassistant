@@ -317,6 +317,32 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/history:
+    get:
+      operationId: getHistoricalRecords
+      summary: List historical records kept separate from live planning inputs
+      responses:
+        "200":
+          description: Historical records for the authenticated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalRecordsResponse" }
+  /guard/history/import:
+    post:
+      operationId: importHistoricalRecords
+      summary: Append validated historical records without changing live stock, sales, or orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HistoricalRecordsInput" }
+      responses:
+        "200":
+          description: Historical records appended to the authenticated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalRecordsResponse" }
+        "400": { description: One or more records failed validation; no records were imported }
   /guard/records:
     post:
       operationId: addGuardRecords
@@ -1164,6 +1190,51 @@ components:
           items:
             type: object
             additionalProperties: true
+    HistoricalRecordsInput:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 2000
+          items: { $ref: "#/components/schemas/HistoricalRecordInput" }
+    HistoricalRecordInput:
+      type: object
+      required: [kind, date]
+      properties:
+        kind: { type: string, enum: [sales, preparation, stock] }
+        date: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
+        menuId: { type: string, maxLength: 160 }
+        itemName: { type: string, maxLength: 160 }
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        unit: { type: string, enum: [portions, kg, L, pcs] }
+        prepared: { type: integer, minimum: 0, maximum: 1000000 }
+        sold: { type: integer, minimum: 0, maximum: 1000000 }
+        leftover: { type: integer, minimum: 0, maximum: 1000000 }
+    HistoricalRecord:
+      type: object
+      required: [id, kind, date, importedAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [sales, preparation, stock] }
+        date: { type: string }
+        importedAt: { type: string, format: date-time }
+        menuId: { type: string }
+        menuName: { type: string }
+        itemName: { type: string }
+        quantity: { type: number }
+        unit: { type: string }
+        prepared: { type: integer }
+        sold: { type: integer }
+        leftover: { type: integer }
+    HistoricalRecordsResponse:
+      type: object
+      required: [records]
+      properties:
+        records:
+          type: array
+          items: { $ref: "#/components/schemas/HistoricalRecord" }
     IngredientPhotoUploadRequest:
       type: object
       required: [ingredientId, name, size, contentType]
