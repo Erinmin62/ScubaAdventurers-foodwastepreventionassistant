@@ -14,3 +14,12 @@ the money impact quickly to make decisions.
 cards. Distinguish potential estimates, approved purchasing projections and
 recorded waste comparisons; prominence must not turn estimates into claims of
 realised savings.
+
+The user also prioritizes dependable automation, reuse across SMEs, solving
+practical operating problems, lowering costs, and achieving a profitable product.
+
+**Why:** These are the user's stated criteria for whether the product is fit.
+
+**How to apply:** Evaluate automation uptime and owner value separately from
+feature presence; be explicit about which SME types are supported and do not
+claim savings or product profitability without real usage and cost evidence.
