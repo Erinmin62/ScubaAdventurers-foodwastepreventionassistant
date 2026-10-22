@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { addDays, errorMessage, fmt, isDate, isNum, niceDate, rm, useGuard, useGuardMutations } from '@/lib/guard';
-import { buildSalesHistoryGroups } from '@/lib/sales-history';
+import { buildSalesHistoryGroups, buildSalesPeriodSummary } from '@/lib/sales-history';
 import { cn } from '@/lib/utils';
 
 const isPortionCount = (value: string) => /^\d+$/.test(value) && Number(value) <= 1_000_000;
@@ -25,9 +25,18 @@ export default function Sales() {
   const [quantity, setQuantity] = useState('1');
   const [historySearch, setHistorySearch] = useState('');
   const [historyDate, setHistoryDate] = useState('');
+  const [periodStartDate, setPeriodStartDate] = useState('');
+  const [periodEndDate, setPeriodEndDate] = useState('');
 
   const activeMenu = useMemo(() => (data?.menu ?? []).filter((m) => m.archivedAt === null), [data?.menu]);
   const menuIds = useMemo(() => activeMenu.map((m) => m.id), [activeMenu]);
+  const periodStart = data ? periodStartDate || addDays(data.today, -6) : '';
+  const periodEnd = data ? periodEndDate || data.today.slice(0, 10) : '';
+  const periodRangeInvalid = Boolean(periodStart && periodEnd && periodStart > periodEnd);
+  const periodSummary = useMemo(
+    () => data && !periodRangeInvalid ? buildSalesPeriodSummary(data, periodStart, periodEnd) : { items: [], portions: 0, revenue: 0 },
+    [data, periodEnd, periodRangeInvalid, periodStart],
+  );
   const historyGroups = useMemo(
     () => buildSalesHistoryGroups({ sales: data?.sales ?? [], menu: data?.menu ?? [] }, historyDate, historySearch),
     [data?.menu, data?.sales, historyDate, historySearch],
@@ -213,6 +222,48 @@ export default function Sales() {
       </div>
       <Panel title="Import past sales and stock" sub="Review every row before saving to the separate archive">
         <HistoricalImport state={data} />
+      </Panel>
+      <Panel title="Period summary" sub="Totals include every dated sales record in the selected range, including dates outside the recent history list.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="input-sales-period-start">From</Label>
+            <Input id="input-sales-period-start" type="date" value={periodStart} onChange={(e) => setPeriodStartDate(e.target.value)} data-testid="input-sales-period-start" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="input-sales-period-end">To</Label>
+            <Input id="input-sales-period-end" type="date" value={periodEnd} onChange={(e) => setPeriodEndDate(e.target.value)} data-testid="input-sales-period-end" />
+          </div>
+        </div>
+        {periodRangeInvalid ? (
+          <p className="mt-4 text-sm text-destructive" role="alert" data-testid="text-sales-period-range-error">Choose a start date on or before the end date.</p>
+        ) : (
+          <>
+            <p className="mt-4 text-sm text-muted-foreground" data-testid="text-sales-period-dates">{niceDate(periodStart)} – {niceDate(periodEnd)}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border p-4">
+                <p className="text-sm text-muted-foreground">Total portions</p>
+                <p className="mt-1 text-2xl font-semibold num" data-testid="text-sales-period-portions">{fmt(periodSummary.portions, 0)}</p>
+              </div>
+              <div className="rounded-xl border p-4">
+                <p className="text-sm text-muted-foreground">Total revenue</p>
+                <p className="mt-1 text-2xl font-semibold num" data-testid="text-sales-period-revenue">{rm(periodSummary.revenue)}</p>
+              </div>
+            </div>
+            {periodSummary.items.length === 0 ? (
+              <p className="mt-4 rounded-xl border border-dashed p-4 text-sm text-muted-foreground" data-testid="text-sales-period-empty">No sales were recorded during this period.</p>
+            ) : (
+              <div className="mt-4 divide-y rounded-xl border" data-testid="list-sales-period-items">
+                {periodSummary.items.map((item) => (
+                  <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_120px_140px] sm:px-4" data-testid={`row-sales-period-item-${item.id}`}>
+                    <span className="min-w-0 break-words font-medium">{item.name}</span>
+                    <span className="text-right num">{fmt(item.portions, 0)} portions</span>
+                    <span className="col-span-2 text-right font-semibold num sm:col-span-1">{rm(item.revenue)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </Panel>
       <Panel title="Sales history" sub="Most recent 14 days with sales · find items or filter by date">
         <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">

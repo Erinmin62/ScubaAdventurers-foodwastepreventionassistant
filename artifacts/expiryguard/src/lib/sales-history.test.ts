@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildSalesHistoryGroups } from './sales-history.ts';
+import { buildSalesHistoryGroups, buildSalesPeriodSummary } from './sales-history.ts';
 
 type History = Parameters<typeof buildSalesHistoryGroups>[0];
 
@@ -66,4 +66,41 @@ test('defaults to the latest 14 dates with sales and exact-date filtering reache
   assert.equal(olderDate[0]?.portions, 1);
   assert.equal(olderDate[0]?.revenue, 10);
   assert.deepEqual(buildSalesHistoryGroups(history, '2026-09-30', ''), []);
+});
+
+test('period summary includes both boundary dates and combines duplicate rows with their recorded prices', () => {
+  const history = historyFixture();
+  history.sales.push(
+    { date: '2026-10-19', menuId: 'toast', portions: 100, menuPrice: 1 },
+    { date: '2026-10-21', menuId: 'toast', menuName: 'Market Toast', portions: 2, menuPrice: 20 },
+    { date: '2026-10-22', menuId: 'coffee', portions: 50, menuPrice: 1 },
+  );
+
+  const summary = buildSalesPeriodSummary(history, '2026-10-20', '2026-10-21');
+  assert.equal(summary.portions, 12);
+  assert.equal(summary.revenue, 197);
+  assert.deepEqual(
+    summary.items.map(({ id, name, portions, revenue }) => ({ id, name, portions, revenue })),
+    [
+      { id: 'coffee', name: 'Flat White', portions: 4, revenue: 48 },
+      { id: 'toast', name: 'Green Toast', portions: 8, revenue: 149 },
+    ],
+  );
+});
+
+test('period summary uses older dated records rather than the recent-history display limit', () => {
+  const history = historyFixture();
+  history.sales = Array.from({ length: 20 }, (_, index) => ({
+    date: new Date(Date.UTC(2026, 8, index + 1)).toISOString().slice(0, 10),
+    menuId: 'toast',
+    portions: index + 1,
+    menuName: 'Avocado Toast',
+    menuPrice: 10,
+  }));
+
+  const summary = buildSalesPeriodSummary(history, '2026-09-01', '2026-09-20');
+  assert.equal(summary.portions, 210);
+  assert.equal(summary.revenue, 2_100);
+  assert.equal(summary.items.length, 1);
+  assert.equal(summary.items[0]?.portions, 210);
 });

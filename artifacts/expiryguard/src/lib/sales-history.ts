@@ -2,6 +2,17 @@ import type { GuardState } from '@workspace/api-client-react';
 
 type SalesHistoryInput = Pick<GuardState, 'sales' | 'menu'>;
 
+export type SalesPeriodSummary = {
+  items: {
+    id: string;
+    name: string;
+    portions: number;
+    revenue: number;
+  }[];
+  portions: number;
+  revenue: number;
+};
+
 export type SalesHistoryGroup = {
   date: string;
   items: {
@@ -56,4 +67,35 @@ export function buildSalesHistoryGroups(
       revenue: rows.reduce((sum, item) => sum + item.revenue, 0),
     }];
   });
+}
+
+export function buildSalesPeriodSummary(
+  { sales, menu }: SalesHistoryInput,
+  fromDate: string,
+  toDate: string,
+): SalesPeriodSummary {
+  const items = new Map<string, SalesPeriodSummary['items'][number]>();
+
+  for (const sale of sales) {
+    const saleDate = sale.date.slice(0, 10);
+    if (saleDate < fromDate || saleDate > toDate) continue;
+
+    const menuItem = menu.find((item) => item.id === sale.menuId);
+    const item = items.get(sale.menuId) ?? {
+      id: sale.menuId,
+      name: sale.menuName ?? menuItem?.name ?? sale.menuId,
+      portions: 0,
+      revenue: 0,
+    };
+    item.portions += sale.portions;
+    item.revenue += sale.portions * (sale.menuPrice ?? menuItem?.price ?? 0);
+    items.set(sale.menuId, item);
+  }
+
+  const rows = [...items.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return {
+    items: rows,
+    portions: rows.reduce((sum, item) => sum + item.portions, 0),
+    revenue: rows.reduce((sum, item) => sum + item.revenue, 0),
+  };
 }
