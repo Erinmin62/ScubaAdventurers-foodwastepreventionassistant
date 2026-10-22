@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "w9xdL-XMlUHm_9bIjNeto"
+uri = "file://.local/outputs/ExpiryGuardAI-Project-Deck.pptx"
+type = "slides"
+title = "ExpiryGuardAI Project Deck.pptx"
