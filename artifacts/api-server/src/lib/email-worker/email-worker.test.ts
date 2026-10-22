@@ -113,6 +113,21 @@ test("expiry-only runs include expiry alerts and digests but exclude approvals",
   });
   assert.equal(result.sent, expiry.length);
   assert.ok([...repo.rows.values()].every(row => row.kind === "critical_expiry" || row.kind === "daily_digest"));
+  assert.deepEqual(repo.expiryCheckStatuses.get(testRoute.workspaceId), {
+    outcome: "success", completedAt: now.toISOString(),
+  });
+});
+
+test("full scheduled mode includes approval email and records the owner's completed check", async () => {
+  const repo = repository();
+  const result = await runEmailWorker(repo, {
+    dryRun: false, routes: [testRoute], clock, pause, sender: accepted,
+  });
+  assert.equal(result.sent, 2);
+  assert.ok([...repo.rows.values()].some(row => row.kind === "approval_initial"));
+  assert.deepEqual(repo.expiryCheckStatuses.get(testRoute.workspaceId), {
+    outcome: "success", completedAt: now.toISOString(),
+  });
 });
 
 test("email repeat runs deduplicate; pending reminder waits a full 24 hours, then sends only once", async () => {

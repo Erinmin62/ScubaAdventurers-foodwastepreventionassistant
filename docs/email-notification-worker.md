@@ -37,14 +37,14 @@ NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --li
 Run one sending pass **only after** reviewing the configuration, recipients, and sample-data warning:
 
 ```sh
-NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --send --expiry-only
+NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --send
 ```
 
-No flags defaults to dry-run. `--expiry-only` limits mail to critical expiry alerts and the daily digest for items expiring in 2–3 days; it excludes approval and reminder emails. `--send` cannot be combined with dry-run/sample/list options. All modes exit when complete; none binds a port or starts a timer/server. A sending pass exits nonzero if a notification failed or its acceptance is uncertain. An overlapping invocation logs that it was skipped and exits successfully.
+No flags defaults to dry-run. A normal `--send` pass includes critical expiry alerts, the daily 2–3 day digest, pending approval messages, and 24-hour reminders. `--expiry-only` is an optional narrower mode that excludes approval and reminder emails. `--send` cannot be combined with dry-run/sample/list options. All modes exit when complete; none binds a port or starts a timer/server. A sending pass exits nonzero if a notification failed or its acceptance is uncertain. An overlapping invocation logs that it was skipped and exits successfully.
 
 ## Owner-visible scheduled check status
 
-Only a real `--send --expiry-only` run records the hourly check status. Dry-runs and sample previews remain read-only. The worker stores one latest status per configured owner in the separate `guard_expiry_check_status` table; it records only the completion timestamp and `success`/`failed` outcome, never inventory, recipient details, or email contents. A successful scan replaces a previous failure, so the status recovers automatically. Failed/stale states do not send additional emails or create repeated outage alerts.
+Any real `--send` run records the hourly check status; dry-runs and sample previews remain read-only. The worker stores one latest status per configured owner in the separate `guard_expiry_check_status` table; it records only the completion timestamp and `success`/`failed` outcome, never inventory, recipient details, or email contents. A successful scan replaces a previous failure, so the status recovers automatically. Failed/stale states do not send additional emails or create repeated outage alerts. This heartbeat reports that the worker completed its check, not whether Resend delivered each message; individual send outcomes remain in the email history.
 
 The signed-in Notifications page reads `GET /api/guard/expiry-check-status` using the authenticated owner's workspace context. It performs a direct database read and does not load, migrate, or write the workspace document. A missing run is shown as not started, a failed scan as failed, and a successful scan becomes overdue after 90 minutes without another success. This is a worker heartbeat, not proof that an email reached its recipient. The API remains unavailable if the status table has not yet been created during the additive schema review.
 
@@ -124,7 +124,7 @@ Before enabling production sending:
 
 1. Publish through Replit's standard schema review so the additive outbox exists in production.
 2. Use the same project/production database as the web API. Do not copy a development connection string into production. In a separate deployment/project, explicitly arrange supported access to the existing database through secure configuration; do not provision a new empty database and assume it is shared.
-3. Run a read-only worker preview and confirm the expected **production owner workspace IDs and current inventory**, not synthetic test fixtures or development accounts. Development and production Clerk accounts may have different workspace IDs.
+3. Run a read-only worker preview and confirm the expected **production owner workspace IDs and current inventory**, not development accounts. Development and production Clerk accounts may have different workspace IDs. If the production inventory is synthetic, enable demo emails only for an owner who explicitly chose that demonstration.
 4. Do one explicitly authorised email send to a controlled recipient and verify both the ledger receipt and inbox/provider delivery. Rerun once and confirm no duplicate.
 
 ## Replit Scheduled Deployment setup — after the worker is reviewed
@@ -132,12 +132,12 @@ Before enabling production sending:
 Use a **separate Scheduled Deployment** for this command in the same project, alongside the existing web/API deployments. **Do not switch the website or API deployment to Scheduled**; scheduled jobs do not serve web traffic.
 
 - Build command: `pnpm --filter @workspace/api-server run email-worker:build`
-- Initial run command: `NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --dry-run --expiry-only`
+- Initial run command: `NODE_ENV=production pnpm --filter @workspace/api-server run email-worker -- --dry-run`
 - Schedule: **Every hour**, or cron **`0 * * * *`**.
 - Allow sufficient job time for the configured cap. With 100 attempts, a 30-minute allowance covers the approximately 26-minute worst case of repeated 15-second provider timeouts plus rate-limit pauses; normal runs exit much sooner. If using a 10-minute timeout, reduce `EMAIL_MAX_PER_RUN` to 25. The database lock also prevents overlapping jobs.
 - The hourly cron expression works for KL's whole-hour UTC offset even if the scheduler displays another zone; the worker's day boundaries and digest deduplication are always explicitly KL.
 - Check that the scheduled runtime receives the same production `DATABASE_URL` and the required server-only settings. A worker can run while the browser is closed because Replit, not the browser, starts the process.
-- Observe a scheduled dry-run execution in deployment logs. Only after reviewing the real production workspace, confirming its inventory is not synthetic, and a successful controlled delivery test, change **the worker's** run command to the same command with `--send --expiry-only` and enable `EMAIL_NOTIFICATIONS_ENABLED=true`.
+- Observe a scheduled dry-run execution in deployment logs. Only after confirming the intended production workspace, its inventory source, and a successful controlled delivery test, change **the worker's** run command to the same command with `--send` and enable `EMAIL_NOTIFICATIONS_ENABLED=true`. This full mode includes expiry and pending-approval notifications.
 - Keep the web/API production commands unchanged. If the UI offers only replacing an existing service, stop rather than replace it; add a separate scheduled deployment/artifact in the same project using the above command.
 
 Do not declare hourly scheduling verified merely because a manual shell command succeeded. Verification requires at least one actual scheduled execution, and email delivery requires evidence in the actual recipient inbox/provider.

@@ -18,9 +18,11 @@ test("expiry-check status persists per owner, recovers, rejects older updates, a
   const client = await pool.connect(), observer = await pool.connect();
   const workspaceId = `owner:expiry-status-test-${randomUUID()}`;
   const state = sampleEmailWorkspace();
-  const before = JSON.stringify(state);
   try {
-    await client.query("INSERT INTO guard_workspace (id,data) VALUES ($1,$2::jsonb)", [workspaceId, before]);
+    await client.query("INSERT INTO guard_workspace (id,data) VALUES ($1,$2::jsonb)", [workspaceId, JSON.stringify(state)]);
+    const before = (await client.query(
+      "SELECT data FROM guard_workspace WHERE id=$1", [workspaceId],
+    )).rows[0].data;
     const repository = postgresEmailRepository(client);
     await repository.saveExpiryCheckStatus(workspaceId, "failed", "2026-10-22T02:00:00.000Z");
     let status = (await observer.query(
@@ -36,9 +38,9 @@ test("expiry-check status persists per owner, recovers, rejects older updates, a
     )).rows[0];
     assert.equal(status.outcome, "success");
     assert.equal(status.last_completed_at.toISOString(), "2026-10-22T03:00:00.000Z");
-    assert.equal(JSON.stringify((await observer.query(
+    assert.deepEqual((await observer.query(
       "SELECT data FROM guard_workspace WHERE id=$1", [workspaceId],
-    )).rows[0].data), before);
+    )).rows[0].data, before);
   } finally {
     await client.query("DELETE FROM guard_expiry_check_status WHERE workspace_id=$1", [workspaceId]);
     await client.query("DELETE FROM guard_workspace WHERE id=$1", [workspaceId]);

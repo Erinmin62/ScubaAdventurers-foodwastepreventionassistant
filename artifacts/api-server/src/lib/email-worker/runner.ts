@@ -48,7 +48,7 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
       summary.uncertain += await repository.recoverInterrupted();
     }
     const workspaces = await repository.workspaces(options.routes.length ? options.routes.map(route => route.workspaceId) : undefined);
-    if (!options.dryRun && options.expiryOnly) {
+    if (!options.dryRun) {
       const foundWorkspaceIds = new Set(workspaces.map(workspace => workspace.id));
       for (const route of options.routes) {
         if (!foundWorkspaceIds.has(route.workspaceId)) {
@@ -72,16 +72,12 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
         if (options.expiryOnly) scan = { ...scan, candidates: expiryEmailCandidates(scan.candidates) };
       } catch {
         summary.failed++;
-        if (!options.dryRun && options.expiryOnly) {
+        if (!options.dryRun) {
           await repository.saveExpiryCheckStatus(workspace.id, "failed", clock().toISOString());
           completedChecks.add(workspace.id);
         }
         log("email_worker_invalid_workspace", { workspace: hash(workspace.id).slice(0, 12) });
         continue;
-      }
-      if (!options.dryRun && options.expiryOnly) {
-        await repository.saveExpiryCheckStatus(workspace.id, "success", clock().toISOString());
-        completedChecks.add(workspace.id);
       }
       summary.ingredientsChecked += scan.ingredientsChecked;
       summary.batchesChecked += scan.batchesChecked;
@@ -142,12 +138,16 @@ export async function runEmailWorker(repository: EmailRepository, options: Optio
         });
         await (options.pause?.() ?? new Promise(resolve => setTimeout(resolve, 600)));
       }
+      if (!options.dryRun) {
+        await repository.saveExpiryCheckStatus(workspace.id, "success", clock().toISOString());
+        completedChecks.add(workspace.id);
+      }
     }
     log("email_worker_completed", summary);
     return summary;
   } catch (error) {
     summary.failed++;
-    if (!options.dryRun && options.expiryOnly) {
+    if (!options.dryRun) {
       for (const route of options.routes) {
         if (!completedChecks.has(route.workspaceId)) {
           try {
