@@ -491,6 +491,38 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/GuardState" }
         "400": { description: "Invalid name, recipe or price details" }
+  /guard/menu/import/preview:
+    post:
+      operationId: previewMenuImport
+      summary: Validate an owner menu CSV without saving changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuCsvImportInput" }
+      responses:
+        "200":
+          description: Validated menu preview and any row-specific errors
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MenuCsvImportPreview" }
+        "400": { description: Invalid request or owner workspace unavailable }
+  /guard/menu/import:
+    post:
+      operationId: importMenuCsv
+      summary: Import all valid menu dishes and recipes into the authenticated owner workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuCsvImportInput" }
+      responses:
+        "201":
+          description: All menu dishes imported together; historical menu snapshots are unchanged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid CSV; no menu changes were saved }
   /guard/menu/{id}:
     patch:
       operationId: updateMenuItem
@@ -1068,6 +1100,45 @@ components:
           minItems: 1
           maxItems: 100
           items: { $ref: "#/components/schemas/RecipeItem" }
+    MenuCsvImportInput:
+      type: object
+      additionalProperties: false
+      required: [csv]
+      properties:
+        csv: { type: string, minLength: 1, maxLength: 2000000 }
+    MenuCsvImportDishPreview:
+      type: object
+      additionalProperties: false
+      required: [name, price, cost, ingredientCount, ingredients]
+      properties:
+        name: { type: string }
+        price: { type: number }
+        cost: { type: number }
+        ingredientCount: { type: integer }
+        ingredients:
+          type: array
+          items: { $ref: "#/components/schemas/MenuCsvImportIngredientPreview" }
+    MenuCsvImportIngredientPreview:
+      type: object
+      additionalProperties: false
+      required: [name, unit, quantityPerPortion]
+      properties:
+        name: { type: string }
+        unit: { type: string }
+        quantityPerPortion: { type: number }
+    MenuCsvImportPreview:
+      type: object
+      additionalProperties: false
+      required: [valid, dishCount, dishes, errors]
+      properties:
+        valid: { type: boolean }
+        dishCount: { type: integer }
+        dishes:
+          type: array
+          items: { $ref: "#/components/schemas/MenuCsvImportDishPreview" }
+        errors:
+          type: array
+          items: { type: string }
     MenuItemUpdate:
       type: object
       additionalProperties: false

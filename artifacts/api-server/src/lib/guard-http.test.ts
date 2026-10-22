@@ -31,7 +31,7 @@ before(async () => {
     latestAiContext = structuredClone(context);
     return syntheticAiForecast(context);
   });
-  app.use(express.json(), guardRouter, aiForecastDemoRouter, menuRouter, reorderRouter, notificationsRouter, inboxRouter);
+  app.use(express.json({ limit: "3mb" }), guardRouter, aiForecastDemoRouter, menuRouter, reorderRouter, notificationsRouter, inboxRouter);
   server = app.listen(0, "127.0.0.1");
   await new Promise<void>(resolve => server.once("listening", resolve));
   const address = server.address();
@@ -190,6 +190,36 @@ test("HTTP: legacy timestamp batches can be reviewed and removed without inventi
 test("HTTP: menu changes preserve history, update planning, and keep recipe drafts owner-inventory bounded", async () => {
   fixture();
   const ingredients = (await request("/guard/state")).data as { ingredients: { id: string }[] };
+  const csv = `dish_name,description,price,cost,ingredient_name,ingredient_unit,quantity_per_portion
+"Tomato, basil plate","Roasted cherry tomatoes",16,4,"Cherry tomatoes",kg,0.12`;
+  const beforeCsvPreview = snapshotWorkspace();
+  const preview = await request("/guard/menu/import/preview", { csv });
+  assert.equal(preview.status, 200);
+  assert.deepEqual(preview.data, {
+    valid: true,
+    dishCount: 1,
+    dishes: [{
+      name: "Tomato, basil plate",
+      price: 16,
+      cost: 4,
+      ingredientCount: 1,
+      ingredients: [{ name: "Cherry tomatoes", unit: "kg", quantityPerPortion: 0.12 }],
+    }],
+    errors: [],
+  });
+  assert.deepEqual(snapshotWorkspace(), beforeCsvPreview, "preview has no workspace side effects");
+  const invalidCsv = csv.replace("Cherry tomatoes", "Not in this pantry");
+  const invalidPreview = await request("/guard/menu/import/preview", { csv: invalidCsv });
+  assert.equal((invalidPreview.data as { valid: boolean }).valid, false);
+  const beforeInvalidImport = snapshotWorkspace();
+  assert.equal((await request("/guard/menu/import", { csv: invalidCsv })).status, 400);
+  assert.deepEqual(snapshotWorkspace(), beforeInvalidImport, "invalid CSV cannot partially change the menu");
+  const imported = await request("/guard/menu/import", { csv });
+  assert.equal(imported.status, 201);
+  assert.ok((imported.data as { menu: { name: string }[] }).menu.some(item => item.name === "Tomato, basil plate"));
+  assert.deepEqual(snapshotWorkspace().sales, beforeCsvPreview.sales, "existing sales snapshots stay untouched");
+  assert.equal((await request("/guard/menu/import", { csv })).status, 400, "an active duplicate dish is rejected");
+
   const newBody = {
     name: "Tomato toast",
     description: "Toasted bread with cherry tomato.",
@@ -810,6 +840,14 @@ test("HTTP auth: workspace data choice is owner-scoped and removes only the conf
     assert.equal(menuState.data.menu.some(item => item.name === "Green bean bowl"), true);
     assert.equal(menuState.data.forecasts.find(item => item.name === "Green bean bowl")?.confidence, "No sales history");
     assert.equal(menuState.data.recommendations.some(item => item.type === "preparation" && item.targetId === ingredient!.id), false);
+    const ownerCsv = `dish_name,description,price,cost,ingredient_name,ingredient_unit,quantity_per_portion
+"Owner A special","Owner-specific recipe",15,4,"Green beans",kg,0.15`;
+    const ownerPreview = await call("/guard/menu/import/preview", ownerA, { csv: ownerCsv }, "POST");
+    assert.equal(ownerPreview.status, 200);
+    assert.equal((ownerPreview.data as unknown as { valid: boolean }).valid, true);
+    const ownerImport = await call("/guard/menu/import", ownerA, { csv: ownerCsv }, "POST");
+    assert.equal(ownerImport.status, 201);
+    assert.equal(ownerImport.data.menu.some(item => item.name === "Owner A special"), true);
 
     const ownerBState = await call("/guard/state", ownerB);
     assert.equal(ownerBState.data.workspaceMode, "setup_required");
@@ -818,6 +856,7 @@ test("HTTP auth: workspace data choice is owner-scoped and removes only the conf
     assert.ok(ownerBState.data.menu.some(item => item.name === "Avocado Toast"));
     assert.equal(ownerBState.data.ingredients.some(item => item.name === "Green beans"), false);
     assert.equal(ownerBState.data.menu.some(item => item.name === "Green bean bowl"), false);
+    assert.equal(ownerBState.data.menu.some(item => item.name === "Owner A special"), false);
   } finally {
     await new Promise<void>((resolve, reject) => secured.close(error => error ? reject(error) : resolve()));
   }

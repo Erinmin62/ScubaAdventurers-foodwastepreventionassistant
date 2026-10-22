@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createMenuItem, deleteMenuItem, updateMenuItem } from "./guard-menu";
+import { createMenuItem, deleteMenuItem, importMenuCsv, previewMenuCsv, updateMenuItem } from "./guard-menu";
 import { compute, seed, today, type State } from "./guard-model";
 import { InputError } from "./guard-follow-ups";
 
@@ -61,4 +61,57 @@ test("archiving preserves history but removes a dish from current forecasts and 
   deleteMenuItem(s, unused.id);
   assert.equal(s.menu.some(m => m.id === unused.id), false);
   assert.equal(typeof today(), "string");
+});
+
+const menuCsv = `dish_name,description,price,cost,ingredient_name,ingredient_unit,quantity_per_portion
+"Tomato, basil toast","With ""fresh"" tomatoes",18,5,"Cherry tomatoes",kg,0.1
+"Tomato, basil toast","With ""fresh"" tomatoes",18,5,"Sourdough bread",kg,0.08`;
+
+test("menu CSV preview parses quoted fields and validates pantry name and units", () => {
+  const s = seed();
+  const preview = previewMenuCsv(s, menuCsv);
+  assert.equal(preview.valid, true);
+  assert.equal(preview.dishCount, 1);
+  assert.deepEqual(preview.dishes, [{
+    name: "Tomato, basil toast",
+    price: 18,
+    cost: 5,
+    ingredientCount: 2,
+    ingredients: [
+      { name: "Cherry tomatoes", unit: "kg", quantityPerPortion: 0.1 },
+      { name: "Sourdough bread", unit: "kg", quantityPerPortion: 0.08 },
+    ],
+  }]);
+  assert.equal(preview.parsedDishes[0]?.description, 'With "fresh" tomatoes');
+
+  const wrongUnit = previewMenuCsv(s, menuCsv.replace(",kg,0.1", ",L,0.1"));
+  assert.equal(wrongUnit.valid, false);
+  assert.ok(wrongUnit.errors.some(error => error.includes("must use a pantry unit")));
+  const wrongIngredient = previewMenuCsv(s, menuCsv.replace("Cherry tomatoes", "Another owner's tomatoes"));
+  assert.equal(wrongIngredient.valid, false);
+  assert.ok(wrongIngredient.errors.some(error => error.includes("is not in this owner's pantry")));
+});
+
+test("invalid menu CSV is rejected without partial menu or history changes", () => {
+  const s = seed();
+  const before = structuredClone(s);
+  const invalidAfterOneValidRow = `${menuCsv}\n"Second dish","Valid first ingredient",20,6,"Missing pantry item",kg,0.2`;
+  assert.throws(() => importMenuCsv(s, invalidAfterOneValidRow), InputError);
+  assert.deepEqual(s, before);
+});
+
+test("menu CSV import adds all recipes and leaves existing historical snapshots intact", () => {
+  const s = seed();
+  const previousMenu = structuredClone(s.menu);
+  const previousSales = structuredClone(s.sales);
+  const previousResults = structuredClone(s.results);
+  const previousRevision = s.menuRevision;
+  assert.equal(importMenuCsv(s, menuCsv), 1);
+  const added = s.menu.find(item => item.name === "Tomato, basil toast")!;
+  assert.equal(added.archivedAt, null);
+  assert.equal(added.recipe.length, 2);
+  assert.deepEqual(s.menu.filter(item => previousMenu.some(old => old.id === item.id)), previousMenu);
+  assert.deepEqual(s.sales, previousSales);
+  assert.deepEqual(s.results, previousResults);
+  assert.equal(s.menuRevision, (previousRevision ?? 0) + 1);
 });

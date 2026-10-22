@@ -696,6 +696,35 @@ export interface MenuItemInput {
   recipe: RecipeItem[];
 }
 
+export interface MenuCsvImportInput {
+  /**
+     * @minLength 1
+     * @maxLength 2000000
+     */
+  csv: string;
+}
+
+export interface MenuCsvImportIngredientPreview {
+  name: string;
+  unit: string;
+  quantityPerPortion: number;
+}
+
+export interface MenuCsvImportDishPreview {
+  name: string;
+  price: number;
+  cost: number;
+  ingredientCount: number;
+  ingredients: MenuCsvImportIngredientPreview[];
+}
+
+export interface MenuCsvImportPreview {
+  valid: boolean;
+  dishCount: number;
+  dishes: MenuCsvImportDishPreview[];
+  errors: string[];
+}
+
 export interface MenuItemUpdate {
   /**
      * @minLength 1

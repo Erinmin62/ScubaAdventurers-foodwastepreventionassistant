@@ -41,6 +41,8 @@ import type {
   IngredientPhotoConfirmRequest,
   IngredientPhotoUploadRequest,
   IngredientPhotoUploadResponse,
+  MenuCsvImportInput,
+  MenuCsvImportPreview,
   MenuItemInput,
   MenuItemUpdate,
   MenuRecipeDraft,
@@ -2827,6 +2829,182 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateMenuItemMutationOptions(options));
+    }
+
+export const getPreviewMenuImportUrl = () => {
+
+
+
+
+  return `/api/guard/menu/import/preview`
+}
+
+/**
+ * @summary Validate an owner menu CSV without saving changes
+ */
+export const previewMenuImport = async (menuCsvImportInput: MenuCsvImportInput, options?: Parameters<typeof customFetch>[1]): Promise<MenuCsvImportPreview> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MenuCsvImportPreview>(getPreviewMenuImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(menuCsvImportInput)
+  }
+);}
+
+
+
+
+
+export const getPreviewMenuImportMutationKey = () => ['previewMenuImport'] as const;
+
+export const getPreviewMenuImportMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewMenuImport>>, TError,PreviewMenuImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewMenuImport>>, TError,PreviewMenuImportMutationVariables, TContext> => {
+
+const mutationKey = getPreviewMenuImportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewMenuImport>>, PreviewMenuImportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewMenuImport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewMenuImportMutationResult = NonNullable<Awaited<ReturnType<typeof previewMenuImport>>>
+    export type PreviewMenuImportMutationBody = BodyType<MenuCsvImportInput>
+    export type PreviewMenuImportMutationError = ErrorType<void>
+    export type PreviewMenuImportMutationVariables = {data: BodyType<MenuCsvImportInput>}
+
+    /**
+ * @summary Validate an owner menu CSV without saving changes
+ */
+export const usePreviewMenuImport = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewMenuImport>>, TError,PreviewMenuImportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewMenuImport>>,
+        TError,
+        PreviewMenuImportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPreviewMenuImportMutationOptions(options));
+    }
+
+export const getImportMenuCsvUrl = () => {
+
+
+
+
+  return `/api/guard/menu/import`
+}
+
+/**
+ * @summary Import all valid menu dishes and recipes into the authenticated owner workspace
+ */
+export const importMenuCsv = async (menuCsvImportInput: MenuCsvImportInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getImportMenuCsvUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(menuCsvImportInput)
+  }
+);}
+
+
+
+
+
+export const getImportMenuCsvMutationKey = () => ['importMenuCsv'] as const;
+
+export const getImportMenuCsvMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importMenuCsv>>, TError,ImportMenuCsvMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importMenuCsv>>, TError,ImportMenuCsvMutationVariables, TContext> => {
+
+const mutationKey = getImportMenuCsvMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importMenuCsv>>, ImportMenuCsvMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  importMenuCsv(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportMenuCsvMutationResult = NonNullable<Awaited<ReturnType<typeof importMenuCsv>>>
+    export type ImportMenuCsvMutationBody = BodyType<MenuCsvImportInput>
+    export type ImportMenuCsvMutationError = ErrorType<void>
+    export type ImportMenuCsvMutationVariables = {data: BodyType<MenuCsvImportInput>}
+
+    /**
+ * @summary Import all valid menu dishes and recipes into the authenticated owner workspace
+ */
+export const useImportMenuCsv = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importMenuCsv>>, TError,ImportMenuCsvMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importMenuCsv>>,
+        TError,
+        ImportMenuCsvMutationVariables,
+        TContext
+      > => {
+      return useMutation(getImportMenuCsvMutationOptions(options));
     }
 
 export const getUpdateMenuItemUrl = (id: string,) => {

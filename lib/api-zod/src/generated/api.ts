@@ -3988,6 +3988,297 @@ export const CreateMenuItemResponse = zod.object({
 })
 
 
+/**
+ * @summary Validate an owner menu CSV without saving changes
+ */
+export const previewMenuImportBodyCsvMax = 2000000;
+
+
+
+export const PreviewMenuImportBody = zod.object({
+  "csv": zod.string().min(1).max(previewMenuImportBodyCsvMax)
+})
+
+export const PreviewMenuImportResponse = zod.object({
+  "valid": zod.boolean(),
+  "dishCount": zod.number().int(),
+  "dishes": zod.array(zod.object({
+  "name": zod.string(),
+  "price": zod.number(),
+  "cost": zod.number(),
+  "ingredientCount": zod.number().int(),
+  "ingredients": zod.array(zod.object({
+  "name": zod.string(),
+  "unit": zod.string(),
+  "quantityPerPortion": zod.number()
+}))
+})),
+  "errors": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Import all valid menu dishes and recipes into the authenticated owner workspace
+ */
+export const importMenuCsvBodyCsvMax = 2000000;
+
+
+
+export const ImportMenuCsvBody = zod.object({
+  "csv": zod.string().min(1).max(importMenuCsvBodyCsvMax)
+})
+
+export const importMenuCsvResponseBusinessProfileNameMax = 120;
+
+export const importMenuCsvResponseIngredientsItemQuantityMin = 0;
+
+export const importMenuCsvResponseIngredientsItemCostMin = 0;
+
+export const importMenuCsvResponseIngredientsItemDeliveryQuantityMin = 0;
+
+export const importMenuCsvResponseIngredientsItemBatchesItemQuantityMin = 0;
+
+export const importMenuCsvResponseSalesItemPortionsMin = 0;
+
+export const importMenuCsvResponseSalesItemMenuPriceMin = 0;
+
+export const importMenuCsvResponseSalesItemMenuCostMin = 0;
+
+export const importMenuCsvResponseSalesItemMenuRecipeItemAmountExclusiveMin = 0;
+
+export const importMenuCsvResponseResultsItemPreparedMin = 0;
+
+export const importMenuCsvResponseResultsItemSoldMin = 0;
+
+export const importMenuCsvResponseResultsItemLeftoverMin = 0;
+
+export const importMenuCsvResponseResultsItemMenuPriceMin = 0;
+
+export const importMenuCsvResponseResultsItemMenuCostMin = 0;
+
+export const importMenuCsvResponseResultsItemMenuRecipeItemAmountExclusiveMin = 0;
+
+export const importMenuCsvResponseMenuItemRecipeItemAmountExclusiveMin = 0;
+
+export const importMenuCsvResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin = 0;
+
+export const importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin = 0;
+export const importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax = 1000000;
+
+export const importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin = 0;
+export const importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax = 1000000;
+
+
+
+export const ImportMenuCsvResponse = zod.object({
+  "today": zod.string(),
+  "tomorrow": zod.string(),
+  "cafeName": zod.string().describe('Legacy compatibility alias for businessProfile.name.'),
+  "businessProfile": zod.object({
+  "name": zod.string().min(1).max(importMenuCsvResponseBusinessProfileNameMax),
+  "type": zod.enum(['cafe', 'restaurant', 'food_vendor', 'cloud_kitchen', 'other'])
+}),
+  "workspaceMode": zod.enum(['setup_required', 'synthetic_demo', 'owner_data']),
+  "synthetic": zod.boolean(),
+  "automation": zod.object({
+  "dailyPlanning": zod.boolean(),
+  "followUpHandling": zod.boolean(),
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "workflow": zod.enum(['daily-planning', 'follow-ups']),
+  "trigger": zod.enum(['automatic', 'manual']),
+  "time": zod.string(),
+  "date": zod.string(),
+  "detail": zod.string(),
+  "draftCount": zod.number().int(),
+  "riskCount": zod.number().int(),
+  "dueCount": zod.number().int(),
+  "overdueCount": zod.number().int(),
+  "predictedPortions": zod.number().int()
+}))
+}),
+  "ingredients": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quantity": zod.number().min(importMenuCsvResponseIngredientsItemQuantityMin),
+  "unit": zod.string(),
+  "expiry": zod.string(),
+  "cost": zod.number().min(importMenuCsvResponseIngredientsItemCostMin),
+  "category": zod.string(),
+  "deliveryQuantity": zod.number().min(importMenuCsvResponseIngredientsItemDeliveryQuantityMin),
+  "deliveryDate": zod.string(),
+  "photoPath": zod.string().nullish(),
+  "measuredDate": zod.string().nullish(),
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(importMenuCsvResponseIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional()
+})),
+  "sales": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "portions": zod.number().int().min(importMenuCsvResponseSalesItemPortionsMin),
+  "menuName": zod.string().optional(),
+  "menuPrice": zod.number().min(importMenuCsvResponseSalesItemMenuPriceMin).optional(),
+  "menuCost": zod.number().min(importMenuCsvResponseSalesItemMenuCostMin).optional(),
+  "menuRecipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number().gt(importMenuCsvResponseSalesItemMenuRecipeItemAmountExclusiveMin)
+})).optional()
+})),
+  "results": zod.array(zod.object({
+  "date": zod.string(),
+  "menuId": zod.string(),
+  "prepared": zod.number().int().min(importMenuCsvResponseResultsItemPreparedMin),
+  "sold": zod.number().int().min(importMenuCsvResponseResultsItemSoldMin),
+  "leftover": zod.number().int().min(importMenuCsvResponseResultsItemLeftoverMin),
+  "menuName": zod.string().optional(),
+  "menuPrice": zod.number().min(importMenuCsvResponseResultsItemMenuPriceMin).optional(),
+  "menuCost": zod.number().min(importMenuCsvResponseResultsItemMenuCostMin).optional(),
+  "menuRecipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number().gt(importMenuCsvResponseResultsItemMenuRecipeItemAmountExclusiveMin)
+})).optional()
+})),
+  "menu": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "price": zod.number(),
+  "cost": zod.number(),
+  "archivedAt": zod.string().nullable(),
+  "recipe": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "amount": zod.number().gt(importMenuCsvResponseMenuItemRecipeItemAmountExclusiveMin)
+}))
+})),
+  "forecasts": zod.array(zod.object({
+  "menuId": zod.string(),
+  "name": zod.string(),
+  "predicted": zod.number().int(),
+  "capacity": zod.number().int(),
+  "suggested": zod.number().int(),
+  "confidence": zod.string(),
+  "reason": zod.string()
+})),
+  "risks": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "daysLeft": zod.number().int(),
+  "level": zod.string(),
+  "expectedUse": zod.number(),
+  "atRisk": zod.number(),
+  "value": zod.number(),
+  "message": zod.string()
+})),
+  "recommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+})),
+  "activity": zod.array(zod.object({
+  "id": zod.string(),
+  "time": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "decision": zod.string(),
+  "impact": zod.number()
+})),
+  "summary": zod.object({
+  "predictedPortions": zod.number().int(),
+  "riskValue": zod.number(),
+  "pendingCount": zod.number().int(),
+  "estimatedSavings": zod.number(),
+  "baselineWasteCost": zod.number(),
+  "actualWasteCost": zod.number(),
+  "baselinePurchaseCost": zod.number(),
+  "plannedPurchaseCost": zod.number(),
+  "baselineWasteKg": zod.number(),
+  "actualWasteKg": zod.number()
+}),
+  "followUps": zod.array(zod.object({
+  "id": zod.string(),
+  "recommendationId": zod.string(),
+  "recommendation": zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}),
+  "approvedAction": zod.string(),
+  "approvedQuantity": zod.number(),
+  "approvedAt": zod.string().nullable(),
+  "snapshotAt": zod.string(),
+  "startingDate": zod.string(),
+  "scheduledDate": zod.string(),
+  "name": zod.string(),
+  "status": zod.enum(['outstanding', 'completed', 'cancelled']),
+  "cancellationReason": zod.string().nullable(),
+  "ingredients": zod.array(zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "quantity": zod.number().min(importMenuCsvResponseFollowUpsItemIngredientsItemBatchesItemQuantityMin),
+  "expiry": zod.string(),
+  "receivedDate": zod.string().nullable()
+})).optional(),
+  "ingredientId": zod.string(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "startingQuantity": zod.number(),
+  "expiry": zod.string(),
+  "deliveryQuantity": zod.number(),
+  "deliveryDate": zod.string(),
+  "expectedUsage": zod.number(),
+  "expectedRemaining": zod.number()
+})),
+  "outcome": zod.union([zod.object({
+  "observationDate": zod.string(),
+  "actionTaken": zod.string(),
+  "recordedAt": zod.string(),
+  "rows": zod.array(zod.object({
+  "ingredientId": zod.string(),
+  "remaining": zod.number().min(importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMin).max(importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneRemainingMax),
+  "wasted": zod.number().min(importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneWastedMin).max(importMenuCsvResponseFollowUpsItemOutcomeOneRowsItemOneWastedMax)
+}).and(zod.object({
+  "assessment": zod.string(),
+  "nextAction": zod.string(),
+  "inventoryUpdate": zod.string()
+})))
+}),zod.null()])
+})),
+  "approvedRecommendations": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "targetId": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "original": zod.number(),
+  "suggested": zod.number(),
+  "unit": zod.string(),
+  "savings": zod.number(),
+  "status": zod.string(),
+  "approvedQuantity": zod.number().nullable()
+}))
+})
+
+
 export const UpdateMenuItemParams = zod.object({
   "id": zod.coerce.string()
 })

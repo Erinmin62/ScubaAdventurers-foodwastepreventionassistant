@@ -34,7 +34,7 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.post("/api/webhooks/resend", express.raw({ type: "application/json", limit: "256kb" }), createDeliveryWebhook(saveDeliveryEvent));
 // Preserve exact signed bytes; only the Meta webhook bypasses JSON parsing.
 app.use("/api/guard/notifications/webhook", express.raw({ type: "application/json", limit: "256kb" }));
-app.use(express.json());
+app.use(express.json({ limit: "3mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(clerkMiddleware(req => ({
   publishableKey: publishableKeyFromHost(getClerkProxyHost(req) ?? "", process.env.CLERK_PUBLISHABLE_KEY),
