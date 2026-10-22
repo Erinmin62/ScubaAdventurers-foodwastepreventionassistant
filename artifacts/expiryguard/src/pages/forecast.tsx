@@ -1,5 +1,6 @@
 import { EmptyState, ErrorState, LoadingState, PageHeader, Panel, RecCard, Stat } from '@/components/bits';
 import { AiForecastDemo } from '@/components/ai-forecast-demo';
+import { ForecastAccuracy } from '@/components/forecast-accuracy';
 import { fmt, niceDate, useGuard } from '@/lib/guard';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +52,7 @@ export default function Forecast() {
           </div>
         )}
       </Panel>
+      <ForecastAccuracy state={data} />
       <Panel title="Preparation plan" sub="Approve, edit the portion count, or reject. Plans only become final with your decision.">
         {preps.length === 0 ? <EmptyState title="No prep plans" body="Recommendations appear once a forecast exists." /> : (
           <div className="grid md:grid-cols-2 gap-3">{preps.map((r) => <RecCard key={r.id} rec={r} />)}</div>

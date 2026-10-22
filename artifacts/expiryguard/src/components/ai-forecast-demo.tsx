@@ -124,8 +124,8 @@ function ForecastResult({ result }: { result: AiForecastDemoResponse }) {
         <section aria-labelledby="ai-demo-orders-heading" className="rounded-2xl border border-jade/25 bg-jade/5 p-4">
           <div className="mb-3">
             <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-jade">Model output · synthetic</div>
-            <h4 id="ai-demo-orders-heading" className="mt-1 font-display text-lg font-bold">Illustrative order ideas</h4>
-            <p className="text-xs text-muted-foreground">Not connected to purchase orders, approvals, or saved recommendations.</p>
+            <h4 id="ai-demo-orders-heading" className="mt-1 font-display text-lg font-bold">Illustrative order ideas · not enabled</h4>
+            <p className="text-xs text-muted-foreground">Unvalidated sample output only; not connected to live recommendations, purchase orders, approvals, or saved plans.</p>
           </div>
           {result.orderRecommendations.length === 0 ? <p className="text-sm text-muted-foreground">No order estimate rows returned.</p> : (
             <div className="space-y-2">
