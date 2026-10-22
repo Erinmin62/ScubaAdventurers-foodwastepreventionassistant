@@ -42,7 +42,7 @@ export async function generateRecipeDraft(name: string, description: string, pan
     messages: [
       {
         role: "system",
-        content: "Draft one practical recipe portion for a small café. Only use ingredient IDs from the supplied pantry list; never invent ingredients. Amounts must be positive quantities in the ingredient's existing pantry unit. Return JSON only, matching {\"recipe\":[{\"ingredientId\":\"...\",\"amount\":0.1}],\"explanation\":\"...\"}. Do not make allergen, food-safety, or nutrition guarantees. The owner will verify the draft.",
+        content: "Draft one practical recipe portion for a small food-and-beverage business. Only use ingredient IDs from the supplied pantry list; never invent ingredients. Amounts must be positive quantities in the ingredient's existing pantry unit. Return JSON only, matching {\"recipe\":[{\"ingredientId\":\"...\",\"amount\":0.1}],\"explanation\":\"...\"}. Do not make allergen, food-safety, or nutrition guarantees. The owner will verify the draft.",
       },
       {
         role: "user",

@@ -47,7 +47,7 @@ test("email preview requires owner identity, ignores caller workspace IDs, and o
     urgentAlerts: { kind: string; subject: string }[];
     digest: { kind: string; subject: string }[];
   };
-  assert.equal(preview.workspaceName, "Little Leaf Café");
+  assert.equal(preview.workspaceName, "Sample Food Business");
   assert.equal(preview.synthetic, true);
   assert.equal(preview.timeZone, "Asia/Kuala_Lumpur");
   assert.ok(preview.urgentAlerts.length > 0);

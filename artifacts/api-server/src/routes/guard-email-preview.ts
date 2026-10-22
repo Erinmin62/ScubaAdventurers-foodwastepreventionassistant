@@ -20,7 +20,7 @@ export function createGuardEmailPreviewRouter(read: WorkspaceReader = readWorksp
       const preview = expiryEmailPreview(workspace, now);
       const state = compute(workspace, klDay(now));
       res.json(GetEmailPreviewResponse.parse({
-        workspaceName: state.cafeName,
+        workspaceName: state.businessProfile.name,
         synthetic: state.synthetic,
         generatedAt: now.toISOString(),
         timeZone: EMAIL_TIME_ZONE,

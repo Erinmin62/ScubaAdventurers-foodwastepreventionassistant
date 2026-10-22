@@ -7,6 +7,7 @@
  */
 import type { Activity } from './activity';
 import type { AutomationState } from './automationState';
+import type { BusinessProfile } from './businessProfile';
 import type { FollowUp } from './followUp';
 import type { Forecast } from './forecast';
 import type { Ingredient } from './ingredient';
@@ -20,7 +21,12 @@ import type { Summary } from './summary';
 export interface GuardState {
   today: string;
   tomorrow: string;
+  /**
+     * Legacy compatibility alias for businessProfile.name.
+     * @deprecated
+     */
   cafeName: string;
+  businessProfile: BusinessProfile;
   synthetic: boolean;
   automation: AutomationState;
   ingredients: Ingredient[];

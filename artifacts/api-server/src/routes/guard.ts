@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { AddGuardRecordsBody, GetHistoricalRecordsResponse, ImportHistoricalRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody } from "@workspace/api-zod";
+import { AddGuardRecordsBody, GetHistoricalRecordsResponse, ImportHistoricalRecordsBody, DecideRecommendationBody, DecideRecommendationParams, AttachFollowUpBody, RecordFollowUpOutcomeBody, UpdateAutomationBody, RunAutomationBody, SaveIngredientBatchBody, UpdateBusinessProfileBody } from "@workspace/api-zod";
 import { compute, today, round, seed, type HistoricalRecord } from "../lib/guard-model";
 import { appendHistoricalRecords, removeHistoricalBatch, changeWorkspace as change, readWorkspace } from "../lib/guard-store";
 import { RemoveHistoricalBatchBody, RemoveHistoricalBatchParams } from "@workspace/api-zod";
@@ -24,6 +24,15 @@ const date = (v: unknown, field: string) => {
 };
 router.get("/guard/state", async (_req, res): Promise<void> => {
   res.json(await change());
+});
+router.patch("/guard/business-profile", async (req, res): Promise<void> => {
+  const parsed = UpdateBusinessProfileBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Provide a business name and a supported business type." }); return; }
+  const name = parsed.data.name.trim();
+  if (!name) { res.status(400).json({ error: "Business name cannot be empty." }); return; }
+  res.json(await change(s => {
+    s.businessProfile = { name, type: parsed.data.type };
+  }, false));
 });
 router.post("/guard/ingredients/:id/batches", async (req, res): Promise<void> => {
   const parsed = SaveIngredientBatchBody.safeParse(req.body);

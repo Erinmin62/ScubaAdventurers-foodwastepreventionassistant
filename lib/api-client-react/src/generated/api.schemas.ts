@@ -915,6 +915,26 @@ export interface Summary {
   actualWasteKg: number;
 }
 
+export type BusinessType = typeof BusinessType[keyof typeof BusinessType];
+
+
+export const BusinessType = {
+  cafe: 'cafe',
+  restaurant: 'restaurant',
+  food_vendor: 'food_vendor',
+  cloud_kitchen: 'cloud_kitchen',
+  other: 'other',
+} as const;
+
+export interface BusinessProfile {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  type: BusinessType;
+}
+
 export type FollowUpStatus = typeof FollowUpStatus[keyof typeof FollowUpStatus];
 
 
@@ -986,7 +1006,12 @@ export interface FollowUp {
 export interface GuardState {
   today: string;
   tomorrow: string;
+  /**
+     * Legacy compatibility alias for businessProfile.name.
+     * @deprecated
+     */
   cafeName: string;
+  businessProfile: BusinessProfile;
   synthetic: boolean;
   automation: AutomationState;
   ingredients: Ingredient[];
@@ -1000,6 +1025,15 @@ export interface GuardState {
   summary: Summary;
   followUps: FollowUp[];
   approvedRecommendations: Recommendation[];
+}
+
+export interface BusinessProfileInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  type: BusinessType;
 }
 
 export type FollowUpScheduleInputFollowUpDays = typeof FollowUpScheduleInputFollowUpDays[keyof typeof FollowUpScheduleInputFollowUpDays];

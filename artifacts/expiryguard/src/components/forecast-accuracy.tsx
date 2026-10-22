@@ -67,7 +67,7 @@ export function ForecastAccuracy({ state }: { state: Pick<GuardState, 'sales' | 
           <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-amber" />
           <p>
             <b>Sample-history check only.</b> This workspace includes seeded synthetic history, which may be mixed
-            with later entries. These scores do not establish accuracy for your café and do not evaluate the
+            with later entries. These scores do not establish accuracy for your business and do not evaluate the
             experimental AI forecast.
           </p>
         </div>

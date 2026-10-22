@@ -18,6 +18,7 @@ import Reordering from '@/pages/reordering';
 import Notifications from '@/pages/notifications';
 import NotificationReview from '@/pages/notification-review';
 import Menu from '@/pages/menu';
+import BusinessProfilePage from '@/pages/business-profile';
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
           <Route path="/notifications" component={Notifications} />
           <Route path="/notification-review" component={NotificationReview} />
           <Route path="/activity" component={Activity} />
+          <Route path="/business-profile" component={BusinessProfilePage} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

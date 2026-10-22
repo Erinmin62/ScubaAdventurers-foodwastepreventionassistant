@@ -83,7 +83,7 @@ export async function runTwilioSandbox({
     const highlights = events.slice(0, 3).map(e => `${e.title}\n${e.text.slice(0, 310)}`).join("\n\n") || "No current expiry or approval alerts. Your test notification connection is working.";
     claim = {
       id: randomUUID(), fingerprint, createdAt: now, status: "sending",
-      message: `ExpiryGuardAI — SANDBOX TEST\nSynthetic café data; financial values are estimates, not realised savings.\n\n${highlights}\n\n${events.length > 3 ? `${events.length} current alerts; showing the first 3. ` : ""}Review details in the app. No plan is approved and no order is placed by this message.\nTo pause: reply PAUSE EXPIRYGUARDAI DEMO.`,
+      message: `ExpiryGuardAI — SANDBOX TEST\nSynthetic food-business data; financial values are estimates, not realised savings.\n\n${highlights}\n\n${events.length > 3 ? `${events.length} current alerts; showing the first 3. ` : ""}Review details in the app. No plan is approved and no order is placed by this message.\nTo pause: reply PAUSE EXPIRYGUARDAI DEMO.`,
     };
     n.attempts.push(claim);
     n.attempts = n.attempts.slice(-100);

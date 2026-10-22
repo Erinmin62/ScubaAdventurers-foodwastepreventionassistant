@@ -194,7 +194,7 @@ export function parseSyntheticForecastOutput(raw: string, context: SyntheticFore
         explanation: recommendation.explanation,
       };
     }),
-    disclaimer: "Synthetic demonstration only. This model is not trained on café-specific data, has not been validated against real outcomes, and must not guide real food-safety or purchasing decisions. No stock or order is changed.",
+    disclaimer: "Synthetic demonstration only. This model is not trained on real business-specific data, has not been validated against real outcomes, and must not guide real food-safety or purchasing decisions. No stock or order is changed.",
   };
   try {
     demoResponseSchema.parse(response);

@@ -123,7 +123,7 @@ paths:
   /storage/objects/{objectKey}:
     get:
       operationId: getIngredientPhoto
-      summary: Serve an ingredient photo to its owning café account
+      summary: Serve an ingredient photo to its owning food-business account
       parameters:
         - name: objectKey
           in: path
@@ -376,10 +376,26 @@ paths:
       operationId: getGuardState
       responses:
         "200":
-          description: Complete cafe workspace
+          description: Complete food-business workspace
           content:
             application/json:
               schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/business-profile:
+    patch:
+      operationId: updateBusinessProfile
+      summary: Update the authenticated owner's food-business name and type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BusinessProfileInput" }
+      responses:
+        "200":
+          description: Updated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid business profile }
   /guard/history:
     get:
       operationId: getHistoricalRecords
@@ -599,7 +615,7 @@ components:
       type: apiKey
       in: cookie
       name: __session
-      description: Clerk-verified browser session; all café data is scoped to its owner.
+      description: Clerk-verified browser session; all business data is scoped to its owner.
     schedulerSecret:
       type: http
       scheme: bearer
@@ -1193,11 +1209,12 @@ components:
         actualWasteKg: { type: number }
     GuardState:
       type: object
-      required: [today, tomorrow, cafeName, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations, automation]
+      required: [today, tomorrow, cafeName, businessProfile, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations, automation]
       properties:
         today: { type: string }
         tomorrow: { type: string }
-        cafeName: { type: string }
+        cafeName: { type: string, deprecated: true, description: "Legacy compatibility alias for businessProfile.name." }
+        businessProfile: { $ref: "#/components/schemas/BusinessProfile" }
         synthetic: { type: boolean }
         automation: { $ref: "#/components/schemas/AutomationState" }
         ingredients:
@@ -1231,6 +1248,21 @@ components:
         approvedRecommendations:
           type: array
           items: { $ref: "#/components/schemas/Recommendation" }
+    BusinessProfile:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        type: { $ref: "#/components/schemas/BusinessType" }
+    BusinessProfileInput:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        type: { $ref: "#/components/schemas/BusinessType" }
+    BusinessType:
+      type: string
+      enum: [cafe, restaurant, food_vendor, cloud_kitchen, other]
     FollowUpScheduleInput:
       type: object
       properties:

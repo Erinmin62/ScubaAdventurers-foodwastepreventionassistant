@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { UserButton } from '@clerk/react';
 import { Link, useLocation } from 'wouter';
-import { BarChart3, BellRing, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Truck, UtensilsCrossed } from 'lucide-react';
+import { BarChart3, BellRing, Bot, ChefHat, ClipboardCheck, History, LayoutDashboard, Leaf, Package, Store, Truck, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { niceDate, useGuard } from '@/lib/guard';
 import { guardianSrc } from '@/components/bits';
@@ -9,6 +9,7 @@ import { NotificationBell } from '@/components/inbox/notification-bell';
 import { SessionSummary } from '@/components/inbox/session-summary';
 import { InboxSync } from '@/components/inbox/inbox-sync';
 import { useInbox } from '@/lib/inbox';
+import { businessTypeLabel } from '@/lib/business-profile';
 
 const nav = [
   { href: '/', label: 'Today', icon: LayoutDashboard },
@@ -22,6 +23,7 @@ const nav = [
   { href: '/automation', label: 'Automations', icon: Bot },
   { href: '/notifications', label: 'Notifications', icon: BellRing },
   { href: '/activity', label: 'Ledger', icon: History },
+  { href: '/business-profile', label: 'Business', icon: Store },
 ];
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -36,7 +38,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="hidden md:flex flex-col items-center px-5 pt-6 pb-4">
           <img src={guardianSrc} alt="Yuzu, the pantry guardian" className="bob w-28 drop-shadow-[0_8px_12px_rgba(0,0,0,0.35)]" />
           <div className="font-display text-xl font-extrabold mt-2" style={{ fontFamily: 'var(--font-display)' }}>ExpiryGuard<span className="text-sidebar-primary">AI</span></div>
-          <div className="text-[11px] text-sidebar-foreground/60 text-center">{data?.cafeName ?? 'Your kitchen'}</div>
+          <div className="text-[11px] text-sidebar-foreground/80 text-center">{data?.businessProfile.name ?? 'Your food business'}</div>
+          <div className="text-[10px] text-sidebar-foreground/55 text-center">{businessTypeLabel(data?.businessProfile.type)}</div>
         </div>
         <nav className="flex md:flex-col gap-1 px-2 md:px-3 py-2 overflow-x-auto w-full">
           {nav.map(({ href, label, icon: Icon }) => {

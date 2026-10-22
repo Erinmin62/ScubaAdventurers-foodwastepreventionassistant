@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "ExpiryGuardAI"
-description = "A food waste prevention assistant for café and restaurant owners with synthetic sales, inventory, forecasts, approval-based preparation and purchasing recommendations, and impact tracking."
+description = "A food-waste prevention demo for food-and-beverage SMEs—cafes, restaurants, food vendors, and cloud kitchens—with synthetic sales, inventory, expiry alerts, forecasts, owner-approved preparation and purchasing recommendations, and impact tracking."
 version = "1.0.0"
 id = "artifacts/expiryguard"
 router = "path"

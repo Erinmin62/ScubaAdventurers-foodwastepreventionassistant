@@ -25,6 +25,7 @@ export type MonitorHeartbeat = {
   failureStartedAt?: string;
 };
 export type Stored = Pick<State, "ingredients" | "sales" | "results" | "menu" | "activity"> & {
+  businessProfile?: State["businessProfile"];
   historicalRecords?: HistoricalRecord[];
   inbox?: import("./guard-inbox").InboxStore;
   notifications?: import("./guard-notifications").NotificationStore;
@@ -81,10 +82,11 @@ export function seed(): Stored {
   const baselineResults = results.filter(r => r.date >= shift(d, -13) && r.date < shift(d, -6));
   const wasteCost = baselineResults.reduce((s, r) => s + r.leftover * menu.find(m => m.id === r.menuId)!.cost, 0);
   const wasteKg = baselineResults.reduce((s, r) => s + r.leftover * menu.find(m => m.id === r.menuId)!.recipe.reduce((a, v) => a + (ingredients.find(i => i.id === v.ingredientId)?.unit === "kg" ? v.amount : 0), 0), 0);
-  return { ingredients, menu, menuRevision: 0, sales, results, decisions: {}, baseline: { wasteCost, wasteKg }, activity: [{ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Your café workspace is ready", detail: "28 days of synthetic sales and waste results loaded. No real orders are placed.", decision: "system", impact: 0 }] };
+  return { businessProfile: { name: "Sample Food Business", type: "other" }, ingredients, menu, menuRevision: 0, sales, results, decisions: {}, baseline: { wasteCost, wasteKg }, activity: [{ id: crypto.randomUUID(), time: new Date().toISOString(), title: "Your food-business workspace is ready", detail: "28 days of synthetic sales and waste results loaded. No real orders are placed.", decision: "system", impact: 0 }] };
 }
 
 export function compute(s: Stored, d = today()): State {
+  const businessProfile = s.businessProfile ?? { name: "Sample Food Business", type: "other" as const };
   const tomorrow = shift(d, 1);
   const weekday = new Date(`${tomorrow}T00:00Z`).getUTCDay();
   const available = Object.fromEntries(s.ingredients.map(i => [i.id, safeStock(i, tomorrow)]));
@@ -164,5 +166,6 @@ export function compute(s: Stored, d = today()): State {
     return [{ id, type, targetId, title: `Previously approved ${type}: ${target.name}`, description: "Legacy decision: original recommendation wording, approval time and historical stock were not saved. Only the recorded action and amounts are known. A follow-up starts from an explicitly attached current snapshot.", original: decision.original, suggested: decision.quantity, unit: "unit" in target ? target.unit : "portions", savings: decision.savings, status: decision.decision, approvedQuantity: decision.quantity }];
   });
   const menu = s.menu.map(m => ({ ...m, description: m.description ?? "", archivedAt: m.archivedAt ?? null }));
-  return { today: d, tomorrow, cafeName: "Little Leaf Café", synthetic: true, ingredients: s.ingredients.map(i => ({ ...i, photoPath: i.photoPath ?? null })), sales: s.sales, results: s.results, menu, forecasts, risks, recommendations, activity: s.activity, followUps: s.followUps ?? [], approvedRecommendations, automation: s.automation ?? { dailyPlanning: true, followUpHandling: true, runs: [] }, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
+  const activity = s.activity.map(event => event.title === "Your café workspace is ready" ? { ...event, title: "Your food-business workspace is ready" } : event);
+  return { today: d, tomorrow, cafeName: businessProfile.name, businessProfile, synthetic: true, ingredients: s.ingredients.map(i => ({ ...i, photoPath: i.photoPath ?? null })), sales: s.sales, results: s.results, menu, forecasts, risks, recommendations, activity, followUps: s.followUps ?? [], approvedRecommendations, automation: s.automation ?? { dailyPlanning: true, followUpHandling: true, runs: [] }, summary: { predictedPortions: forecasts.reduce((n, f) => n + f.predicted, 0), riskValue: round(risks.filter(r => r.level !== "low").reduce((n, r) => n + r.value, 0)), pendingCount: recommendations.filter(r => r.status === "pending").length, estimatedSavings: round(Math.max(0, baselinePurchaseCost - plannedPurchaseCost)), baselineWasteCost: round(s.baseline.wasteCost), actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg: round(s.baseline.wasteKg), actualWasteKg } };
 }

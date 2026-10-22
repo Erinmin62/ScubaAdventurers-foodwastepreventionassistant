@@ -24,6 +24,7 @@ import type {
   AiForecastDemoResponse,
   AutomationRunInput,
   AutomationSettingsInput,
+  BusinessProfileInput,
   DecisionInput,
   EmailPreview,
   ExpiryCheckStatus,
@@ -2232,6 +2233,94 @@ export function useGetGuardState<TData = Awaited<ReturnType<typeof getGuardState
 
 
 
+
+export const getUpdateBusinessProfileUrl = () => {
+
+
+
+
+  return `/api/guard/business-profile`
+}
+
+/**
+ * @summary Update the authenticated owner's food-business name and type
+ */
+export const updateBusinessProfile = async (businessProfileInput: BusinessProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<GuardState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<GuardState>(getUpdateBusinessProfileUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(businessProfileInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateBusinessProfileMutationKey = () => ['updateBusinessProfile'] as const;
+
+export const getUpdateBusinessProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBusinessProfile>>, TError,UpdateBusinessProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBusinessProfile>>, TError,UpdateBusinessProfileMutationVariables, TContext> => {
+
+const mutationKey = getUpdateBusinessProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBusinessProfile>>, UpdateBusinessProfileMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateBusinessProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBusinessProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateBusinessProfile>>>
+    export type UpdateBusinessProfileMutationBody = BodyType<BusinessProfileInput>
+    export type UpdateBusinessProfileMutationError = ErrorType<void>
+    export type UpdateBusinessProfileMutationVariables = {data: BodyType<BusinessProfileInput>}
+
+    /**
+ * @summary Update the authenticated owner's food-business name and type
+ */
+export const useUpdateBusinessProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBusinessProfile>>, TError,UpdateBusinessProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBusinessProfile>>,
+        TError,
+        UpdateBusinessProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateBusinessProfileMutationOptions(options));
+    }
 
 export const getGetHistoricalRecordsUrl = () => {
 

@@ -13,7 +13,7 @@ export function createOwnerAuth(identity: (req: Request) => string | null = req 
   ) { next(); return; }
   res.setHeader("Cache-Control", "private, no-store");
   const userId = identity(req);
-  if (!userId) { res.status(401).json({ error: "Sign in to access your café workspace." }); return; }
+  if (!userId) { res.status(401).json({ error: "Sign in to access your private business workspace." }); return; }
   // Reject browser cross-origin writes even when a session cookie is present.
   const site = req.get("sec-fetch-site");
   const origin = req.get("origin");

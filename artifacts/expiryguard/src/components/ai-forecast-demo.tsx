@@ -2,7 +2,7 @@ import { useGenerateAiDemoForecast } from '@workspace/api-client-react';
 import type { AiForecastDemoResponse } from '@workspace/api-client-react';
 import { AlertTriangle, ArrowRight, Beaker, CalendarDays, Clock3, FlaskConical, RotateCw, Sparkles } from 'lucide-react';
 
-const requiredWarning = 'results are illustrative, the model is not trained on café-specific data and has not been evaluated against real outcomes; they must not be used for real purchasing or food-safety decisions.';
+const requiredWarning = 'results are illustrative, the model is not trained on real business-specific data and has not been evaluated against real outcomes; they must not be used for real purchasing or food-safety decisions.';
 
 function dateLabel(value: string) {
   const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);

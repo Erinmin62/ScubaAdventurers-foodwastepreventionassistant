@@ -680,3 +680,58 @@ test("HTTP: invalid receipts and destructive multi-batch imports are atomic fail
   assert.equal((await request("/guard/records", { kind: "inventory", rows: [{ ...ingredient, deliveryQuantity: 0 }] })).status, 200);
   assert.deepEqual(snapshotWorkspace().ingredients[0]!.batches, ingredient.batches);
 });
+
+test("HTTP auth: business profile saves per owner without changing operational records", async () => {
+  const app = express();
+  app.use(express.json());
+  app.use("/guard", createOwnerAuth(req => req.get("test-owner") ?? null));
+  app.use(guardRouter);
+  const secured = app.listen(0, "127.0.0.1");
+  await new Promise<void>(resolve => secured.once("listening", resolve));
+  const address = secured.address();
+  assert.ok(address && typeof address !== "string");
+  const url = `http://127.0.0.1:${address.port}`;
+  const ownerA = "business-profile-a";
+  const ownerB = "business-profile-b";
+  const call = async (path: string, owner?: string, body?: unknown, method = "GET") => {
+    const response = await fetch(url + path, {
+      method,
+      headers: { "Content-Type": "application/json", ...(owner ? { "test-owner": owner } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { status: response.status, data: await response.json() as State };
+  };
+
+  try {
+    const legacySample = seed();
+    legacySample.activity[0]!.title = "Your café workspace is ready";
+    resetWorkspace(legacySample, ownerWorkspaceId(ownerA));
+    resetWorkspace(seed(), ownerWorkspaceId(ownerB));
+    assert.equal((await call("/guard/business-profile", undefined, { name: "No access", type: "restaurant" }, "PATCH")).status, 401);
+
+    const initial = await call("/guard/state", ownerA);
+    assert.equal(initial.status, 200);
+    assert.ok(initial.data.activity.some(event => event.title === "Your food-business workspace is ready"));
+    assert.ok(snapshotWorkspace(ownerWorkspaceId(ownerA)).activity.some(event => event.title === "Your café workspace is ready"), "legacy sample history is not rewritten in storage");
+    const before = snapshotWorkspace(ownerWorkspaceId(ownerA));
+    const updated = await call("/guard/business-profile", ownerA, { name: "Riverfront Noodles", type: "food_vendor" }, "PATCH");
+    assert.equal(updated.status, 200);
+    assert.deepEqual(updated.data.businessProfile, { name: "Riverfront Noodles", type: "food_vendor" });
+    assert.equal(updated.data.cafeName, "Riverfront Noodles", "legacy clients receive the configured name");
+
+    const saved = snapshotWorkspace(ownerWorkspaceId(ownerA));
+    assert.deepEqual(saved.ingredients, before.ingredients);
+    assert.deepEqual(saved.menu, before.menu);
+    assert.deepEqual(saved.sales, before.sales);
+    assert.deepEqual(saved.results, before.results);
+    const ownerBState = await call("/guard/state", ownerB);
+    assert.equal(ownerBState.data.businessProfile.name, "Sample Food Business");
+    assert.equal(ownerBState.data.businessProfile.type, "other");
+
+    assert.equal((await call("/guard/business-profile", ownerA, { name: "   ", type: "restaurant" }, "PATCH")).status, 400);
+    assert.equal((await call("/guard/business-profile", ownerA, { name: "Invalid type", type: "caterer" }, "PATCH")).status, 400);
+    assert.deepEqual(snapshotWorkspace(ownerWorkspaceId(ownerA)).businessProfile, { name: "Riverfront Noodles", type: "food_vendor" });
+  } finally {
+    await new Promise<void>((resolve, reject) => secured.close(error => error ? reject(error) : resolve()));
+  }
+});

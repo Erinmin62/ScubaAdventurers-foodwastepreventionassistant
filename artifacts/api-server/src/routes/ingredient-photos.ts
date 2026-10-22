@@ -69,7 +69,7 @@ export function createIngredientPhotoRouter(dependencies = defaultDependencies):
 
     const workspace = await readWorkspace();
     if (!workspace?.ingredients.some(ingredient => ingredient.id === ingredientId)) {
-      res.status(404).json({ error: "Ingredient not found in your café workspace." });
+      res.status(404).json({ error: "Ingredient not found in your business workspace." });
       return;
     }
 
@@ -90,12 +90,12 @@ export function createIngredientPhotoRouter(dependencies = defaultDependencies):
     if (!parsed.success) { res.status(400).json({ error: "The uploaded photo reference is invalid." }); return; }
     const { ingredientId, objectKey } = parsed.data;
     if (!isIngredientPhotoObjectKeyForOwner(objectKey, ownerId, ingredientId)) {
-      res.status(404).json({ error: "Photo not found for this café account." });
+      res.status(404).json({ error: "Photo not found in this business workspace." });
       return;
     }
     const workspace = await readWorkspace();
     if (!workspace?.ingredients.some(ingredient => ingredient.id === ingredientId)) {
-      res.status(404).json({ error: "Ingredient not found in your café workspace." });
+      res.status(404).json({ error: "Ingredient not found in your business workspace." });
       return;
     }
 
@@ -133,7 +133,7 @@ export function createIngredientPhotoRouter(dependencies = defaultDependencies):
     const { ingredientId } = parsed.data;
     const workspace = await readWorkspace();
     if (!workspace?.ingredients.some(ingredient => ingredient.id === ingredientId)) {
-      res.status(404).json({ error: "Ingredient not found in your café workspace." });
+      res.status(404).json({ error: "Ingredient not found in your business workspace." });
       return;
     }
 
@@ -168,7 +168,7 @@ export function createIngredientPhotoRouter(dependencies = defaultDependencies):
     }
     const workspace = await readWorkspace();
     if (!workspace?.ingredients.some(ingredient => ingredient.photoPath === objectKey)) {
-      res.status(404).json({ error: "Photo not found for this café account." });
+      res.status(404).json({ error: "Photo not found in this business workspace." });
       return;
     }
     try {

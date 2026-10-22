@@ -43,7 +43,7 @@ export function ThresholdForm({ value }: { value: InboxThresholds }) {
         <Button size="sm" disabled={wBad || uBad || order || same || thresholds.isPending} onClick={save} data-testid="button-save-thresholds">{thresholds.isPending ? 'Saving...' : 'Save thresholds'}</Button>
         <Button size="sm" variant="ghost" disabled={thresholds.isPending || (!dirty && same)} onClick={() => { setDirty(false); setW(String(value.warningDays)); setU(String(value.upcomingDays)); }}>Reset</Button>
         <Button size="sm" variant="ghost" disabled={thresholds.isPending || (wn === 3 && un === 7)} onClick={() => { setW('3'); setU('7'); setDirty(true); }} data-testid="button-default-thresholds">Use defaults (3 / 7)</Button>
-        <span className="text-[11px] text-muted-foreground">Applies only to your private café workspace.</span>
+        <span className="text-[11px] text-muted-foreground">Applies only to your private business workspace.</span>
       </div>
     </div>
   );

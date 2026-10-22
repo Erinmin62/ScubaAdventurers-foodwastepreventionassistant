@@ -24,7 +24,7 @@ function AuthRoutes({ children }: { children: ReactNode }) {
     <main className="min-h-[100dvh] flex flex-col items-center justify-center gap-5 p-6 bg-background">
       <img src={guardianSrc} alt="Yuzu, the pantry guardian" className="w-28" />
       <h1 className="text-3xl font-bold">ExpiryGuardAI</h1>
-      <p className="text-center text-muted-foreground max-w-md">Your café records, decisions and alerts belong to you. Sign in to open your private workspace, starting with clearly labelled synthetic sample data.</p>
+      <p className="text-center text-muted-foreground max-w-md">Your business records, decisions and alerts belong to you. Sign in to open your private workspace, starting with clearly labelled synthetic sample data.</p>
       <Switch>
         <Route path="/sign-in/*?">
           <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
