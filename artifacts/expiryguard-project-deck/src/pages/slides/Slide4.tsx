@@ -10,7 +10,7 @@ export default function Slide4() {
           <article className="border-t-[0.5vw] border-primary pt-[2.5vh]">
             <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-primary">Daily planning</p>
             <p className="mt-[1.8vh] font-display text-[3.05vw] font-bold leading-none">Once a day</p>
-            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Refreshes the plan, scans reorders, and saves a review snapshot.</p>
+            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Runs a waste-aware reorder scan using demand, expiry, lead time, and safety stock.</p>
           </article>
           <article className="border-t-[0.5vw] border-accent pt-[2.5vh]">
             <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-accent">Expiry monitoring</p>
