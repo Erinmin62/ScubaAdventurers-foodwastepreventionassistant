@@ -43,18 +43,18 @@ export function Scene1() {
           className="mt-[3.2vmin] eyebrow text-[#706d7d]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 4.55, duration: 0.35 }}
+          transition={{ delay: 3.95, duration: 0.35 }}
         >
           ExpiryGuardAI · operational workspace
         </motion.div>
       </div>
 
       <motion.div
-        className="absolute right-[-7%] top-[7%] grid place-items-center rounded-full border-[1.15vmin] border-[#df5d39] bg-[#e7dbc0]"
+        className="absolute right-[5%] top-[11%] grid place-items-center rounded-full border-[1.15vmin] border-[#df5d39] bg-[#e7dbc0]"
         style={{ width: '82vmin', height: '82vmin', boxShadow: 'inset 0 0 0 1.2vmin rgba(255,255,255,.34), 0 2vmin 5vmin rgba(41,38,63,.13)' }}
-        initial={{ scale: 0.84, rotate: -9 }}
-        animate={{ scale: [0.84, 1.035, 1], rotate: [-9, 2, 0] }}
-        transition={{ duration: 0.72, times: [0, 0.55, 1], ease: [0.18, 0.92, 0.25, 1] }}
+        initial={{ scale: 0.84, rotate: 0 }}
+        animate={{ scale: [0.84, 0.84, 1.035, 1], rotate: [0, 0, 2, 0] }}
+        transition={{ duration: 0.8, times: [0, 0.45, 0.75, 1], ease: [0.18, 0.92, 0.25, 1] }}
         exit={{ scale: 3.25, opacity: 0, x: '-8vw', y: '4vh' }}
       >
         <motion.div className="absolute inset-[8%] rounded-full border border-dashed border-[#29263f]/35" animate={{ rotate: 360 }} transition={{ duration: 28, repeat: Infinity, ease: 'linear' }} />
@@ -62,15 +62,14 @@ export function Scene1() {
           <div className="eyebrow text-[#706d7d]">Best by</div>
           <div className="display mt-[1vmin] text-[9vmin] leading-none font-bold tracking-[-.06em]">08 JUN</div>
           <div className="mono mt-[1.5vmin] text-[1.6vmin] tracking-[.13em] text-[#706d7d]">PANTRY · LOT 014</div>
-          <motion.div
-            className="mt-[4vmin] inline-flex items-center gap-[1vmin] rounded-full bg-[#29263f] px-[2.3vmin] py-[1.25vmin] text-[#f6f1e5]"
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: [0.6, 1.08, 1], opacity: 1 }}
-            transition={{ delay: 2.15, duration: 0.48, ease: [0.15, 0.85, 0.25, 1] }}
-          >
-            <span className="eyebrow text-[#e1b34d]">Exposure · illustrative</span>
-            <span className="mono text-[2.3vmin] font-semibold">RM 186</span>
-          </motion.div>
+        <motion.div
+          className="mt-[4vmin] inline-flex items-center gap-[1vmin] rounded-full bg-[#29263f] px-[2.3vmin] py-[1.25vmin] text-[#f6f1e5]"
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: [0.6, 1.08, 1], opacity: 1 }}
+          transition={{ delay: 2.15, duration: 0.48, ease: [0.15, 0.85, 0.25, 1] }}
+        >
+          <span className="eyebrow text-[#e1b34d]">Expiry risk · review stock</span>
+        </motion.div>
         </div>
         <motion.div
           className="absolute right-[3%] top-[19%] h-[2.6vmin] w-[2.6vmin] rounded-full bg-[#c48c32] ring-[.8vmin] ring-[#f6f1e5]"

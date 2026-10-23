@@ -15,12 +15,12 @@ import { Scene6 } from './scenes/Scene6';
 import { Scene7 } from './scenes/Scene7';
 
 export const SCENE_DURATIONS = {
-  scene1: 6000,
-  scene2: 6000,
-  scene3: 8000,
+  scene1: 5000,
+  scene2: 5000,
+  scene3: 6000,
   scene4: 7000,
-  scene5: 6000,
-  scene6: 4000,
+  scene5: 7000,
+  scene6: 7000,
   scene7: 5000,
 };
 

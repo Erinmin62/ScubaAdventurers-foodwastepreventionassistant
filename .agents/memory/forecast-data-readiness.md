@@ -1,15 +1,15 @@
 ---
 name: Forecast data readiness
-description: Scope and claims for AI forecasting while owner imports remain in a separate historical archive.
+description: Data boundaries and validation claims for live, synthetic, and consented owner-history forecasts.
 ---
 
-The existing café forecast still uses synthetic sample history only. Owner-imported sales, preparation, leftover, and stock records are stored separately and are not current planning or AI inputs.
+The live operational forecast is a rules-based calculation from recent workspace sales and usable recipe stock. The experimental synthetic AI demo uses generated sample history. A separate experimental owner-history AI flow can use archived sales and preparation records only after the owner reviews the date/count preview and gives one-request consent; stock history and current workspace data are excluded. A local held-out check can compare workspace sales and leftover portions with baselines after explicit local approval, without sending records to AI.
 
-**Rule:** Keep AI-generated forecasts visibly experimental and isolated from an owner's live workspace. Never describe them as trained on café-specific data or validated against real outcomes, and never let them change stock, approvals, or orders. Historical archive records must not enter an AI request unless a future forecast action explicitly opts in and clearly scopes the records used.
+**Rule:** Keep live planning, the synthetic AI demo, and the consented owner-history AI forecast clearly distinct. AI results are advisory and unvalidated; they must not change stock, approvals, plans, or orders. A local historical check is not an AI forecast and does not validate purchasing or food-safety decisions.
 
-**Why:** Importing data for safekeeping is not consent to use it for AI, and unvalidated café records cannot establish forecast accuracy or trustworthy purchasing advice.
+**Why:** Importing records for safekeeping is not AI consent. Even explicitly shared owner history does not establish forecast accuracy or trustworthy purchasing advice; held-out local scores cover only the data and measures shown.
 
-**How to apply:** Keep the current synthetic demo unchanged. Any later café-specific forecast must have a distinct owner action, disclose which archived records are sent, and be evaluated on held-out actual outcomes against the existing baseline before operational use.
+**How to apply:** Preserve the separate synthetic demo. For owner-history AI, require a reviewed scope and explicit one-request consent, send only eligible archived sales/preparation fields, and label output advisory. Keep any accuracy or waste claims tied to local held-out evaluation and real pilot evidence; never present leftover portions as measured discarded weight or cost.
 
 For live and backtested sales forecasts, first sum entries by menu item and calendar date, then average distinct daily totals. Base confidence on the number of distinct days, never the number of imported rows.
 
