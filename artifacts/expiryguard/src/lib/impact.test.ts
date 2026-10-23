@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { impactNumbers } from './impact';
+import { impactNumbers, wasteHistoryComparison } from './impact.ts';
 
 const fixture = (): Parameters<typeof impactNumbers>[0] => ({
   summary: { estimatedSavings: 29.6, baselineWasteCost: 1001.3, actualWasteCost: 254, baselineWasteKg: 29.06, actualWasteKg: 7.5 },
@@ -45,4 +45,53 @@ test('zero results and no pending purchases remain zero, with no invented impact
   assert.equal(n.approvedProjection, 0);
   assert.equal(n.wasteDelta, 0);
   assert.equal(n.kgDelta, 0);
+});
+
+test('owner waste comparison sums adjacent seven-day windows without filling missing dates with zero', () => {
+  const result = wasteHistoryComparison([
+    { date: '2026-01-02', leftover: 3, menuCost: 4 },
+    { date: '2026-01-07', leftover: 2, menuCost: 5 },
+    { date: '2026-01-08', leftover: 1, menuCost: 4 },
+    { date: '2026-01-14', leftover: 2, menuCost: 6 },
+    { date: '2026-01-15', leftover: 100, menuCost: 1 },
+  ], '2026-01-14');
+  assert.deepEqual(result, {
+    earlier: {
+      from: '2026-01-01', through: '2026-01-07', rows: 2, recordedDays: 2,
+      leftoverPortions: 5, leftoverCost: 22, costRows: 2,
+    },
+    recent: {
+      from: '2026-01-08', through: '2026-01-14', rows: 2, recordedDays: 2,
+      leftoverPortions: 3, leftoverCost: 16, costRows: 2,
+    },
+    portionDelta: 2,
+    costDelta: 6,
+  });
+});
+
+test('owner waste comparison does not invent zero outcomes when either window has no records', () => {
+  const empty = wasteHistoryComparison([], '2026-01-14');
+  assert.equal(empty.earlier.leftoverCost, null);
+  assert.equal(empty.recent.leftoverCost, null);
+  assert.equal(empty.portionDelta, null);
+  assert.equal(empty.costDelta, null);
+
+  const oneWindow = wasteHistoryComparison([
+    { date: '2026-01-14', leftover: 0, menuCost: 6 },
+  ], '2026-01-14');
+  assert.equal(oneWindow.recent.rows, 1);
+  assert.equal(oneWindow.recent.leftoverPortions, 0, 'explicitly recorded zero remains a valid observation');
+  assert.equal(oneWindow.portionDelta, null, 'the missing earlier window is unknown, not zero');
+});
+
+test('leftover quantity remains comparable when saved per-portion cost is incomplete', () => {
+  const result = wasteHistoryComparison([
+    { date: '2026-01-01', leftover: 4, menuCost: 5 },
+    { date: '2026-01-14', leftover: 2 },
+  ], '2026-01-14');
+  assert.equal(result.portionDelta, 2);
+  assert.equal(result.earlier.leftoverCost, 20);
+  assert.equal(result.recent.leftoverCost, null);
+  assert.equal(result.recent.costRows, 0);
+  assert.equal(result.costDelta, null);
 });

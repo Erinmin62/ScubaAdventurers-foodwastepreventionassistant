@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import type { GuardState } from '@workspace/api-client-react';
 import { cn } from '@/lib/utils';
 import { fmt, rm } from '@/lib/guard';
-import { impactNumbers } from '@/lib/impact';
+import { impactNumbers, wasteHistoryComparison } from '@/lib/impact';
 export { impactNumbers } from '@/lib/impact';
 
 export function EstTag({ children = 'Estimate · not yet realised', className }: { children?: string; className?: string }) {
@@ -20,6 +20,24 @@ export function ImpactBoard({ data, showLink }: { data: GuardState; showLink?: b
   const n = impactNumbers(data);
   const tone = n.wasteDelta > 0.005 ? 'text-jade' : n.wasteDelta < -0.005 ? 'text-destructive' : 'text-foreground';
   const deltaNote = n.wasteDelta > 0.005 ? 'less recorded waste than baseline' : n.wasteDelta < -0.005 ? 'more recorded waste than baseline' : 'no change from baseline';
+  const ownerWaste = data.synthetic ? null : wasteHistoryComparison(data.results, data.today);
+  const ownerDelta = ownerWaste?.costDelta ?? ownerWaste?.portionDelta;
+  const ownerDeltaLabel = ownerWaste?.costDelta !== null && ownerWaste?.costDelta !== undefined
+    ? `${ownerDelta! > 0 ? '−' : ownerDelta! < 0 ? '+' : ''}${rm(Math.abs(ownerDelta!))}`
+    : ownerDelta !== null && ownerDelta !== undefined
+      ? `${ownerDelta > 0 ? '−' : ownerDelta < 0 ? '+' : ''}${fmt(Math.abs(ownerDelta))} portions`
+      : '—';
+  const ownerDeltaNote = ownerWaste?.costDelta !== null && ownerWaste?.costDelta !== undefined
+    ? ownerDelta! > 0 ? 'lower recent estimated leftover value; not realised savings' : ownerDelta! < 0 ? 'higher recent estimated leftover value; not realised savings' : 'no change in estimated leftover value'
+    : ownerWaste?.portionDelta !== null && ownerWaste?.portionDelta !== undefined
+      ? ownerDelta! > 0 ? 'fewer recorded leftover portions recently' : ownerDelta! < 0 ? 'more recorded leftover portions recently' : 'no change in recorded leftover portions'
+      : 'records are needed in both seven-day windows';
+  const ownerTone = ownerDelta === null || ownerDelta === undefined
+    ? 'text-foreground'
+    : ownerDelta > 0 ? 'text-jade' : ownerDelta < 0 ? 'text-destructive' : 'text-foreground';
+  const ownerCoverage = ownerWaste
+    ? `Earlier ${ownerWaste.earlier.recordedDays}/7 days · recent ${ownerWaste.recent.recordedDays}/7 days`
+    : '';
   return (
     <section className="rise rounded-3xl border bg-card p-5 md:p-6 shadow-sm" data-testid="panel-money-impact">
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
@@ -42,13 +60,23 @@ export function ImpactBoard({ data, showLink }: { data: GuardState; showLink?: b
           <div className="text-sm mt-1 opacity-80">Projected purchasing change from approved decisions</div>
           <EstTag className="mt-2 text-primary" children="Projected estimate · not cash saved" />
         </div>
-        <div className="rounded-2xl bg-muted/50 border p-4 md:col-span-2 xl:col-span-1">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recorded waste, last 7 days</div>
-          <div className={cn('num text-4xl xl:text-[2.5rem] 2xl:text-5xl font-extrabold mt-1 break-words', tone)} data-testid="text-impact-waste-change">{deltaText(n.wasteDelta, true)}</div>
-          <div className="text-sm mt-1">{deltaNote} <span className="num">({deltaText(n.kgDelta, false)})</span></div>
-          <div className="num text-xs text-muted-foreground mt-1">Baseline {rm(n.baselineCost)} · {fmt(n.baselineKg)} kg → Recent {rm(n.recentCost)} · {fmt(n.recentKg)} kg</div>
-          <EstTag className="mt-2 text-muted-foreground" children="Synthetic comparison · not proven savings" />
-        </div>
+        {data.synthetic ? (
+          <div className="rounded-2xl bg-muted/50 border p-4 md:col-span-2 xl:col-span-1">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sample waste, baseline vs recent</div>
+            <div className={cn('num text-4xl xl:text-[2.5rem] 2xl:text-5xl font-extrabold mt-1 break-words', tone)} data-testid="text-impact-waste-change">{deltaText(n.wasteDelta, true)}</div>
+            <div className="text-sm mt-1">{deltaNote} <span className="num">({deltaText(n.kgDelta, false)})</span></div>
+            <div className="num text-xs text-muted-foreground mt-1">Sample values: {rm(n.baselineCost)} · {fmt(n.baselineKg)} kg → {rm(n.recentCost)} · {fmt(n.recentKg)} kg</div>
+            <EstTag className="mt-2 text-muted-foreground" children="Synthetic comparison · not proven savings" />
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-muted/50 border p-4 md:col-span-2 xl:col-span-1">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Owner-recorded leftovers · recent vs earlier</div>
+            <div className={cn('num text-4xl xl:text-[2.5rem] 2xl:text-5xl font-extrabold mt-1 break-words', ownerTone)} data-testid="text-impact-waste-change">{ownerDeltaLabel}</div>
+            <div className="text-sm mt-1">{ownerDeltaNote}</div>
+            <div className="text-xs text-muted-foreground mt-1">{ownerCoverage}; comparisons use recorded entries only.</div>
+            <EstTag className="mt-2 text-muted-foreground" children="Observed comparison · not causal proof" />
+          </div>
+        )}
       </div>
       <p className="text-xs text-muted-foreground mt-3">These three figures are separate and are not added together. Purchasing figures are estimates from suggestions; nothing is ordered automatically.</p>
     </section>

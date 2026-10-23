@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { addDays, errorMessage, fmt, isDate, isNum, niceDate, rm, useGuard, useGuardMutations } from '@/lib/guard';
+import { wasteHistoryComparison } from '@/lib/impact';
 
 type Row = { prepared: string; sold: string; leftover: string };
 
@@ -47,12 +48,33 @@ export default function Impact() {
   const rowErr = filled.map(([id, v]) => spec.validate({ date: entryDate, menuId: id, ...v })).find(Boolean);
   const cost = (id: string) => data.menu.find((m) => m.id === id)?.cost ?? 0;
   const recent = [...data.results].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
-  const cmp = [
-    { k: 'Waste cost (RM)', Baseline: s.baselineWasteCost, Recent: s.actualWasteCost },
-    { k: 'Waste (kg)', Baseline: s.baselineWasteKg, Recent: s.actualWasteKg },
-    { k: 'Purchasing (RM)', Baseline: s.baselinePurchaseCost, Recent: s.plannedPurchaseCost },
-  ];
-  const delta = s.baselineWasteCost - s.actualWasteCost;
+  const ownerWaste = data.synthetic ? null : wasteHistoryComparison(data.results, data.today);
+  const ownerCanCompare = ownerWaste !== null && ownerWaste.portionDelta !== null;
+  const cmp = data.synthetic
+    ? [
+        { k: 'Sample waste cost (RM)', Earlier: s.baselineWasteCost, Recent: s.actualWasteCost },
+        { k: 'Sample waste (kg)', Earlier: s.baselineWasteKg, Recent: s.actualWasteKg },
+      ]
+    : ownerCanCompare && ownerWaste
+      ? [
+          { k: 'Recorded leftover portions', Earlier: ownerWaste.earlier.leftoverPortions, Recent: ownerWaste.recent.leftoverPortions },
+          ...(ownerWaste.earlier.leftoverCost !== null && ownerWaste.recent.leftoverCost !== null
+            ? [{ k: 'Estimated leftover value (RM)', Earlier: ownerWaste.earlier.leftoverCost, Recent: ownerWaste.recent.leftoverCost }]
+            : []),
+        ]
+      : [];
+  const ownerCostDelta = ownerWaste?.costDelta ?? null;
+  const ownerPortionDelta = ownerWaste?.portionDelta ?? null;
+  const ownerChange = ownerCostDelta !== null
+    ? `${ownerCostDelta > 0 ? '−' : ownerCostDelta < 0 ? '+' : ''}${rm(Math.abs(ownerCostDelta))}`
+    : ownerPortionDelta !== null
+      ? `${ownerPortionDelta > 0 ? '−' : ownerPortionDelta < 0 ? '+' : ''}${fmt(Math.abs(ownerPortionDelta), 0)} portions`
+      : '—';
+  const ownerChangeNote = ownerCostDelta !== null
+    ? ownerCostDelta > 0 ? 'lower recent leftover value estimate; not realised savings' : ownerCostDelta < 0 ? 'higher recent leftover value estimate; not realised savings' : 'no change in estimated leftover value'
+    : ownerPortionDelta !== null
+      ? ownerPortionDelta > 0 ? 'fewer recent leftover portions; saved costs are incomplete' : ownerPortionDelta < 0 ? 'more recent leftover portions; saved costs are incomplete' : 'no change in leftovers; saved costs are incomplete'
+      : 'records are needed in both seven-day windows';
 
   const submit = () => {
     add.mutate({ data: { kind: 'results', rows: filled.map(([menuId, v]) => spec.transform({ date: entryDate, menuId, ...v })) } }, {
@@ -69,26 +91,45 @@ export default function Impact() {
   return (
     <div className="space-y-5">
       <PageHeader kicker="Impact" title="What waste prevention is worth">
-        Synthetic baseline: seven days. Recent waste: the last seven calendar days including today; unrecorded results are not counted. This demo comparison does not prove savings. Projected purchasing savings reflect approved changes, not supplier orders.
+        {data.synthetic
+          ? <>Sample history only: the demo compares synthetic seven-day windows and does not prove business impact. Projected purchasing savings are estimates from approved plan changes, not supplier orders.</>
+          : <>Pilot view: compares owner-recorded leftovers in two adjacent seven-calendar-day windows. Missing service dates are unknown, not zero. Leftover value uses the saved per-portion cost and is not verified disposal cost or realised savings.</>}
       </PageHeader>
       <ImpactBoard data={data} />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Recorded waste, baseline" value={rm(s.baselineWasteCost)} note={`${fmt(s.baselineWasteKg)} kg`} tone="amber" />
-        <Stat label="Recorded waste, recent" value={rm(s.actualWasteCost)} note={`${fmt(s.actualWasteKg)} kg`} tone="primary" />
-        <Stat label="Recorded change" value={`${Math.abs(delta) < 0.005 ? '' : delta > 0 ? '-' : '+'}${rm(Math.abs(delta))}`} note={Math.abs(delta) < 0.005 ? 'no change' : delta > 0 ? 'less waste than baseline' : 'more waste than baseline'} tone="jade" />
-        <Stat label="Projected savings" value={rm(s.estimatedSavings)} note="estimate, not yet realised" tone="ink" />
-      </div>
+      {data.synthetic ? (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          <Stat label="Sample waste, earlier window" value={rm(s.baselineWasteCost)} note={`${fmt(s.baselineWasteKg)} kg · synthetic`} tone="amber" />
+          <Stat label="Sample waste, recent window" value={rm(s.actualWasteCost)} note={`${fmt(s.actualWasteKg)} kg · synthetic`} tone="primary" />
+          <Stat label="Projected purchasing change" value={rm(s.estimatedSavings)} note="estimate, not yet realised or ordered" tone="ink" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Stat label="Earlier recorded leftovers" value={ownerWaste?.earlier.rows ? `${fmt(ownerWaste.earlier.leftoverPortions, 0)} portions` : '—'} note={`${ownerWaste?.earlier.recordedDays ?? 0}/7 days · ${ownerWaste?.earlier.rows ?? 0} rows · value ${ownerWaste?.earlier.leftoverCost === null || ownerWaste?.earlier.leftoverCost === undefined ? 'incomplete' : rm(ownerWaste.earlier.leftoverCost)}`} tone="amber" />
+          <Stat label="Recent recorded leftovers" value={ownerWaste?.recent.rows ? `${fmt(ownerWaste.recent.leftoverPortions, 0)} portions` : '—'} note={`${ownerWaste?.recent.recordedDays ?? 0}/7 days · ${ownerWaste?.recent.rows ?? 0} rows · value ${ownerWaste?.recent.leftoverCost === null || ownerWaste?.recent.leftoverCost === undefined ? 'incomplete' : rm(ownerWaste.recent.leftoverCost)}`} tone="primary" />
+          <Stat label="Observed window change" value={ownerChange} note={ownerChangeNote} tone={ownerCanCompare ? (ownerCostDelta ?? ownerPortionDelta ?? 0) > 0 ? 'jade' : (ownerCostDelta ?? ownerPortionDelta ?? 0) < 0 ? 'amber' : 'ink' : 'ink'} />
+          <Stat label="Projected purchasing change" value={rm(s.estimatedSavings)} note="estimate, not yet realised or ordered" tone="ink" />
+        </div>
+      )}
       <div className="grid lg:grid-cols-[1.2fr_1fr] gap-5">
-        <Panel title="Baseline vs recent window" sub="Synthetic estimates, same-length windows">
+        <Panel
+          title={data.synthetic ? 'Sample windows · synthetic only' : 'Recorded leftovers over time'}
+          sub={data.synthetic
+            ? 'Synthetic sample totals; these are not pilot results.'
+            : `Earlier ${niceDate(ownerWaste?.earlier.from ?? addDays(data.today, -13))}–${niceDate(ownerWaste?.earlier.through ?? addDays(data.today, -7))} vs recent ${niceDate(ownerWaste?.recent.from ?? addDays(data.today, -6))}–${niceDate(ownerWaste?.recent.through ?? data.today)}. Recorded days only; coverage may differ.`}
+        >
           <div className="h-64"><ResponsiveContainer><BarChart data={cmp}>
             <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
             <XAxis dataKey="k" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
             <Tooltip contentStyle={{ borderRadius: 12, background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="Baseline" fill="hsl(var(--chart-3))" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="Earlier" fill="hsl(var(--chart-3))" radius={[6, 6, 0, 0]} />
             <Bar dataKey="Recent" fill="hsl(var(--chart-2))" radius={[6, 6, 0, 0]} />
           </BarChart></ResponsiveContainer></div>
+          {!data.synthetic && cmp.length === 0 && <p className="text-sm text-muted-foreground">No recorded entries in these windows to compare.</p>}
+          {!data.synthetic && ownerWaste && (ownerWaste.earlier.leftoverCost === null || ownerWaste.recent.leftoverCost === null) && (
+            <p className="text-xs text-muted-foreground">Cost is omitted from the chart because at least one record is missing a saved menu-cost snapshot. Portion totals remain available.</p>
+          )}
         </Panel>
         <Panel title="Record actual results" sub="Leftover fills in automatically: prepared = sold + leftover">
           <div className="mb-3 max-w-xs"><Label>Service date</Label><Input type="date" max={data.today.slice(0, 10)} value={entryDate} onChange={(e) => setDate(e.target.value)} data-testid="input-results-date" /></div>
