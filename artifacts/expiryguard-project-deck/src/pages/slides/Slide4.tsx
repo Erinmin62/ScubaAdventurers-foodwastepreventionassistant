@@ -10,7 +10,7 @@ export default function Slide4() {
           <article className="border-t-[0.5vw] border-primary pt-[2.5vh]">
             <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-primary">Daily planning</p>
             <p className="mt-[1.8vh] font-display text-[3.05vw] font-bold leading-none">Once a day</p>
-            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Runs a waste-aware reorder scan using demand, expiry, lead time, and safety stock.</p>
+            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Waste-aware scan uses demand, expiry, lead time, safety stock, and shelf-life assumptions.</p>
           </article>
           <article className="border-t-[0.5vw] border-accent pt-[2.5vh]">
             <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-accent">Expiry monitoring</p>
@@ -19,8 +19,8 @@ export default function Slide4() {
           </article>
           <article className="border-t-[0.5vw] border-primary pt-[2.5vh]">
             <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-primary">Follow-up handling</p>
-            <p className="mt-[1.8vh] font-display text-[3.05vw] font-bold leading-none">When due</p>
-            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Schedules a 1–2 day check after approval; uses owner observations.</p>
+            <p className="mt-[1.8vh] font-display text-[3.05vw] font-bold leading-none">1–2 days</p>
+            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">After approval; follow-up uses owner-recorded observations.</p>
           </article>
         </div>
         <div className="mt-[7vh] flex items-center justify-between bg-pale px-[3vw] py-[2.7vh]">

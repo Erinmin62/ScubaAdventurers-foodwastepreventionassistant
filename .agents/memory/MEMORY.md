@@ -10,5 +10,5 @@
 - [Email webhook verification](email-webhook-verification.md) — Svix verification return contracts vary; exercise the installed verifier with signed raw-byte tests.
 - [Legacy archive recovery](legacy-archive-recovery.md) — old imports have timestamps but no original file names; preserve that uncertainty when offering batch recovery.
 - [API test bundle isolation](api-test-bundle-isolation.md) — keep ESM-glob and CommonJS HTTP test outputs isolated to prevent stale bundles from rerunning.
-- [Food SME product scope](food-sme-product-scope.md) — keep the demo reusable across cafes, restaurants, food vendors, and cloud kitchens; don't make it cafe-only.
+- [Food SME product scope](food-sme-product-scope.md) — keep the demo reusable and align its pitch to the judging rubric without implying live Orbyte integration or proven impact.
 - [Orphaned workflow children](workflow-orphan-processes.md) — when artifact restarts report EADDRINUSE, verify the old child listener before another restart.

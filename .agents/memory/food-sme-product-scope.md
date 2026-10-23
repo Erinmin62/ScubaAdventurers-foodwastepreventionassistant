@@ -14,3 +14,9 @@ Business type is profile information only for now; selecting a cafe, restaurant,
 **Why:** The current data is synthetic, and different operating rules have not been validated for each business type.
 
 **How to apply:** Keep shared demo behavior explicit until business-specific workflows are supported by real requirements and tested data.
+
+The preliminary pitch and demo must address six criteria: one clear food-SME problem; a core automated input-to-outcome journey; accuracy/consistency and learnability; owner access, approval, and an activity record; potential Orbyte connected-hub fit and SME reuse; and expected business benefit with SDG alignment.
+
+**Why:** The user supplied these as required judging criteria for the ExpiryGuardAI presentation.
+
+**How to apply:** Map the deck and speaking script to each criterion. Distinguish potential Orbyte fit from a live integration, and label operational impact, forecast accuracy, savings, and learning-time results as unproven until measured.
