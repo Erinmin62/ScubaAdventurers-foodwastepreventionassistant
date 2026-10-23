@@ -1,17 +1,24 @@
 export default function Slide6() {
   return (
     <div className="w-screen h-screen overflow-hidden relative bg-bg text-text">
-      <section className="px-[6vw] pt-[7vh]">
-        <h1 className="max-w-[88vw] font-display text-[3.9vw] font-bold leading-[1] tracking-[-0.045em]">Automate routine checks; keep decisions with the owner</h1>
-        <div className="mt-[7vh] grid grid-cols-[1.18fr_0.82fr] gap-[3vw]">
-          <div className="space-y-[4.1vh] pt-[1vh]">
-            <div className="flex items-start gap-[1.3vw]"><span className="mt-[1vh] h-[0.8vw] w-[0.8vw] shrink-0 rounded-full bg-primary" aria-hidden="true" /><p className="text-[2.05vw] leading-[1.2]">Daily planning saves a review snapshot and creates draft recommendations</p></div>
-            <div className="flex items-start gap-[1.3vw]"><span className="mt-[1vh] h-[0.8vw] w-[0.8vw] shrink-0 rounded-full bg-accent" aria-hidden="true" /><p className="text-[2.05vw] leading-[1.2]">Expiry checks flag stock that needs attention</p></div>
-            <div className="flex items-start gap-[1.3vw]"><span className="mt-[1vh] h-[0.8vw] w-[0.8vw] shrink-0 rounded-full bg-primary" aria-hidden="true" /><p className="text-[2.05vw] leading-[1.2]">Follow-up checks can track what happened after an approved change</p></div>
-          </div>
-          <div className="flex min-h-[49vh] items-center bg-accent px-[3vw] py-[4vh] text-bg">
-            <p className="font-display text-[2.7vw] font-semibold leading-[1.13] tracking-[-0.02em]">Owners can approve, edit or reject recommendations; the system does not place orders automatically</p>
-          </div>
+      <section className="px-[6vw] pt-[8vh]">
+        <p className="mb-[2vh] text-[1.6vw] font-bold uppercase tracking-[0.12em] text-accent">AI, with a clear boundary</p>
+        <h1 className="max-w-[85vw] font-display text-[4.2vw] font-bold leading-[1.02]">Live demand is rules-based; AI forecasting is experimental.</h1>
+        <div className="mt-[7vh] grid grid-cols-2 gap-[2vw]">
+          <article className="bg-primary px-[3vw] py-[3.2vh] text-bg">
+            <p className="text-[1.55vw] font-bold uppercase tracking-[0.12em] text-pale">Operational planning · live</p>
+            <p className="mt-[2vh] font-display text-[2.6vw] font-bold leading-[1.08]">Workspace sales, last 7 days</p>
+            <p className="mt-[2.7vh] max-w-[37vw] text-[2vw] leading-[1.22]">Rules-based: weekday adjustment; prep capped by usable recipe stock.</p>
+          </article>
+          <article className="bg-pale px-[3vw] py-[3.2vh]">
+            <p className="text-[1.55vw] font-bold uppercase tracking-[0.12em] text-accent">AI scenario · synthetic demo</p>
+            <p className="mt-[2vh] font-display text-[2.6vw] font-bold leading-[1.08]">28 sample days → 7-day scenario</p>
+            <p className="mt-[2.7vh] max-w-[37vw] text-[2vw] leading-[1.22]">Forecast demo only: synthetic history, no owner records, and not yet validated.</p>
+          </article>
+        </div>
+        <div className="mt-[4vh] flex items-center justify-between border-t border-ink/15 pt-[2.5vh]">
+          <p className="text-[2vw] font-semibold">The AI demo does not change live stock, plans, or purchases.</p>
+          <p className="text-[2vw] font-bold text-primary">Next: consented data → held-out evaluation</p>
         </div>
       </section>
     </div>

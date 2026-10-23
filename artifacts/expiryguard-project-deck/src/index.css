@@ -13,14 +13,14 @@
 }
 
 :root {
-  --slide-primary: hsl(14 82% 54%);
-  --slide-accent: #2d7057;
-  --slide-bg: hsl(38 45% 95%);
-  --slide-text: hsl(248 32% 20%);
-  --slide-muted: hsl(248 10% 44%);
-  --slide-surface: hsl(40 60% 98%);
+  --slide-primary: #2d7057;
+  --slide-accent: #e85d37;
+  --slide-bg: #f8f7f2;
+  --slide-text: #282731;
+  --slide-muted: #62616a;
+  --slide-surface: #fffefa;
   --slide-pale: #e4f4cb;
-  --font-display-family: 'Bricolage Grotesque', sans-serif;
+  --font-display-family: 'Space Grotesk', sans-serif;
   --font-body-family: 'Figtree', sans-serif;
   color-scheme: light;
 }

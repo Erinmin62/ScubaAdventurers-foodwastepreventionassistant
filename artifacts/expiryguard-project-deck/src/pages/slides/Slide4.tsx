@@ -2,17 +2,31 @@ const base = import.meta.env.BASE_URL;
 
 export default function Slide4() {
   return (
-    <div className="w-screen h-screen overflow-hidden relative bg-pale text-text">
-      <div className="absolute inset-y-0 left-0 w-[48vw]">
-        <img src={base + "business-types.jpg"} crossOrigin="anonymous" alt="A collage of a cafe, restaurant, food stall and cloud kitchen" className="h-full w-full object-cover object-center" />
-      </div>
-      <section className="relative ml-[48vw] flex h-full w-[52vw] flex-col px-[4vw] py-[7vh]">
-        <h1 className="max-w-[44vw] font-display text-[3.9vw] font-bold leading-[1] tracking-[-0.045em]">Designed for more than cafes</h1>
-        <div className="mt-[5vh] max-w-[44vw] space-y-[3.3vh]">
-          <div className="flex items-start gap-[1vw]"><span className="mt-[1vh] h-[0.75vw] w-[0.75vw] shrink-0 rounded-full bg-primary" aria-hidden="true" /><p className="text-[2vw] leading-[1.18]">Configure the business name and type</p></div>
-          <div className="flex items-start gap-[1vw]"><span className="mt-[1vh] h-[0.75vw] w-[0.75vw] shrink-0 rounded-full bg-accent" aria-hidden="true" /><p className="text-[2vw] leading-[1.18]">Keep each owner's menu, pantry and records in a private workspace</p></div>
-          <div className="flex items-start gap-[1vw]"><span className="mt-[1vh] h-[0.75vw] w-[0.75vw] shrink-0 rounded-full bg-primary" aria-hidden="true" /><p className="text-[2vw] leading-[1.18]">Start with labeled sample data or an empty workspace for your own records</p></div>
-          <div className="flex items-start gap-[1vw]"><span className="mt-[1vh] h-[0.75vw] w-[0.75vw] shrink-0 rounded-full bg-accent" aria-hidden="true" /><p className="text-[2vw] leading-[1.18]">Reuse the same planning and food-safety rules across food-business types</p></div>
+    <div className="w-screen h-screen overflow-hidden relative bg-bg text-text">
+      <section className="relative z-10 px-[6vw] pt-[7vh]">
+        <p className="mb-[2vh] text-[1.6vw] font-bold uppercase tracking-[0.12em] text-accent">Automation</p>
+        <h1 className="max-w-[83vw] font-display text-[4.2vw] font-bold leading-[1.02]">Routine checks run. Owners decide.</h1>
+        <div className="mt-[7vh] grid grid-cols-3 gap-[2vw]">
+          <article className="border-t-[0.5vw] border-primary pt-[2.5vh]">
+            <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-primary">Daily planning</p>
+            <p className="mt-[1.8vh] font-display text-[3.05vw] font-bold leading-none">Once a day</p>
+            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Refreshes the plan, scans reorders, and saves a review snapshot.</p>
+          </article>
+          <article className="border-t-[0.5vw] border-accent pt-[2.5vh]">
+            <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-accent">Expiry monitoring</p>
+            <p className="mt-[1.8vh] font-display text-[3.05vw] font-bold leading-none">Hourly</p>
+            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Flags stock at risk—even when planning is paused.</p>
+          </article>
+          <article className="border-t-[0.5vw] border-primary pt-[2.5vh]">
+            <p className="text-[1.55vw] font-bold uppercase tracking-[0.1em] text-primary">Follow-up handling</p>
+            <p className="mt-[1.8vh] font-display text-[3.05vw] font-bold leading-none">When due</p>
+            <p className="mt-[2.5vh] max-w-[25vw] text-[2vw] leading-[1.2]">Schedules a 1–2 day check after approval; uses owner observations.</p>
+          </article>
+        </div>
+        <div className="mt-[7vh] flex items-center justify-between bg-pale px-[3vw] py-[2.7vh]">
+          <p className="text-[1.7vw] font-bold uppercase tracking-[0.1em]">Owner approval gate</p>
+          <p className="text-[2vw] font-semibold">Review → Edit / Approve / Reject</p>
+          <p className="text-[1.75vw] font-semibold text-accent">No orders placed automatically</p>
         </div>
       </section>
     </div>
