@@ -13,7 +13,7 @@ export default function Slide1() {
           <path d="M11 29C10 15 22 10 37 10c0 16-8 26-22 24l14-16" fill="#E4F4CB" />
         </svg>
         <div className="max-w-[46vw]">
-          <p className="mb-[2.5vh] text-[1.6vw] font-bold uppercase tracking-[0.12em] text-primary">Five-minute investor pitch</p>
+          <p className="mb-[2.5vh] text-[1.6vw] font-bold uppercase tracking-[0.12em] text-primary">Food waste prevention ai</p>
           <h1 className="max-w-[45vw] font-display text-[6.1vw] font-bold leading-[0.96] text-text">ExpiryGuardAI</h1>
           <p className="mt-[3vh] max-w-[43vw] text-[2.45vw] font-semibold leading-[1.12] text-text">Less waste. Smarter prep. Owner-approved action.</p>
           <p className="mt-[2.4vh] max-w-[42vw] text-[2vw] leading-[1.3] text-muted">Food-waste planning for cafes, restaurants, food vendors, and cloud kitchens.</p>
