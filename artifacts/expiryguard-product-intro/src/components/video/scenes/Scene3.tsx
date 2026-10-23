@@ -1,60 +1,120 @@
 import { motion } from 'framer-motion';
 
 const rows = [
-  { name: 'Fresh milk', category: 'DAIRY · BATCH A', amount: 'Stock', expiry: '2 days', risk: 'REVIEW' },
-  { name: 'Cherry tomato', category: 'PRODUCE · BATCH B', amount: 'Stock', expiry: '4 days', risk: 'WATCH' },
-  { name: 'Oat cream', category: 'DAIRY ALT · BATCH C', amount: 'Stock', expiry: '6 days', risk: 'CLEAR' },
+  { ingredient: 'Fresh milk', batch: 'BATCH A', expiry: '2 days', link: 'Oat latte', tone: '#f1e4d4' },
+  { ingredient: 'Cherry tomato', batch: 'BATCH B', expiry: '4 days', link: 'Lunch bowl', tone: '#fbf8ef' },
+  { ingredient: 'Oat cream', batch: 'BATCH C', expiry: '6 days', link: 'Chai', tone: '#fbf8ef' },
 ];
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 export function Scene3() {
   return (
-    <motion.section className="absolute inset-0 overflow-hidden" style={{ background: '#29263f', color: '#f6f1e5' }}
-      initial={{ opacity: 0, x: '3%', scale: 1.04 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, scale: 1.12, filter: 'blur(8px)' }}
-      transition={{ duration: 0.45, ease: EASE }}>
+    <motion.section
+      className="absolute inset-0 overflow-hidden"
+      style={{ background: '#29263f', color: '#f6f1e5' }}
+      initial={{ opacity: 0, x: '2%', scale: 1.035 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.1, filter: 'blur(7px)' }}
+      transition={{ duration: 0.42, ease: EASE }}
+    >
       <div className="absolute inset-0 opacity-20 paper-grid" />
-      <div className="absolute left-[6%] top-[13%] w-[32%]">
-        <div className="eyebrow text-[#d6b65e]">Stock → recipes → service</div>
-        <motion.h1 className="display mt-[3.2vmin] text-[8.7vmin] leading-[.89] font-extrabold tracking-[-.06em]"
-          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.52, ease: EASE }}>THE PANTRY,<br /><span className="text-[#e36a45]">AT A GLANCE.</span></motion.h1>
-        <motion.p className="mt-[3vmin] max-w-[29vmin] text-[2.6vmin] leading-[1.22] text-[#d6d0df]"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45, duration: 0.4 }}>Each batch keeps its own expiry date.</motion.p>
-        <motion.div className="mt-[6vmin] flex items-center gap-[1.2vmin] text-[1.6vmin] text-[#d6d0df]"
-          initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 4.2, duration: 0.4 }}>
-          <span className="h-[.55vmin] w-[5.5vmin] bg-[#d6b65e]" /> Sales, prep and leftovers complete the daily picture.
+      <div className="absolute left-[5.5%] top-[17%] w-[28%]">
+        <div className="eyebrow text-[#d6b65e]">Pantry → menu → service</div>
+        <motion.h1
+          className="display mt-[2.5vmin] text-[8.3vmin] leading-[.88] font-extrabold tracking-[-.065em]"
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.48, ease: EASE }}
+        >
+          FAMILIAR<br /><span className="text-[#e36a45]">INPUTS.</span>
+        </motion.h1>
+        <motion.p
+          className="mt-[2.2vmin] max-w-[31vmin] text-[2.25vmin] leading-[1.18] text-[#d6d0df]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45, duration: 0.36 }}
+        >
+          Structured fields and clear links support consistency.
+        </motion.p>
+        <motion.div
+          className="mt-[3.5vmin] flex items-center gap-[.9vmin] mono text-[1.5vmin] text-[#d6d0df]"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 3.55, duration: 0.35 }}
+        >
+          <span className="h-[.5vmin] w-[4vmin] bg-[#d6b65e]" /> Sales · prep · leftovers
         </motion.div>
       </div>
-
-      <motion.div className="film-shadow absolute right-[6%] top-[12%] h-[76%] w-[52%] overflow-hidden rounded-[2.5vmin] border border-[#cfc5b4] bg-[#f8f3e7] text-[#29263f]"
-        initial={{ scale: 0.74, rotateY: -10, x: 30, opacity: 0 }} animate={{ scale: 1, rotateY: 0, x: 0, opacity: 1 }}
-        transition={{ duration: 0.78, ease: EASE }}>
-        <div className="flex items-center justify-between border-b border-[#ded5c5] px-[2.6vmin] py-[1.8vmin]">
-          <div><div className="eyebrow text-[#2d7057]">Illustrative workspace · sample records</div><div className="display mt-[.7vmin] text-[3.7vmin] font-bold tracking-[-.04em]">Pantry &amp; recipe flow</div></div>
-          <div className="rounded-full bg-[#e8efe2] px-[1.4vmin] py-[1vmin] eyebrow text-[#2d7057]">SAMPLE</div>
+      <motion.div
+        className="film-shadow absolute right-[5%] top-[10%] h-[80%] w-[59%] overflow-hidden rounded-[2.4vmin] border border-[#cfc5b4] bg-[#f8f3e7] text-[#29263f]"
+        initial={{ scale: 0.78, rotateY: -9, x: 22, opacity: 0 }}
+        animate={{ scale: 1, rotateY: 0, x: 0, opacity: 1 }}
+        transition={{ duration: 0.7, ease: EASE }}
+        exit={{ scale: 1.08, x: 20, opacity: 0 }}
+      >
+        <div className="flex items-center justify-between border-b border-[#ded5c5] px-[2.3vmin] py-[1.5vmin]">
+          <div>
+            <div className="eyebrow text-[#2d7057]" style={{ fontSize: '1.35vmin' }}>Illustrative workspace · sample records</div>
+            <div className="display mt-[.45vmin] text-[3.6vmin] font-bold tracking-[-.04em]">Pantry &amp; recipe links</div>
+          </div>
+          <div className="rounded-full bg-[#e8efe2] px-[1.2vmin] py-[.75vmin] eyebrow text-[#2d7057]" style={{ fontSize: '1.2vmin' }}>BATCH VIEW</div>
         </div>
-        <div className="grid grid-cols-[1.3fr_.6fr_.65fr_.65fr] gap-[1vmin] bg-[#eee8db] px-[2.2vmin] py-[1.2vmin] eyebrow text-[1.1vmin] text-[#706d7d]">
-          <span>Ingredient</span><span>Usable</span><span>Expiry</span><span>Review</span>
+        <div className="grid grid-cols-[1.1fr_.55fr_.65fr_.9fr] gap-[.7vmin] bg-[#eee8db] px-[1.9vmin] py-[1vmin] eyebrow text-[1.05vmin] text-[#706d7d]">
+          <span>Ingredient</span><span>Usable</span><span>Expiry</span><span>Recipe link</span>
         </div>
-        <div className="relative">
-          {rows.map((row, i) => <motion.div key={row.name}
-            className={`relative grid grid-cols-[1.3fr_.6fr_.65fr_.65fr] items-center gap-[1vmin] border-b border-[#e7e0d4] px-[2.2vmin] py-[2.25vmin] ${i === 0 ? 'bg-[#f1e4d4]' : ''}`}
-            initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.45 + i * 0.32, duration: 0.45, ease: EASE }}>
-            <span><span className="block text-[1.8vmin] font-bold">{row.name}</span><span className="mono text-[1.05vmin] text-[#8d8793]">{row.category}</span></span>
-            <span className="mono text-[1.45vmin]">{row.amount}</span>
-            <span className="mono text-[1.45vmin]">{row.expiry}</span>
-            <span className={`w-fit rounded-full px-[1vmin] py-[.65vmin] mono text-[1vmin] font-semibold ${i === 0 ? 'bg-[#df5d39] text-[#fff7e9]' : i === 1 ? 'bg-[#f1e3bb] text-[#8a6121]' : 'bg-[#e3eee3] text-[#2d7057]'}`}>{row.risk}</span>
-          </motion.div>)}
+        <div>
+          {rows.map((row, i) => (
+            <motion.div
+              key={row.ingredient}
+              className="relative grid grid-cols-[1.1fr_.55fr_.65fr_.9fr] items-center gap-[.7vmin] border-b border-[#e7e0d4] px-[1.9vmin] py-[1.75vmin]"
+              style={{ background: row.tone }}
+              initial={{ opacity: 0, x: 24, clipPath: 'inset(0 100% 0 0)' }}
+              animate={{ opacity: 1, x: 0, clipPath: 'inset(0 0% 0 0)' }}
+              transition={{ delay: 0.36 + i * 0.26, duration: 0.4, ease: EASE }}
+            >
+              <span>
+                <span className="block text-[1.85vmin] font-bold">{row.ingredient}</span>
+                <span className="mono text-[1.05vmin] text-[#8d8793]">{row.batch}</span>
+              </span>
+              <span className="mono text-[1.35vmin]">Usable</span>
+              <span className="mono text-[1.35vmin]">{row.expiry}</span>
+              <motion.span
+                className="text-[1.45vmin] font-semibold text-[#2d7057]"
+                animate={i === 0 ? { color: ['#2d7057', '#df5d39', '#2d7057'] } : {}}
+                transition={i === 0 ? { delay: 1.8, duration: 0.7, ease: EASE } : undefined}
+              >
+                {row.link}
+              </motion.span>
+            </motion.div>
+          ))}
         </div>
-        <motion.div className="mx-[2.2vmin] mt-[2.1vmin] rounded-[1.2vmin] border border-dashed border-[#b8ac98] px-[1.6vmin] py-[1.25vmin]"
-          initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} transition={{ delay: 4.1, duration: 0.45 }}>
-          <span className="eyebrow text-[#706d7d]">AI recipe draft · owner review</span>
-          <div className="mt-[.6vmin] flex justify-between text-[1.3vmin]"><span>Draft uses listed pantry ingredients</span><span className="mono">Review before saving</span></div>
+        <motion.div
+          className="mx-[1.9vmin] mt-[1.25vmin] rounded-[1.1vmin] border border-dashed border-[#b8ac98] px-[1.45vmin] py-[1vmin]"
+          initial={{ opacity: 0, y: 10, scaleY: 0.7 }}
+          animate={{ opacity: 1, y: 0, scaleY: 1 }}
+          transition={{ delay: 2.55, duration: 0.38, ease: EASE }}
+        >
+          <span className="eyebrow text-[#706d7d]" style={{ fontSize: '1.25vmin' }}>AI recipe draft · owner review</span>
+          <div className="mt-[.45vmin] flex justify-between text-[1.35vmin]"><span>Draft uses listed pantry ingredients</span><span className="mono">Review before saving</span></div>
         </motion.div>
-        <motion.div className="absolute right-[10%] top-[29%] rounded-full border-[.65vmin] border-[#df5d39] px-[1.4vmin] py-[.65vmin] eyebrow text-[#b94d30]"
-          initial={{ scale: 0, rotate: -12 }} animate={{ scale: [0, 1.12, 1], rotate: 0 }} transition={{ delay: 3.6, duration: 0.52, ease: EASE }}>HIGH RISK</motion.div>
+        <motion.div
+          className="absolute right-[8%] top-[23%] rounded-full border-[.6vmin] border-[#df5d39] px-[1.25vmin] py-[.55vmin] eyebrow text-[#b94d30]"
+          initial={{ scale: 0, rotate: -12 }}
+          animate={{ scale: [0, 1.12, 1], rotate: 0 }}
+          transition={{ delay: 2.1, duration: 0.46, ease: EASE }}
+        >
+          REVIEW
+        </motion.div>
+        <motion.div className="absolute bottom-[6%] left-[2%] flex gap-[.8vmin]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.15 }}>
+          {['SALES', 'PREPARATION', 'LEFTOVERS'].map((label, i) => (
+            <motion.div key={label} className="rounded-full bg-[#e8efe2] px-[1.1vmin] py-[.6vmin] mono text-[1.05vmin] text-[#2d7057]" initial={{ y: 7, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 3.15 + i * 0.12 }}>
+              {label}
+            </motion.div>
+          ))}
+        </motion.div>
       </motion.div>
-      <motion.div className="absolute bottom-[5%] right-[5%] eyebrow text-[#c9bdcf]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.8 }}>
-        Expiry monitoring runs hourly.
+      <motion.div className="absolute bottom-[4.7%] right-[6%] eyebrow text-[#c9bdcf]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.6 }}>
+        Batch-level expiry · monitored hourly
       </motion.div>
     </motion.section>
   );
