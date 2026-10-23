@@ -1,7 +1,7 @@
 # foodwastepreventionassistant
 # Project Name
 
-> A one-sentence description of what your project does and who it is for.
+>ExpiryGuardAi, a food waste prevention assistant to help food and beverage SMEs including cafés, restaurants, food vendors, and cloud kitchens, manage inventory efficiently and reduce avoidable food waste and reduce cost .
 
 ---
 
