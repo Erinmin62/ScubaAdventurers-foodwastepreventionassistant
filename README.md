@@ -52,7 +52,7 @@ Explain how your project uses AI to solve the problem and what makes it valuable
 | Frontend      | TypeScript             |
 | Backend       | YAML |
 | Database      | PostgreSQL, SQLite      |
-| AI / Compute  | RunPod (GPU)                 |
+| AI / Compute  | CPU                 |
 | Hosting / Dev | Replit                       |
 
 ---
