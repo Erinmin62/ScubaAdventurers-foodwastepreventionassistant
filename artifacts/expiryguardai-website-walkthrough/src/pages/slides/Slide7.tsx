@@ -20,12 +20,13 @@ export default function Slide7() {
         <section className="flex flex-col gap-[3vh]">
           <div className="h-[0.6vh] w-[10vw] bg-accent" aria-hidden="true" />
           <p className="text-[2.1vw] font-semibold leading-[1.2]">
-            Automations switches enable or pause Daily planning and Follow-up handling
+            A scheduled expiry scan checks stock dates hourly and flags items approaching expiry
           </p>
           <p className="border-t border-text/15 pt-[2.5vh] text-[2vw] leading-[1.2]">
-            Run now starts an enabled workflow; latest run shows what it did
+            Notifications shows expiry alerts and the last check status. Daily planning and Follow-up have separate controls
           </p>
           <div className="mt-[1vh] flex gap-[1vw]">
+            <span className="bg-pale px-[1.4vw] py-[1.2vh] text-[1.7vw] font-semibold text-accent">Hourly expiry scan</span>
             <span className="bg-pale px-[1.4vw] py-[1.2vh] text-[1.7vw] font-semibold text-accent">Daily planning</span>
             <span className="bg-surface px-[1.4vw] py-[1.2vh] text-[1.7vw] font-semibold text-text">Follow-up handling</span>
           </div>

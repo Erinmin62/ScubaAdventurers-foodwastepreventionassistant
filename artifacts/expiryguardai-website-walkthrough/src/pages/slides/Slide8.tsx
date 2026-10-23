@@ -17,7 +17,7 @@ export default function Slide8() {
         </h1>
         <div className="mt-[5vh] flex flex-col gap-[2.1vh]">
           <p className="border-b border-text/15 pb-[1.8vh] text-[2vw] font-medium leading-[1.2]">
-            Notifications: review expiry risks and pending actions; refresh panels show check status
+            Notifications: review hourly scan alerts, pending actions, and the last completed expiry check
           </p>
           <p className="border-b border-text/15 pb-[1.8vh] text-[2vw] font-medium leading-[1.2]">
             Impact: record preparation, sales, and leftovers; compare baseline and recent results
