@@ -1,5 +1,6 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { z } from "zod";
+import type { HistoricalRecord } from "./guard-model";
 import { seed, shift, today } from "./guard-model";
 
 const dateString = z.string().refine(value =>
@@ -52,6 +53,79 @@ export type SyntheticForecastContext = {
   dailySales: { date: string; menuId: string; portions: number }[];
   dailyPreparation: { date: string; menuId: string; prepared: number; sold: number; leftover: number }[];
 };
+
+const ownerHistoryResponseSchema = z.object({
+  mode: z.literal("owner_history"),
+  model: z.literal("gpt-5-mini"),
+  generatedAt: z.string().datetime(),
+  historyStart: dateString,
+  historyEnd: dateString,
+  salesCount: z.number().int().min(0).max(2000),
+  preparationCount: z.number().int().min(0).max(2000),
+  horizonStart: dateString,
+  horizonEnd: dateString,
+  summary: z.string().trim().min(1).max(500),
+  demandForecasts: z.array(z.object({
+    itemName: z.string().trim().min(1).max(160),
+    predictedPortionsByDay: z.array(z.number().int().min(0).max(1000)).length(7),
+    totalPredictedPortions: z.number().int().min(0).max(7000),
+    explanation: z.string().trim().min(1).max(500),
+  })),
+  disclaimer: z.string().min(1),
+}).strict();
+export type AiOwnerHistoryForecastResponse = z.infer<typeof ownerHistoryResponseSchema>;
+
+export type OwnerHistoryForecastContext = {
+  historyStart: string;
+  historyEnd: string;
+  salesCount: number;
+  preparationCount: number;
+  horizonDates: string[];
+  records: (
+    | { type: "sales"; date: string; itemName: string; portions: number }
+    | { type: "preparation"; date: string; itemName: string; prepared: number; sold: number; leftover: number }
+  )[];
+};
+
+export function buildOwnerHistoryForecastContext(
+  archive: HistoricalRecord[] = [],
+  current = today(),
+): OwnerHistoryForecastContext | null {
+  const records: OwnerHistoryForecastContext["records"] = [];
+  for (const row of archive) {
+    if ((row.kind !== "sales" && row.kind !== "preparation") || !validDate(row.date) || row.date > current) continue;
+    const itemName = (row.menuName ?? row.itemName ?? "").trim().slice(0, 160);
+    if (!itemName) continue;
+    if (row.kind === "sales" && Number.isFinite(row.quantity) && row.quantity! >= 0 && row.quantity! <= 1_000_000) {
+      records.push({ type: "sales", date: row.date, itemName, portions: row.quantity! });
+    } else if (
+      row.kind === "preparation" &&
+      [row.prepared, row.sold, row.leftover].every(value => Number.isInteger(value) && value! >= 0 && value! <= 1_000_000) &&
+      row.prepared === row.sold! + row.leftover!
+    ) {
+      records.push({
+        type: "preparation",
+        date: row.date,
+        itemName,
+        prepared: row.prepared!,
+        sold: row.sold!,
+        leftover: row.leftover!,
+      });
+    }
+  }
+  if (!records.length) return null;
+  records.sort((a, b) => a.date.localeCompare(b.date) || a.itemName.localeCompare(b.itemName));
+  const salesCount = records.filter(row => row.type === "sales").length;
+  const preparationCount = records.length - salesCount;
+  return {
+    historyStart: records[0]!.date,
+    historyEnd: records[records.length - 1]!.date,
+    salesCount,
+    preparationCount,
+    horizonDates: Array.from({ length: 7 }, (_, index) => shift(current, index + 1)),
+    records,
+  };
+}
 
 const modelOutputSchema = z.object({
   summary: z.string().trim().min(1).max(500),
@@ -228,5 +302,87 @@ export async function completeSyntheticForecast(context: SyntheticForecastContex
   });
   const content = completion.choices[0]?.message?.content;
   if (!content) throw new AiForecastDemoError("The model returned no forecast.");
+  return content;
+}
+
+export function parseOwnerHistoryForecastOutput(
+  raw: string,
+  context: OwnerHistoryForecastContext,
+  generatedAt = new Date().toISOString(),
+): AiOwnerHistoryForecastResponse {
+  let unknownOutput: unknown;
+  try {
+    unknownOutput = JSON.parse(raw);
+  } catch {
+    throw new AiForecastDemoError("The model returned invalid JSON.");
+  }
+  const modelResult = z.object({
+    summary: z.string().trim().min(1).max(500),
+    demandForecasts: z.array(z.object({
+      itemName: z.string().trim().min(1).max(160),
+      predictedPortionsByDay: z.array(z.number().int().min(0).max(1000)).length(7),
+      totalPredictedPortions: z.number().int().min(0).max(7000),
+      explanation: z.string().trim().min(1).max(500),
+    })).min(1).max(200),
+  }).safeParse(unknownOutput);
+  if (!modelResult.success) throw new AiForecastDemoError("The model returned an incomplete owner-history forecast.");
+
+  const knownItems = new Set(context.records.map(record => record.itemName));
+  const seenItems = new Set<string>();
+  for (const forecast of modelResult.data.demandForecasts) {
+    if (!knownItems.has(forecast.itemName) || seenItems.has(forecast.itemName)) {
+      throw new AiForecastDemoError("The model returned an unknown or duplicate historical dish.");
+    }
+    if (forecast.predictedPortionsByDay.reduce((sum, amount) => sum + amount, 0) !== forecast.totalPredictedPortions) {
+      throw new AiForecastDemoError("The model returned an inconsistent dish total.");
+    }
+    seenItems.add(forecast.itemName);
+  }
+  if (seenItems.size !== knownItems.size) throw new AiForecastDemoError("The model omitted a dish found in the selected history.");
+
+  const response: AiOwnerHistoryForecastResponse = {
+    mode: "owner_history",
+    model: "gpt-5-mini",
+    generatedAt,
+    historyStart: context.historyStart,
+    historyEnd: context.historyEnd,
+    salesCount: context.salesCount,
+    preparationCount: context.preparationCount,
+    horizonStart: context.horizonDates[0]!,
+    horizonEnd: context.horizonDates[6]!,
+    summary: modelResult.data.summary,
+    demandForecasts: modelResult.data.demandForecasts,
+    disclaimer: "Experimental and advisory only. This forecast is not validated against actual outcomes and must not guide food-safety, stock, or purchasing decisions. It does not change stock, orders, approvals, or plans.",
+  };
+  try {
+    ownerHistoryResponseSchema.parse(response);
+  } catch {
+    throw new AiForecastDemoError("The model result did not match the owner-history forecast contract.");
+  }
+  return response;
+}
+
+export async function completeOwnerHistoryForecast(context: OwnerHistoryForecastContext): Promise<string> {
+  const completion = await openai.chat.completions.create({
+    model: "gpt-5-mini",
+    max_completion_tokens: 8192,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: [
+          "You are producing an EXPERIMENTAL, ADVISORY demand forecast from owner-confirmed historical sales and preparation records.",
+          "Use only the supplied archived sales and preparation records. Do not use or infer current stock, expiry, orders, recipes, prices, or other workspace state.",
+          "Forecast daily sold portions for the next seven listed dates for every distinct itemName. Use the historical sales portions and preparation sold/leftover fields as observations, not as proof of future outcomes.",
+          "Do not claim calibrated confidence, accuracy, guaranteed savings, food-safety compliance, or operational suitability. Do not advise purchases or stock changes.",
+          "Return valid JSON only with this exact shape: {summary:string,demandForecasts:[{itemName:string,predictedPortionsByDay:number[7],totalPredictedPortions:integer,explanation:string}]}",
+          "Include every distinct itemName supplied exactly once. The seven values must sum to totalPredictedPortions. Keep estimates plausible and explanations brief.",
+        ].join(" "),
+      },
+      { role: "user", content: JSON.stringify(context) },
+    ],
+  });
+  const content = completion.choices[0]?.message?.content;
+  if (!content) throw new AiForecastDemoError("The model returned no owner-history forecast.");
   return content;
 }

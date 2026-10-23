@@ -4923,6 +4923,69 @@ export const GenerateAiDemoForecastResponse = zod.object({
 })
 
 
+/**
+ * @summary Generate an advisory forecast from explicitly confirmed historical sales and preparation records
+ */
+export const generateAiOwnerHistoryForecastBodyExpectedSalesCountMin = 0;
+export const generateAiOwnerHistoryForecastBodyExpectedSalesCountMax = 2000;
+
+export const generateAiOwnerHistoryForecastBodyExpectedPreparationCountMin = 0;
+export const generateAiOwnerHistoryForecastBodyExpectedPreparationCountMax = 2000;
+
+
+
+export const GenerateAiOwnerHistoryForecastBody = zod.object({
+  "ownerHistoryConsent": zod.literal(true),
+  "expectedHistoryStart": zod.coerce.date(),
+  "expectedHistoryEnd": zod.coerce.date(),
+  "expectedSalesCount": zod.number().int().min(generateAiOwnerHistoryForecastBodyExpectedSalesCountMin).max(generateAiOwnerHistoryForecastBodyExpectedSalesCountMax),
+  "expectedPreparationCount": zod.number().int().min(generateAiOwnerHistoryForecastBodyExpectedPreparationCountMin).max(generateAiOwnerHistoryForecastBodyExpectedPreparationCountMax)
+})
+
+export const generateAiOwnerHistoryForecastResponseSalesCountMin = 0;
+export const generateAiOwnerHistoryForecastResponseSalesCountMax = 2000;
+
+export const generateAiOwnerHistoryForecastResponsePreparationCountMin = 0;
+export const generateAiOwnerHistoryForecastResponsePreparationCountMax = 2000;
+
+export const generateAiOwnerHistoryForecastResponseSummaryMax = 500;
+
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemItemNameMax = 160;
+
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayItemMin = 0;
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayItemMax = 1000;
+
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayMin = 7;
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayMax = 7;
+
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemTotalPredictedPortionsMin = 0;
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemTotalPredictedPortionsMax = 7000;
+
+export const generateAiOwnerHistoryForecastResponseDemandForecastsItemExplanationMax = 500;
+
+
+
+export const GenerateAiOwnerHistoryForecastResponse = zod.object({
+  "mode": zod.enum(['owner_history']),
+  "model": zod.string(),
+  "generatedAt": zod.coerce.date(),
+  "historyStart": zod.coerce.date(),
+  "historyEnd": zod.coerce.date(),
+  "salesCount": zod.number().int().min(generateAiOwnerHistoryForecastResponseSalesCountMin).max(generateAiOwnerHistoryForecastResponseSalesCountMax),
+  "preparationCount": zod.number().int().min(generateAiOwnerHistoryForecastResponsePreparationCountMin).max(generateAiOwnerHistoryForecastResponsePreparationCountMax),
+  "horizonStart": zod.coerce.date(),
+  "horizonEnd": zod.coerce.date(),
+  "summary": zod.string().min(1).max(generateAiOwnerHistoryForecastResponseSummaryMax),
+  "demandForecasts": zod.array(zod.object({
+  "itemName": zod.string().min(1).max(generateAiOwnerHistoryForecastResponseDemandForecastsItemItemNameMax),
+  "predictedPortionsByDay": zod.array(zod.number().int().min(generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayItemMin).max(generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayItemMax)).min(generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayMin).max(generateAiOwnerHistoryForecastResponseDemandForecastsItemPredictedPortionsByDayMax),
+  "totalPredictedPortions": zod.number().int().min(generateAiOwnerHistoryForecastResponseDemandForecastsItemTotalPredictedPortionsMin).max(generateAiOwnerHistoryForecastResponseDemandForecastsItemTotalPredictedPortionsMax),
+  "explanation": zod.string().min(1).max(generateAiOwnerHistoryForecastResponseDemandForecastsItemExplanationMax)
+})),
+  "disclaimer": zod.string()
+})
+
+
 export const DecideRecommendationParams = zod.object({
   "id": zod.coerce.string()
 })

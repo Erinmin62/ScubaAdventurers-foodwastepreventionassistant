@@ -586,6 +586,25 @@ paths:
         "400": { description: Demo-only acknowledgement is required }
         "429": { description: AI forecast demo request limit reached }
         "503": { description: AI forecast demo is temporarily unavailable }
+  /guard/ai-forecast/owner-history:
+    post:
+      operationId: generateAiOwnerHistoryForecast
+      summary: Generate an advisory forecast from explicitly confirmed historical sales and preparation records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiOwnerHistoryForecastInput" }
+      responses:
+        "200":
+          description: Advisory forecast based only on confirmed archived owner records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiOwnerHistoryForecastResponse" }
+        "400": { description: "Explicit consent, a valid history preview, or usable archived records are required" }
+        "409": { description: The archive changed after the owner reviewed the preview }
+        "429": { description: AI owner-history forecast request limit reached }
+        "503": { description: AI owner-history forecast is temporarily unavailable }
   /guard/recommendations/{id}/decision:
     post:
       operationId: decideRecommendation
@@ -1188,6 +1207,46 @@ components:
       required: [demoOnly]
       properties:
         demoOnly: { type: boolean, enum: [true] }
+    AiOwnerHistoryForecastInput:
+      type: object
+      additionalProperties: false
+      required: [ownerHistoryConsent, expectedHistoryStart, expectedHistoryEnd, expectedSalesCount, expectedPreparationCount]
+      properties:
+        ownerHistoryConsent: { type: boolean, enum: [true] }
+        expectedHistoryStart: { type: string, format: date }
+        expectedHistoryEnd: { type: string, format: date }
+        expectedSalesCount: { type: integer, minimum: 0, maximum: 2000 }
+        expectedPreparationCount: { type: integer, minimum: 0, maximum: 2000 }
+    AiOwnerHistoryDishForecast:
+      type: object
+      required: [itemName, predictedPortionsByDay, totalPredictedPortions, explanation]
+      properties:
+        itemName: { type: string, minLength: 1, maxLength: 160 }
+        predictedPortionsByDay:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items: { type: integer, minimum: 0, maximum: 1000 }
+        totalPredictedPortions: { type: integer, minimum: 0, maximum: 7000 }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiOwnerHistoryForecastResponse:
+      type: object
+      required: [mode, model, generatedAt, historyStart, historyEnd, salesCount, preparationCount, horizonStart, horizonEnd, summary, demandForecasts, disclaimer]
+      properties:
+        mode: { type: string, enum: [owner_history] }
+        model: { type: string }
+        generatedAt: { type: string, format: date-time }
+        historyStart: { type: string, format: date }
+        historyEnd: { type: string, format: date }
+        salesCount: { type: integer, minimum: 0, maximum: 2000 }
+        preparationCount: { type: integer, minimum: 0, maximum: 2000 }
+        horizonStart: { type: string, format: date }
+        horizonEnd: { type: string, format: date }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        demandForecasts:
+          type: array
+          items: { $ref: "#/components/schemas/AiOwnerHistoryDishForecast" }
+        disclaimer: { type: string }
     AiDemoDishForecast:
       type: object
       required: [menuId, name, predictedPortionsByDay, totalPredictedPortions, explanation]

@@ -73,7 +73,7 @@ export default function Forecast() {
           <div className="grid md:grid-cols-2 gap-3">{preps.map((r) => <RecCard key={r.id} rec={r} />)}</div>
         )}
       </Panel>
-      <AiForecastDemo />
+      <AiForecastDemo ownerDataMode={data.workspaceMode === 'owner_data'} today={data.today} />
     </div>
   );
 }

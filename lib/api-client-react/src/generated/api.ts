@@ -22,6 +22,8 @@ import type {
 import type {
   AiForecastDemoInput,
   AiForecastDemoResponse,
+  AiOwnerHistoryForecastInput,
+  AiOwnerHistoryForecastResponse,
   AutomationRunInput,
   AutomationSettingsInput,
   BusinessProfileInput,
@@ -3321,6 +3323,94 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getGenerateAiDemoForecastMutationOptions(options));
+    }
+
+export const getGenerateAiOwnerHistoryForecastUrl = () => {
+
+
+
+
+  return `/api/guard/ai-forecast/owner-history`
+}
+
+/**
+ * @summary Generate an advisory forecast from explicitly confirmed historical sales and preparation records
+ */
+export const generateAiOwnerHistoryForecast = async (aiOwnerHistoryForecastInput: AiOwnerHistoryForecastInput, options?: Parameters<typeof customFetch>[1]): Promise<AiOwnerHistoryForecastResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AiOwnerHistoryForecastResponse>(getGenerateAiOwnerHistoryForecastUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(aiOwnerHistoryForecastInput)
+  }
+);}
+
+
+
+
+
+export const getGenerateAiOwnerHistoryForecastMutationKey = () => ['generateAiOwnerHistoryForecast'] as const;
+
+export const getGenerateAiOwnerHistoryForecastMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiOwnerHistoryForecast>>, TError,GenerateAiOwnerHistoryForecastMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateAiOwnerHistoryForecast>>, TError,GenerateAiOwnerHistoryForecastMutationVariables, TContext> => {
+
+const mutationKey = getGenerateAiOwnerHistoryForecastMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateAiOwnerHistoryForecast>>, GenerateAiOwnerHistoryForecastMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateAiOwnerHistoryForecast(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateAiOwnerHistoryForecastMutationResult = NonNullable<Awaited<ReturnType<typeof generateAiOwnerHistoryForecast>>>
+    export type GenerateAiOwnerHistoryForecastMutationBody = BodyType<AiOwnerHistoryForecastInput>
+    export type GenerateAiOwnerHistoryForecastMutationError = ErrorType<void>
+    export type GenerateAiOwnerHistoryForecastMutationVariables = {data: BodyType<AiOwnerHistoryForecastInput>}
+
+    /**
+ * @summary Generate an advisory forecast from explicitly confirmed historical sales and preparation records
+ */
+export const useGenerateAiOwnerHistoryForecast = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiOwnerHistoryForecast>>, TError,GenerateAiOwnerHistoryForecastMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateAiOwnerHistoryForecast>>,
+        TError,
+        GenerateAiOwnerHistoryForecastMutationVariables,
+        TContext
+      > => {
+      return useMutation(getGenerateAiOwnerHistoryForecastMutationOptions(options));
     }
 
 export const getDecideRecommendationUrl = (id: string,) => {

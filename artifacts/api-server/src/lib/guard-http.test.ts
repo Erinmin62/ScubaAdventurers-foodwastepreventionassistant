@@ -16,10 +16,11 @@ import { seed, shift, today, compute, type State } from "./guard-model";
 import type { Reorders } from "./guard-reorder";
 import { createOwnerAuth } from "../middlewares/owner-auth";
 import { currentWorkspaceId, inWorkspace, ownerWorkspaceId } from "./workspace-context";
-import type { SyntheticForecastContext } from "./ai-forecast-demo";
+import type { OwnerHistoryForecastContext, SyntheticForecastContext } from "./ai-forecast-demo";
 
 let server: Server, base: string;
 let latestAiContext: SyntheticForecastContext | null = null;
+let latestOwnerHistoryContext: OwnerHistoryForecastContext | null = null;
 before(async () => {
   const app = express();
   app.use("/guard/notifications/webhook", express.raw({ type: "application/json" }));
@@ -27,10 +28,24 @@ before(async () => {
     recipe: [{ ingredientId: pantry[0]!.id, amount: 0.08 }],
     explanation: "A draft using one available pantry ingredient.",
   }));
-  const aiForecastDemoRouter = createGuardAiForecastDemoRouter(async context => {
-    latestAiContext = structuredClone(context);
-    return syntheticAiForecast(context);
-  });
+  const aiForecastDemoRouter = createGuardAiForecastDemoRouter(
+    async context => {
+      latestAiContext = structuredClone(context);
+      return syntheticAiForecast(context);
+    },
+    async context => {
+      latestOwnerHistoryContext = structuredClone(context);
+      return JSON.stringify({
+        summary: "A temporary scenario based on confirmed archived history.",
+        demandForecasts: [...new Set(context.records.map(row => row.itemName))].map(itemName => ({
+          itemName,
+          predictedPortionsByDay: [1, 0, 0, 0, 0, 0, 0],
+          totalPredictedPortions: 1,
+          explanation: "Test output only.",
+        })),
+      });
+    },
+  );
   app.use(express.json({ limit: "3mb" }), guardRouter, aiForecastDemoRouter, menuRouter, reorderRouter, notificationsRouter, inboxRouter);
   server = app.listen(0, "127.0.0.1");
   await new Promise<void>(resolve => server.once("listening", resolve));
@@ -114,6 +129,78 @@ test("HTTP: AI forecast demo uses synthetic data, does not write workspace state
   assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 200);
   assert.equal((await request("/guard/ai-forecast/demo", { demoOnly: true })).status, 429);
   assert.deepEqual(snapshotWorkspace(), before);
+});
+test("HTTP: owner-history forecast requires consent and an unchanged preview, and sends only archived sales/preparation rows", async () => {
+  const initial = fixture();
+  const menuName = initial.menu[0]!.name;
+  const stockName = "Archive-only inventory record";
+  const saleDate = shift(today(), -5);
+  const prepDate = shift(today(), -2);
+  const imported = await request("/guard/history/import", { fileName: "private-history.csv", rows: [
+    { kind: "sales", date: saleDate, menuId: initial.menu[0]!.id, quantity: 6, unit: "portions" },
+    { kind: "sales", date: prepDate, menuId: initial.menu[0]!.id, quantity: 8, unit: "portions" },
+    { kind: "preparation", date: prepDate, menuId: initial.menu[0]!.id, prepared: 11, sold: 8, leftover: 3, unit: "portions" },
+    { kind: "stock", date: prepDate, itemName: stockName, quantity: 987, unit: "kg" },
+  ] });
+  assert.equal(imported.status, 200);
+  const before = snapshotWorkspace();
+  latestOwnerHistoryContext = null;
+
+  const unconfirmed = await request("/guard/ai-forecast/owner-history", {
+    ownerHistoryConsent: false,
+    expectedHistoryStart: saleDate,
+    expectedHistoryEnd: prepDate,
+    expectedSalesCount: 2,
+    expectedPreparationCount: 1,
+  });
+  assert.equal(unconfirmed.status, 400);
+  assert.equal(latestOwnerHistoryContext, null, "no model call occurs without explicit consent");
+
+  const stale = await request("/guard/ai-forecast/owner-history", {
+    ownerHistoryConsent: true,
+    expectedHistoryStart: saleDate,
+    expectedHistoryEnd: prepDate,
+    expectedSalesCount: 1,
+    expectedPreparationCount: 1,
+  });
+  assert.equal(stale.status, 409);
+  assert.equal(latestOwnerHistoryContext, null, "stale previews cannot send owner history");
+
+  const forecast = await request("/guard/ai-forecast/owner-history", {
+    ownerHistoryConsent: true,
+    expectedHistoryStart: saleDate,
+    expectedHistoryEnd: prepDate,
+    expectedSalesCount: 2,
+    expectedPreparationCount: 1,
+  });
+  assert.equal(forecast.status, 200);
+  const result = forecast.data as {
+    mode: string;
+    historyStart: string;
+    historyEnd: string;
+    salesCount: number;
+    preparationCount: number;
+    demandForecasts: { itemName: string }[];
+    disclaimer: string;
+  };
+  assert.equal(result.mode, "owner_history");
+  assert.equal(result.historyStart, saleDate);
+  assert.equal(result.historyEnd, prepDate);
+  assert.equal(result.salesCount, 2);
+  assert.equal(result.preparationCount, 1);
+  assert.deepEqual(result.demandForecasts.map(row => row.itemName), [menuName]);
+  assert.match(result.disclaimer, /advisory only/i);
+  const capturedOwnerContext = latestOwnerHistoryContext as OwnerHistoryForecastContext | null;
+  assert.ok(capturedOwnerContext);
+  assert.deepEqual(capturedOwnerContext.records, [
+    { type: "sales", date: saleDate, itemName: menuName, portions: 6 },
+    { type: "sales", date: prepDate, itemName: menuName, portions: 8 },
+    { type: "preparation", date: prepDate, itemName: menuName, prepared: 11, sold: 8, leftover: 3 },
+  ]);
+  assert.equal(JSON.stringify(capturedOwnerContext).includes(stockName), false);
+  assert.equal(JSON.stringify(capturedOwnerContext).includes("private-history.csv"), false);
+  assert.equal(JSON.stringify(capturedOwnerContext).includes("987"), false);
+  assert.deepEqual(snapshotWorkspace(), before, "forecasting does not modify the archive or operational workspace");
 });
 test("HTTP: historical imports validate atomically and stay out of live stock, sales, results, and orders", async () => {
   const before = fixture();

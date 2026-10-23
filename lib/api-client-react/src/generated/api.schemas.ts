@@ -802,6 +802,81 @@ export interface AiForecastDemoInput {
   demoOnly: true;
 }
 
+export interface AiOwnerHistoryForecastInput {
+  ownerHistoryConsent: true;
+  expectedHistoryStart: string;
+  expectedHistoryEnd: string;
+  /**
+     * @minimum 0
+     * @maximum 2000
+     */
+  expectedSalesCount: number;
+  /**
+     * @minimum 0
+     * @maximum 2000
+     */
+  expectedPreparationCount: number;
+}
+
+export interface AiOwnerHistoryDishForecast {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  itemName: string;
+  /**
+     * @minItems 7
+     * @maxItems 7
+     * @items.minimum 0
+     * @items.maximum 1000
+     */
+  predictedPortionsByDay: number[];
+  /**
+     * @minimum 0
+     * @maximum 7000
+     */
+  totalPredictedPortions: number;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  explanation: string;
+}
+
+export type AiOwnerHistoryForecastResponseMode = typeof AiOwnerHistoryForecastResponseMode[keyof typeof AiOwnerHistoryForecastResponseMode];
+
+
+export const AiOwnerHistoryForecastResponseMode = {
+  owner_history: 'owner_history',
+} as const;
+
+export interface AiOwnerHistoryForecastResponse {
+  mode: AiOwnerHistoryForecastResponseMode;
+  model: string;
+  generatedAt: string;
+  historyStart: string;
+  historyEnd: string;
+  /**
+     * @minimum 0
+     * @maximum 2000
+     */
+  salesCount: number;
+  /**
+     * @minimum 0
+     * @maximum 2000
+     */
+  preparationCount: number;
+  horizonStart: string;
+  horizonEnd: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  summary: string;
+  demandForecasts: AiOwnerHistoryDishForecast[];
+  disclaimer: string;
+}
+
 export interface AiDemoDishForecast {
   menuId: string;
   name: string;
