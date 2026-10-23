@@ -1,0 +1,66 @@
+[
+  {
+    "id": "91ea04f9-a112-4ada-af78-8a36bca57495",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide1.tsx",
+    "title": "ExpiryGuardAI",
+    "description": "Five-minute investor pitch: food-waste planning for food and beverage SMEs",
+    "speakerNotes": "0:00–0:30\n\n- Good afternoon, judges. Small food businesses must decide what to use, prepare, and reorder while perishable stock approaches expiry. When stock, sales, and preparation are recorded separately, owners spend time reconciling them.\n\n- ExpiryGuardAI focuses on that daily planning gap. This is a demo-stage product; our next step is a pilot, not a claim that waste has already fallen."
+  },
+  {
+    "id": "3933c7f3-d132-4991-acdf-28dfb6afecac",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide2.tsx",
+    "title": "Food SMEs plan perishables across disconnected records",
+    "description": "One clear food-SME planning problem",
+    "speakerNotes": "0:30–1:05\n\n- The specific problem is deciding what to prepare or reorder from disconnected records. The owner needs usable stock, expiry dates, sales, and preparation in one view.\n\n- When these signals are separated, a business can miss an expiry risk or prepare or buy more than it needs. We are not presenting a measured loss figure; we are showing a practical workflow to test."
+  },
+  {
+    "id": "1ee159fa-5085-460f-a8fd-1afdc83eb829",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide3.tsx",
+    "title": "One workflow turns inputs into owner-reviewed actions",
+    "description": "The core automated journey from business records to a useful outcome",
+    "speakerNotes": "1:05–1:45\n\n- The journey starts with pantry quantities, costs, and expiry batches linked to menu recipes. AI can draft recipe rows, but the owner reviews them before saving.\n\n- The business records sales, preparation, and leftovers. Live planning uses recent workspace sales and usable recipe stock to suggest preparation. A waste-aware scan creates a reorder draft. The outcome is a clear action for review, not an automatic order."
+  },
+  {
+    "id": "db439c2e-79be-49de-ae80-dc84dfba10f7",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide4.tsx",
+    "title": "Routine checks run. Owners decide.",
+    "description": "Daily planning, waste-aware reorder scan, hourly expiry monitoring, and follow-up handling",
+    "speakerNotes": "1:45–2:25\n\n- Automation handles repeated checks: daily planning and the waste-aware reorder scan, hourly expiry monitoring, and follow-up after an approved change.\n\n- The reorder scan considers demand, expiry, lead time, safety stock, and shelf-life assumptions. Follow-up checks use owner observations. The owner remains responsible; no supplier order is placed automatically."
+  },
+  {
+    "id": "bc59f123-689f-423f-a6e5-67dc1abf0233",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide5.tsx",
+    "title": "Clear records support consistent, owner-controlled decisions",
+    "description": "Structured inputs, owner workspace, approval, and searchable Ledger",
+    "speakerNotes": "2:25–3:00\n\n- Familiar page labels, structured fields, and recipe links are intended to make the workflow easier to learn and keep records consistent. A pilot should measure task time and input corrections rather than promise zero training.\n\n- In this demo, the signed-in owner works in their workspace and can review, edit, approve, or reject drafts. The Ledger records imports, edits, approvals, and rejections."
+  },
+  {
+    "id": "c02e72e0-6792-43dd-869d-0b5f5eee925d",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide6.tsx",
+    "title": "Live planning is rules-based; AI has a separate, limited role",
+    "description": "Distinguishes live planning, AI drafts and forecasts, and local evaluation",
+    "speakerNotes": "3:00–3:50\n\n- The live seven-day plan is rules-based, adjusted by weekday, and limited by usable recipe stock. AI adds value in owner-reviewed recipe drafts and separate experimental forecasts, not in the live plan.\n\n- The synthetic forecast uses generated sample history. A separate owner-history forecast can use archived sales and preparation records only after the owner reviews the date and record counts and gives one-request consent; stock history and current workspace data are excluded.\n\n- Both AI forecasts are temporary, advisory, and unvalidated. The local held-out check is owner-approved, stays in the workspace, and compares operational predictions with a prior-week baseline. No AI result changes stock, plans, approvals, or orders."
+  },
+  {
+    "id": "6893eeae-b9da-420c-8b88-4e256bee1164",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide7.tsx",
+    "title": "A reusable food workflow could fit Orbyte’s connected hub",
+    "description": "Potential connected-hub fit; reusable setup across food businesses; no live integration today",
+    "speakerNotes": "3:50–4:25\n\n- The same configurable workflow can be used by cafés, restaurants, food vendors, and cloud kitchens. Each business sets its profile, pantry, menu, and recipes; business type does not silently change the shared planning rules.\n\n- ExpiryGuardAI could fit Orbyte as a food-operations module in a connected hub. The current app is standalone, with no live Orbyte integration. The fit is in connecting pantry, menu, service, planning, and owner review."
+  },
+  {
+    "id": "00882fbf-c3b9-4094-9f95-5bd240328974",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide8.tsx",
+    "title": "Pilot to test benefits and SDG alignment",
+    "description": "Expected operational benefits, SDG 12.3 alignment, and the evidence plan",
+    "speakerNotes": "4:25–5:00\n\n- Our expected benefit is fewer manual cross-checks, earlier expiry attention, and more consistent preparation and reorder reviews. A pilot must measure task time, entry corrections, held-out forecast performance, recorded leftovers, and purchasing changes. Leftover portions are a waste proxy, not measured disposal weight or savings.\n\n- This aligns with SDG 12.3 by helping businesses measure food use and potential waste; impact is not yet proven. We are seeking pilot partners to test whether the benefits are real, alongside adoption and support costs. Thank you."
+  }
+]

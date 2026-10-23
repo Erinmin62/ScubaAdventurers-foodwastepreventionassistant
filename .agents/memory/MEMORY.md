@@ -1,0 +1,14 @@
+- [Measurement ordering](measurement-ordering.md) — why follow-up stock updates conservatively preserve same-day measurements.
+- [Preview sessions](preview-session-verification.md) — a passing fresh screenshot does not disprove errors retained in an open development tab.
+- [SME financial priorities](sme-financial-priorities.md) — mentor feedback: lead with clearly visible financial impact without presenting estimates as realised savings.
+- [Twilio connector constraints](twilio-connector-constraints.md) — why attaching Twilio did not provide a supported Sandbox sending path; recheck capabilities before changing authentication.
+- [Read-only monitor status](monitor-status-read-path.md) — status reads must bypass workspace loading because its non-automation path still migrates and synchronizes data.
+- [Forecast data readiness](forecast-data-readiness.md) — keep synthetic AI, consented owner-history forecasts, local checks, and live planning distinct.
+- [AI demo live checks](ai-demo-live-checks.md) — run paid AI checks through the authenticated demo flow; do not add an auth bypass or retry blindly.
+- [Email delivery guarantees](email-delivery-guarantees.md) — investigate uncertain sends before retrying; acceptance is not confirmed inbox delivery.
+- [Resend worker builds](resend-worker-builds.md) — keep the Replit connectors SDK external to ESM bundles and load it lazily for sends.
+- [Email webhook verification](email-webhook-verification.md) — Svix verification return contracts vary; exercise the installed verifier with signed raw-byte tests.
+- [Legacy archive recovery](legacy-archive-recovery.md) — old imports have timestamps but no original file names; preserve that uncertainty when offering batch recovery.
+- [API test bundle isolation](api-test-bundle-isolation.md) — keep ESM-glob and CommonJS HTTP test outputs isolated to prevent stale bundles from rerunning.
+- [Food SME product scope](food-sme-product-scope.md) — keep the demo reusable and align its pitch to the judging rubric without implying live Orbyte integration or proven impact.
+- [Orphaned workflow children](workflow-orphan-processes.md) — when artifact restarts report EADDRINUSE, verify the old child listener before another restart.

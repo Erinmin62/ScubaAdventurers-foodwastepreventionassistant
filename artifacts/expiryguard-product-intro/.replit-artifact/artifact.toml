@@ -1,0 +1,29 @@
+kind = "video"
+videoAspectRatio = "16:9"
+previewPath = "/expiryguard-product-intro/"
+title = "ExpiryGuardAI Animated Introduction"
+description = "A short animated introduction to ExpiryGuardAI, a food-waste planning demo for cafes, restaurants, food vendors, and cloud kitchens."
+version = "1.0.0"
+id = "artifacts/expiryguard-product-intro"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/expiryguard-product-intro/" ]
+localPort = 21402
+
+[services.development]
+run = "pnpm --filter @workspace/expiryguard-product-intro run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/expiryguard-product-intro", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/expiryguard-product-intro/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21402"
+BASE_PATH = "/expiryguard-product-intro/"

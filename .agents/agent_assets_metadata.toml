@@ -1,0 +1,21 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "w9xdL-XMlUHm_9bIjNeto"
+uri = "file://.local/outputs/ExpiryGuardAI-Project-Deck.pptx"
+type = "slides"
+title = "ExpiryGuardAI Project Deck.pptx"
+logical_id = "8c5445e1-9e76-4616-ac88-8fc6dc477ac7"
+
+[[outputs]]
+id = "czF6OHxTbUxFWXJ50V4J4"
+uri = "file://.local/outputs/ExpiryGuardAI-Website-Walkthrough.pptx"
+type = "slides"
+title = "ExpiryGuardAI Website Walkthrough.pptx"
+
+[[outputs]]
+id = "5RTZuZWSvQbxf7eyrXn_Y"
+uri = "file://.local/outputs/ExpiryGuardAI-Project-Deck.pdf"
+type = "pdf"
+title = "ExpiryGuardAI Project Deck.pdf"

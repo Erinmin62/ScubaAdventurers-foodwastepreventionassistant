@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --background: 38 45% 95%;
+  --foreground: 248 32% 20%;
+  --border: 32 30% 84%;
+  --card: 40 60% 98%;
+  --card-foreground: 248 32% 20%;
+  --card-border: 32 30% 86%;
+  --popover: 40 60% 98%;
+  --popover-foreground: 248 32% 20%;
+  --primary: 14 82% 54%;
+  --primary-foreground: 40 60% 98%;
+  --secondary: 248 30% 92%;
+  --secondary-foreground: 248 32% 24%;
+  --muted: 36 32% 90%;
+  --muted-foreground: 248 10% 44%;
+  --accent: 168 42% 88%;
+  --accent-foreground: 170 50% 22%;
+  --destructive: 352 70% 50%;
+  --destructive-foreground: 40 60% 98%;
+  --input: 32 26% 80%;
+  --ring: 14 82% 54%;
+  --radius: 0.9rem;
+  --app-font-sans: 'Figtree', sans-serif;
+  --app-font-serif: 'Bricolage Grotesque', serif;
+  --app-font-mono: 'JetBrains Mono', monospace;
+}
+
+.dark {
+  --background: 248 30% 12%;
+  --foreground: 38 40% 92%;
+  --border: 248 20% 24%;
+  --card: 248 28% 15%;
+  --card-foreground: 38 40% 92%;
+  --card-border: 248 20% 24%;
+  --popover: 248 28% 15%;
+  --popover-foreground: 38 40% 92%;
+  --primary: 14 82% 58%;
+  --primary-foreground: 40 60% 98%;
+  --secondary: 248 20% 22%;
+  --secondary-foreground: 38 40% 92%;
+  --muted: 248 20% 20%;
+  --muted-foreground: 248 10% 70%;
+  --accent: 168 30% 22%;
+  --accent-foreground: 168 40% 85%;
+  --destructive: 352 70% 55%;
+  --destructive-foreground: 40 60% 98%;
+  --input: 248 20% 30%;
+  --ring: 14 82% 58%;
+}

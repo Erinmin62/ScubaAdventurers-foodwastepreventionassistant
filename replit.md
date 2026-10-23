@@ -1,0 +1,67 @@
+# ExpiryGuardAI
+
+Food-waste prevention assistant for café and restaurant owners using realistic synthetic sales, inventory, and result records.
+
+## Run & Operate
+
+- Install dependencies with `pnpm install --frozen-lockfile`.
+- Start the managed workflows `artifacts/api-server: API Server` and `artifacts/expiryguard: web` in Replit. They supply the required port/base-path settings; the app is served at `/` and API requests at `/api`.
+- `pnpm --filter @workspace/api-server run dev` — API development command used by its managed workflow (port 8080).
+- For a new development database, run `pnpm --filter @workspace/db run push` to apply the existing schema.
+- `pnpm run typecheck` — full typecheck across all packages
+- `pnpm --filter @workspace/expiryguard test:forecast` — rolling forecast scores, missing dish-days, zero actuals, and held-out date/count regression tests (Node.js 24)
+- `pnpm --filter @workspace/api-server test` — follow-up snapshot, calendar, outcome and inventory-safety regression tests
+- `pnpm --filter @workspace/api-server test:guard-store-db` — real PostgreSQL concurrent history-import persistence and owner isolation (development database only; cleans up its temporary workspaces)
+- `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- Required env: `DATABASE_URL` — Postgres connection string
+- Clerk sign-in requires `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, and `VITE_CLERK_PUBLISHABLE_KEY`; these are provisioned through Replit-managed Clerk. Never commit their values. Development accounts are separate from production accounts.
+- Custom ingredient photos use Replit App Storage. Files are stored privately; the owner workspace saves only the photo reference, and the API checks ownership before serving it.
+- `/api/healthz` returns `{"status":"ok"}` when the API is running. Anonymous requests to `/api/guard` must return 401.
+- The mockup-sandbox workflow is optional for design work and is not needed to run ExpiryGuardAI.
+
+## Stack
+
+- pnpm workspaces, Node.js 24, TypeScript 5.9
+- API: Express 5
+- DB: PostgreSQL + Drizzle ORM
+- Validation: Zod (`zod/v4`), `drizzle-zod`
+- API codegen: Orval (from OpenAPI spec)
+- Build: esbuild (CJS bundle)
+
+## Where things live
+
+_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+
+## Architecture decisions
+
+- Automation is limited to daily planning reviews and follow-up scheduling/reminders. Unattended production checks require the Reserved VM deployment target; the minute monitor and authenticated `/api/guard/notifications/tick` share a single-flight runner. External schedulers must set `NOTIFICATIONS_CRON_SECRET` and send it as a bearer token. The workspace development process only runs while active.
+- Pausing automation never disables live expiry checks or deletes existing follow-ups. Automation never approves plans, places orders, or invents measured stock/waste records.
+- A separate hourly email CLI is prepared, not activated. It reads the existing PostgreSQL workspace and writes only a persistent email outbox. See `docs/email-notification-worker.md` for dry-run/send commands, recipient opt-in, duplicate/crash handling, and separate Scheduled Deployment setup. Never replace the web/API service with a scheduled job or add schema mutation to production startup.
+
+- Clerk sign-in is required for café data. Each owner has a separate workspace seeded with synthetic samples; legacy shared demo data is never assigned to a new account. Only trusted server jobs may enter the legacy demo workspace. Twilio Sandbox remains confined to legacy synthetic data and its server-configured recipient, never owner records or browser preferences.
+- Forecasts are transparent rules-based estimates, not an external LLM or a trained ML model.
+- All purchasing and preparation recommendations require human approval. Never place supplier orders automatically or suggest using expired ingredients.
+- Monetary values use Malaysian ringgit (RM), and planning dates use Asia/Kuala_Lumpur.
+
+## Product
+
+Sales and inventory input/CSV import, tomorrow's menu forecasts, safe-stock capacity checks, expiry and overstock risks, editable preparation/purchasing approvals, actual sales and leftover tracking, waste/cost comparisons, and persistent activity history. Approvals schedule one- or two-day follow-ups (default two), with immutable ingredient-level snapshots and owner-reported remaining stock, ingredient discards, and action taken. Follow-ups are retained independently of regenerated recommendations in the persistent workspace document.
+
+## User preferences
+
+Use synthetic data. The user requested cute Genshin Impact-like characters while keeping practical business controls. Every recommendation must support approve, edit, and reject, with decision and estimated purchasing impact recorded.
+
+## Gotchas
+
+- Waste-aware reordering uses all received expiry batches but updates only the single simulated incoming delivery after explicit approval; it never changes on-hand stock or places supplier orders. Supplier terms and delivered shelf life are editable assumptions, not verified data.
+- See `docs/waste-aware-reordering.md` for calculations, safeguards, test commands and the hackathon walkthrough. Daily planning includes reorder drafts; future order dates/receipt uncertainties require owner reconciliation.
+
+- Follow-up forecasts exclude unconfirmed deliveries and are not a stock ledger. Comparisons do not establish consumption or causal waste reduction. Ingredient discards are not added to prepared-food leftover totals.
+- Old documents have no follow-ups or known inventory measurement dates by default. Attach checks explicitly with a current snapshot; never invent historical approval times or stock.
+- Inventory writes from outcomes require explicit confirmation. Historical observations do not overwrite unknown, same-day, or newer measurements. Inventory forms/imports date current measurements using the Kuala Lumpur planning day.
+
+## Pointers
+
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details

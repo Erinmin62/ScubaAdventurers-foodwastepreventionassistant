@@ -1,0 +1,1619 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+# Guard endpoints require a verified Clerk session and return 401 when signed
+# out. Workspace identity comes only from that session, never request input.
+# Notification review tokens additionally require the owning session.
+security:
+  - ownerSession: []
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+paths:
+  /guard/email-preview:
+    get:
+      operationId: getEmailPreview
+      summary: Read-only expiry email preview for the signed-in owner's workspace
+      responses:
+        "200":
+          description: Current urgent expiry alerts and 2–3 day digest preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailPreview"
+        "401": { description: Sign-in required }
+        "503": { description: Email preview unavailable }
+  /guard/email-history:
+    get:
+      operationId: getEmailHistory
+      summary: Latest 50 notification email attempts for the signed-in owner
+      responses:
+        "200":
+          description: Acceptance audit and separately verified delivery evidence
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [records]
+                properties:
+                  records:
+                    type: array
+                    items: { $ref: "#/components/schemas/EmailHistoryRecord" }
+        "401": { description: Sign-in required }
+        "503": { description: Email history unavailable }
+  /webhooks/resend:
+    post:
+      security: []
+      operationId: receiveEmailDelivery
+      summary: Opt-in Resend webhook verified using Svix headers and raw body
+      parameters:
+        - in: header
+          name: svix-id
+          required: true
+          schema: { type: string, maxLength: 200 }
+        - in: header
+          name: svix-timestamp
+          required: true
+          schema: { type: string }
+        - in: header
+          name: svix-signature
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Verified receipt persisted or unsupported event ignored }
+        "400": { description: Invalid signature or event }
+        "503": { description: Disabled or receipt storage unavailable }
+  /storage/uploads/request-url:
+    post:
+      operationId: requestIngredientPhotoUpload
+      summary: Request an owner-scoped ingredient photo upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IngredientPhotoUploadRequest" }
+      responses:
+        "200":
+          description: A short-lived upload URL and private object reference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IngredientPhotoUploadResponse" }
+        "400": { description: Invalid photo metadata or ingredient }
+        "401": { description: Sign-in required }
+  /storage/uploads/confirm:
+    post:
+      operationId: confirmIngredientPhotoUpload
+      summary: Confirm and save an uploaded ingredient photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IngredientPhotoConfirmRequest" }
+      responses:
+        "200":
+          description: Owner workspace with the confirmed photo reference
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: "Invalid, missing, or oversized photo" }
+        "401": { description: Sign-in required }
+  /storage/ingredients/{ingredientId}/photo:
+    delete:
+      operationId: removeIngredientPhoto
+      summary: Remove the custom photo from an owner ingredient
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 160 }
+      responses:
+        "200":
+          description: Owner workspace with the bundled ingredient image restored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "401": { description: Sign-in required }
+        "404": { description: Ingredient not found in this owner's workspace }
+  /storage/objects/{objectKey}:
+    get:
+      operationId: getIngredientPhoto
+      summary: Serve an ingredient photo to its owning food-business account
+      parameters:
+        - name: objectKey
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[a-f0-9]{96}$" }
+      responses:
+        "302": { description: Temporary redirect to a short-lived private object URL }
+        "401": { description: Sign-in required }
+        "404": { description: Photo not found for this owner }
+  /guard/inbox:
+    get:
+      operationId: getInbox
+      responses:
+        "200":
+          description: Persistent in-app notifications and attention counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InboxState" }
+  /guard/inbox/update:
+    post:
+      operationId: updateInbox
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InboxUpdateInput" }
+      responses:
+        "200":
+          description: Read or dismissal state saved; no action executed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InboxState" }
+        "400": { description: Invalid operation }
+        "404": { description: Notification not found }
+  /guard/inbox/thresholds:
+    patch:
+      operationId: updateInboxThresholds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InboxThresholds" }
+      responses:
+        "200":
+          description: Thresholds updated and expiry notifications reconciled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InboxState" }
+        "400": { description: Invalid thresholds }
+  /guard/ingredients/{id}/batches:
+    post:
+      operationId: saveIngredientBatch
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StockBatchInput" }
+      responses:
+        "200":
+          description: Received stock saved, planned delivery unchanged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/notifications:
+    get:
+      operationId: getNotifications
+      responses:
+        "200":
+          description: Notification preferences and demo delivery history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationState" }
+    patch:
+      operationId: saveNotificationSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationSettingsInput" }
+      responses:
+        "200":
+          description: Settings saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationState" }
+  /guard/monitor-status:
+    get:
+      operationId: getMonitorHeartbeatStatus
+      responses:
+        "200":
+          description: Read-only status of the latest owner workspace monitor check
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MonitorHeartbeatStatus" }
+  /guard/expiry-check-status:
+    get:
+      operationId: getExpiryCheckStatus
+      responses:
+        "200":
+          description: Read-only status of the latest scheduled expiry scan for the authenticated owner
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExpiryCheckStatus" }
+        "503": { description: Expiry check status is temporarily unavailable }
+  /guard/notifications/scan:
+    post:
+      operationId: scanNotifications
+      responses:
+        "200":
+          description: Scan completed without approving any action
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationState" }
+  /guard/notifications/tick:
+    post:
+      security:
+        - schedulerSecret: []
+      operationId: runNotificationTick
+      responses:
+        "204": { description: Authorized server-side planning and notification scan completed; demo previews only }
+        "403": { description: Invalid scheduler credential }
+        "503": { description: Scheduler credential not configured }
+  /guard/notifications/review:
+    post:
+      operationId: reviewNotification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationReviewInput" }
+      responses:
+        "200":
+          description: Read-only review, token never approves actions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationReview" }
+        "410":
+          description: Link expired, resolved or invalid
+  /guard/notifications/webhook:
+    get:
+      security: []
+      operationId: verifyWhatsAppWebhook
+      responses:
+        "200": { description: Meta verification challenge }
+        "403": { description: Verification rejected }
+    post:
+      operationId: receiveWhatsAppWebhook
+      security: []
+      responses:
+        "200": { description: Verified provider status processed }
+        "403": { description: Signature verification rejected }
+  /guard/reorders:
+    get:
+      operationId: getReorders
+      responses:
+        "200":
+          description: Live analysis and saved simulated order proposals
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReorderState" }
+  /guard/reorders/scan:
+    post:
+      operationId: scanReorders
+      responses:
+        "200":
+          description: Proposals generated without execution
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReorderState" }
+  /guard/reorders/settings:
+    patch:
+      operationId: configureReorder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReorderConfig" }
+      responses:
+        "200":
+          description: Assumptions saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReorderState" }
+  /guard/reorders/{id}/preview:
+    post:
+      operationId: previewReorder
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReorderPreviewInput" }
+      responses:
+        "200":
+          description: Read-only comparison; no stock, delivery, decision or activity records changed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReorderPreview" }
+        "400": { description: "Invalid scenario, incomplete demand, stale or decided proposal" }
+  /guard/reorders/{id}/decision:
+    post:
+      operationId: decideReorder
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderDecisionInput"
+      responses:
+        "200":
+          description: Decision and execution result, including failures
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReorderState" }
+  /guard/automation:
+    patch:
+      operationId: updateAutomation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AutomationSettingsInput" }
+      responses:
+        "200":
+          description: Automation settings saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/automation/run:
+    post:
+      operationId: runAutomation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AutomationRunInput" }
+      responses:
+        "200":
+          description: Enabled workflows run now
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/state:
+    get:
+      operationId: getGuardState
+      responses:
+        "200":
+          description: Complete food-business workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/business-profile:
+    patch:
+      operationId: updateBusinessProfile
+      summary: Update the authenticated owner's food-business name and type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BusinessProfileInput" }
+      responses:
+        "200":
+          description: Updated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid business profile }
+  /guard/workspace/setup:
+    post:
+      operationId: chooseWorkspaceMode
+      summary: Keep the synthetic demo or replace it with an owner-data workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceSetupInput" }
+      responses:
+        "200":
+          description: Updated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid or unconfirmed workspace choice }
+  /guard/history:
+    get:
+      operationId: getHistoricalRecords
+      summary: List historical records kept separate from live planning inputs
+      responses:
+        "200":
+          description: Historical records for the authenticated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalRecordsResponse" }
+  /guard/history/batches/{batchId}:
+    delete:
+      operationId: removeHistoricalBatch
+      summary: Remove only this owner's archive batch without changing operational records
+      parameters:
+        - in: path
+          name: batchId
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 200 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HistoricalBatchRemoval" }
+      responses:
+        "200":
+          description: Remaining archive after removal
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalRecordsResponse" }
+        "400":
+          description: Explicit confirmation required
+        "404":
+          description: Batch not found in this owner's archive
+  /guard/history/import:
+    post:
+      operationId: importHistoricalRecords
+      summary: Append validated historical records without changing live stock, sales, or orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HistoricalRecordsInput" }
+      responses:
+        "200":
+          description: Historical records appended to the authenticated owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HistoricalRecordsResponse" }
+        "400": { description: One or more records failed validation; no records were imported }
+  /guard/records:
+    post:
+      operationId: addGuardRecords
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordsInput" }
+      responses:
+        "200":
+          description: Updated workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/menu:
+    post:
+      operationId: createMenuItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuItemInput" }
+      responses:
+        "201":
+          description: Menu item created in the owner workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: "Invalid name, recipe or price details" }
+  /guard/menu/import/preview:
+    post:
+      operationId: previewMenuImport
+      summary: Validate an owner menu CSV without saving changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuCsvImportInput" }
+      responses:
+        "200":
+          description: Validated menu preview and any row-specific errors
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MenuCsvImportPreview" }
+        "400": { description: Invalid request or owner workspace unavailable }
+  /guard/menu/import:
+    post:
+      operationId: importMenuCsv
+      summary: Apply a validated menu CSV, updating matching active dishes and adding new dishes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuCsvImportApplyInput" }
+      responses:
+        "201":
+          description: All menu changes applied together; historical sales and waste snapshots retain the prior menu details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid CSV; no menu changes were saved }
+  /guard/menu/{id}:
+    patch:
+      operationId: updateMenuItem
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuItemUpdate" }
+      responses:
+        "200":
+          description: Menu item updated; historical sales and waste snapshots are preserved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "400": { description: Invalid menu update }
+        "404": { description: Menu item not found }
+    delete:
+      operationId: deleteMenuItem
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Unused item removed or item with historical records archived
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+        "404": { description: Menu item not found }
+  /guard/menu/recipe-draft:
+    post:
+      operationId: draftMenuRecipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MenuRecipeDraftInput" }
+      responses:
+        "200":
+          description: AI-suggested recipe using only ingredients in this owner's inventory
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MenuRecipeDraft" }
+        "400": { description: Invalid dish details or no inventory ingredients }
+        "429": { description: Recipe drafting request limit reached }
+        "503": { description: Recipe drafting is temporarily unavailable }
+  /guard/ai-forecast/demo:
+    post:
+      operationId: generateAiDemoForecast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiForecastDemoInput" }
+      responses:
+        "200":
+          description: Experimental LLM forecast generated only from synthetic demo data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiForecastDemoResponse" }
+        "400": { description: Demo-only acknowledgement is required }
+        "429": { description: AI forecast demo request limit reached }
+        "503": { description: AI forecast demo is temporarily unavailable }
+  /guard/ai-forecast/owner-history:
+    post:
+      operationId: generateAiOwnerHistoryForecast
+      summary: Generate an advisory forecast from explicitly confirmed historical sales and preparation records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AiOwnerHistoryForecastInput" }
+      responses:
+        "200":
+          description: Advisory forecast based only on confirmed archived owner records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiOwnerHistoryForecastResponse" }
+        "400": { description: "Explicit consent, a valid history preview, or usable archived records are required" }
+        "409": { description: The archive changed after the owner reviewed the preview }
+        "429": { description: AI owner-history forecast request limit reached }
+        "503": { description: AI owner-history forecast is temporarily unavailable }
+  /guard/recommendations/{id}/decision:
+    post:
+      operationId: decideRecommendation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecisionInput" }
+      responses:
+        "200":
+          description: Decision saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/recommendations/{id}/follow-up:
+    post:
+      operationId: attachFollowUp
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FollowUpScheduleInput" }
+      responses:
+        "200":
+          description: Follow-up attached using a current snapshot, not a historical baseline
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /guard/follow-ups/{id}/outcome:
+    post:
+      operationId: recordFollowUpOutcome
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OutcomeInput" }
+      responses:
+        "200":
+          description: Outcome recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GuardState" }
+  /healthz:
+    get:
+      security: []
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+components:
+  securitySchemes:
+    ownerSession:
+      type: apiKey
+      in: cookie
+      name: __session
+      description: Clerk-verified browser session; all business data is scoped to its owner.
+    schedulerSecret:
+      type: http
+      scheme: bearer
+      description: Separate server-configured scheduler credential; a user session cannot run global checks.
+  schemas:
+    EmailPreview:
+      type: object
+      required: [workspaceName, synthetic, generatedAt, timeZone, urgentAlerts, digest]
+      properties:
+        workspaceName: { type: string }
+        synthetic: { type: boolean }
+        generatedAt: { type: string, format: date-time }
+        timeZone: { type: string }
+        urgentAlerts:
+          type: array
+          items: { $ref: "#/components/schemas/ExpiryEmailPreviewItem" }
+        digest:
+          type: array
+          items: { $ref: "#/components/schemas/ExpiryEmailPreviewItem" }
+    ExpiryEmailPreviewItem:
+      type: object
+      required: [kind, subject, text, itemCount]
+      properties:
+        kind: { type: string, enum: [critical_expiry, daily_digest] }
+        subject: { type: string }
+        text: { type: string }
+        itemCount: { type: integer, minimum: 1 }
+    EmailHistoryRecord:
+      type: object
+      required: [id, kind, subject, attemptStatus, observedAt, attemptedAt, acceptedAt, deliveryStatus, deliveryUpdatedAt]
+      properties:
+        id: { type: string }
+        kind: { type: string }
+        subject: { type: string }
+        attemptStatus:
+          type: string
+          enum: [queued, sending, accepted, failed, uncertain, cancelled]
+        observedAt: { type: string, format: date-time }
+        attemptedAt: { type: [string, "null"], format: date-time }
+        acceptedAt: { type: [string, "null"], format: date-time }
+        deliveryStatus:
+          type: string
+          enum: [unconfirmed, email.sent, email.delivery_delayed, email.delivered, email.failed, email.bounced, email.complained]
+        deliveryUpdatedAt: { type: [string, "null"], format: date-time }
+    InboxUpdateInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [read, unread, dismiss, read-all] }
+        id: { type: string, minLength: 1 }
+    InboxThresholds:
+      type: object
+      required: [warningDays, upcomingDays]
+      properties:
+        warningDays: { type: integer, minimum: 1, maximum: 30 }
+        upcomingDays: { type: integer, minimum: 1, maximum: 90 }
+    InboxNotification:
+      type: object
+      required: [id, kind, severity, title, description, path, relatedId, createdAt, updatedAt, readAt, dismissedAt, resolvedAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [expiry, recommendations, approvals, failures, completed] }
+        severity: { type: string, enum: [critical, warning, upcoming, info, success] }
+        title: { type: string }
+        description: { type: string }
+        path: { type: string }
+        relatedId: { type: string }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        readAt: { type: [string, "null"] }
+        dismissedAt: { type: [string, "null"] }
+        resolvedAt: { type: [string, "null"] }
+    InboxState:
+      type: object
+      required: [items, unreadCount, counts, thresholds, checkedAt]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/InboxNotification" }
+        unreadCount: { type: integer }
+        checkedAt: { type: string }
+        thresholds: { $ref: "#/components/schemas/InboxThresholds" }
+        counts:
+          type: object
+          required: [critical, approaching, pendingApproval, failed]
+          properties:
+            critical: { type: integer }
+            approaching: { type: integer }
+            pendingApproval: { type: integer }
+            failed: { type: integer }
+    NotificationSettingsInput:
+      type: object
+      required: [enabled, phone, optIn, expiry, recommendations, approvals, failures, completed, reminderHours, maxReminders, dailyLimit, riskThreshold]
+      properties:
+        enabled: { type: boolean }
+        phone: { type: string, maxLength: 20 }
+        optIn: { type: boolean }
+        expiry: { type: boolean }
+        recommendations: { type: boolean }
+        approvals: { type: boolean }
+        failures: { type: boolean }
+        completed: { type: boolean }
+        reminderHours: { type: integer, minimum: 24, maximum: 168 }
+        maxReminders: { type: integer, minimum: 0, maximum: 3 }
+        dailyLimit: { type: integer, minimum: 1, maximum: 20 }
+        riskThreshold: { type: number, minimum: 0, maximum: 1000000 }
+    NotificationRecord:
+      type: object
+      required: [id, eventId, kind, priority, title, message, createdAt, status, reminderIndex, attempts, recipient, reviewUrl, expiresAt]
+      properties:
+        id: { type: string }
+        eventId: { type: string }
+        kind: { type: string, enum: [expiry, recommendations, approvals, failures, completed] }
+        priority: { type: string, enum: [critical, warning, upcoming, info] }
+        title: { type: string }
+        message: { type: string }
+        createdAt: { type: string }
+        status: { type: string, enum: [demo, queued, sending, accepted, delivered, read, failed, unknown, cancelled] }
+        reminderIndex: { type: integer }
+        attempts: { type: integer }
+        recipient: { type: string }
+        reviewUrl: { type: string }
+        expiresAt: { type: string }
+        resolvedAt: { type: string }
+        providerMessageId: { type: string }
+        deliveredAt: { type: string }
+        lastError: { type: string }
+    NotificationState:
+      type: object
+      required: [settings, records, mode, liveReady, blockers, monitor, consentAt]
+      properties:
+        settings: { $ref: "#/components/schemas/NotificationSettingsInput" }
+        records:
+          type: array
+          items: { $ref: "#/components/schemas/NotificationRecord" }
+        mode: { type: string, enum: [demo] }
+        liveReady: { type: boolean }
+        blockers:
+          type: array
+          items: { type: string }
+        monitor: { type: string }
+        lastScan: { type: string }
+        consentAt: { type: ["string", "null"] }
+        sandbox: { $ref: "#/components/schemas/SandboxNotificationState" }
+    MonitorHeartbeatStatus:
+      type: object
+      required: [status, lastAttemptAt, lastSuccessfulAt]
+      properties:
+        status: { type: string, enum: [healthy, stale, failed, not-started] }
+        lastAttemptAt: { type: ["string", "null"], format: date-time }
+        lastSuccessfulAt: { type: ["string", "null"], format: date-time }
+    ExpiryCheckStatus:
+      type: object
+      required: [status, lastCompletedAt, outcome]
+      properties:
+        status: { type: string, enum: [healthy, stale, failed, not-started] }
+        lastCompletedAt: { type: ["string", "null"], format: date-time }
+        outcome: { type: ["string", "null"], enum: [success, failed, null] }
+    SandboxNotificationMessage:
+      type: object
+      required: [id, createdAt, status, message]
+      properties:
+        id: { type: string }
+        createdAt: { type: string }
+        status: { type: string, enum: [sending, accepted, delivered, read, failed, unknown] }
+        message: { type: string }
+        providerMessageId: { type: string }
+        lastError: { type: string }
+    SandboxNotificationState:
+      type: object
+      required: [configured, status, notice, dailyLimit, usedToday, messages]
+      properties:
+        configured: { type: boolean }
+        status: { type: string, enum: [not-configured, checking, waiting-for-opt-in, ready, window-closed, paused, error, daily-limit] }
+        notice: { type: string }
+        checkedAt: { type: string }
+        windowExpiresAt: { type: string }
+        dailyLimit: { type: integer }
+        usedToday: { type: integer }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/SandboxNotificationMessage" }
+    NotificationReviewInput:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 40, maxLength: 100 }
+    NotificationReview:
+      type: object
+      required: [title, message, expiresAt, path, demo, notice]
+      properties:
+        title: { type: string }
+        message: { type: string }
+        expiresAt: { type: string }
+        path: { type: string }
+        demo: { type: boolean }
+        notice: { type: string }
+    ReorderPreviewInput:
+      type: object
+      required: [quantity, deliveryDate]
+      properties:
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        deliveryDate: { type: string }
+    ReorderScenario:
+      type: object
+      required: [quantity, deliveryDate, purchaseCost, wasteQuantity, wasteCost, shortageQuantity, shortageBeforeDelivery, closingStock]
+      properties:
+        quantity: { type: number }
+        deliveryDate: { type: string }
+        purchaseCost: { type: number }
+        wasteQuantity: { type: number }
+        wasteCost: { type: number }
+        shortageQuantity: { type: number }
+        shortageBeforeDelivery: { type: number }
+        closingStock: { type: number }
+    ReorderPreview:
+      type: object
+      required: [planId, unit, dailyUsage, reviewThrough, evaluatedThrough, original, recommended, scenario, purchaseReduction, wasteReduction, approvalAllowed, warnings]
+      properties:
+        planId: { type: string }
+        unit: { type: string }
+        dailyUsage: { type: number }
+        reviewThrough: { type: string }
+        evaluatedThrough: { type: string }
+        original: { $ref: "#/components/schemas/ReorderScenario" }
+        recommended: { $ref: "#/components/schemas/ReorderScenario" }
+        scenario: { $ref: "#/components/schemas/ReorderScenario" }
+        purchaseReduction: { type: number }
+        wasteReduction: { type: number }
+        approvalAllowed: { type: boolean }
+        warnings: { type: array, items: { type: string } }
+    ReorderDecisionInput:
+      type: object
+      required: [decision, approver]
+      properties:
+        decision: { type: string, enum: [approve, reject] }
+        approver: { type: string, minLength: 1, maxLength: 80 }
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        deliveryDate: { type: string }
+    ReorderConfig:
+      type: object
+      required: [ingredientId, leadDays, reviewDays, minOrder, safetyStock, shelfDays]
+      properties:
+        ingredientId: { type: string }
+        leadDays: { type: integer, minimum: 1, maximum: 14 }
+        reviewDays: { type: integer, minimum: 1, maximum: 14 }
+        minOrder: { type: number, minimum: 0, maximum: 1000000 }
+        safetyStock: { type: number, minimum: 0, maximum: 1000000 }
+        shelfDays: { type: integer, minimum: 1, maximum: 90 }
+        dailyUsage: { type: number, minimum: 0, maximum: 1000000 }
+    ReorderLine:
+      type: object
+      required: [ingredientId, name, unit, unitCost, expiry, currentStock, expiredQuantity, wasteQuantity, wasteCost, incomingQuantity, incomingDate, dailyUsage, expectedDemand, originalQuantity, recommendedQuantity, additionalQuantity, deliveryDate, originalCost, proposedCost, potentialWasteReduction, shortageBeforeDelivery, explanation, assumptions, demandAvailable, config]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        photoPath: { type: ["string", "null"] }
+        unit: { type: string }
+        unitCost: { type: number }
+        expiry: { type: string }
+        currentStock: { type: number }
+        expiredQuantity: { type: number }
+        wasteQuantity: { type: number }
+        wasteCost: { type: number }
+        incomingQuantity: { type: number }
+        incomingDate: { type: string }
+        dailyUsage: { type: number }
+        expectedDemand: { type: number }
+        originalQuantity: { type: number }
+        recommendedQuantity: { type: number }
+        additionalQuantity: { type: number }
+        deliveryDate: { type: string }
+        originalCost: { type: number }
+        proposedCost: { type: number }
+        potentialWasteReduction: { type: number }
+        shortageBeforeDelivery: { type: number }
+        explanation: { type: string }
+        assumptions: { type: array, items: { type: string } }
+        demandAvailable: { type: boolean }
+        config: { $ref: "#/components/schemas/ReorderConfig" }
+    ReorderPlan:
+      type: object
+      required: [id, status, createdAt, fingerprint, line, detail]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [PENDING_APPROVAL, EXECUTED, REJECTED, FAILED, SUPERSEDED] }
+        createdAt: { type: string }
+        fingerprint: { type: string }
+        line: { $ref: "#/components/schemas/ReorderLine" }
+        detail: { type: string }
+        decidedAt: { type: string }
+        approver: { type: string }
+        approvedQuantity: { type: number }
+        approvedDate: { type: string }
+        beforeQuantity: { type: number }
+        afterQuantity: { type: number }
+        beforeDate: { type: string }
+        afterDate: { type: string }
+    ReorderState:
+      type: object
+      required: [settings, plans, analysis]
+      properties:
+        settings: { type: array, items: { $ref: "#/components/schemas/ReorderConfig" } }
+        plans: { type: array, items: { $ref: "#/components/schemas/ReorderPlan" } }
+        analysis: { type: array, items: { $ref: "#/components/schemas/ReorderLine" } }
+        lastScan: { type: string }
+    AutomationSettingsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        dailyPlanning: { type: boolean }
+        followUpHandling: { type: boolean }
+    AutomationRunInput:
+      type: object
+      required: [workflow]
+      properties:
+        workflow: { type: string, enum: [daily-planning, follow-ups, all] }
+    AutomationRun:
+      type: object
+      required: [id, workflow, trigger, time, date, detail, draftCount, riskCount, dueCount, overdueCount, predictedPortions]
+      properties:
+        id: { type: string }
+        workflow: { type: string, enum: [daily-planning, follow-ups] }
+        trigger: { type: string, enum: [automatic, manual] }
+        time: { type: string }
+        date: { type: string }
+        detail: { type: string }
+        draftCount: { type: integer }
+        riskCount: { type: integer }
+        dueCount: { type: integer }
+        overdueCount: { type: integer }
+        predictedPortions: { type: integer }
+    AutomationState:
+      type: object
+      required: [dailyPlanning, followUpHandling, runs]
+      properties:
+        dailyPlanning: { type: boolean }
+        followUpHandling: { type: boolean }
+        runs:
+          type: array
+          items: { $ref: "#/components/schemas/AutomationRun" }
+    StockBatchInput:
+      type: object
+      required: [quantity, expiry, receivedDate]
+      properties:
+        id: { type: string }
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        expiry: { type: string }
+        receivedDate: { type: ["string", "null"] }
+    StockBatch:
+      type: object
+      required: [id, quantity, expiry, receivedDate]
+      properties:
+        id: { type: string }
+        quantity: { type: number, minimum: 0 }
+        expiry: { type: string }
+        receivedDate: { type: ["string", "null"] }
+    Ingredient:
+      type: object
+      required: [id, name, quantity, unit, expiry, cost, category, deliveryQuantity, deliveryDate]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        quantity: { type: number, minimum: 0 }
+        unit: { type: string }
+        expiry: { type: string }
+        cost: { type: number, minimum: 0 }
+        category: { type: string }
+        deliveryQuantity: { type: number, minimum: 0 }
+        deliveryDate: { type: string }
+        photoPath: { type: ["string", "null"] }
+        measuredDate: { type: ["string", "null"] }
+        batches:
+          type: array
+          items: { $ref: "#/components/schemas/StockBatch" }
+    Sale:
+      type: object
+      required: [date, menuId, portions]
+      properties:
+        date: { type: string }
+        menuId: { type: string }
+        portions: { type: integer, minimum: 0 }
+        menuName: { type: string }
+        menuPrice: { type: number, minimum: 0 }
+        menuCost: { type: number, minimum: 0 }
+        menuRecipe:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    Result:
+      type: object
+      required: [date, menuId, prepared, sold, leftover]
+      properties:
+        date: { type: string }
+        menuId: { type: string }
+        prepared: { type: integer, minimum: 0 }
+        sold: { type: integer, minimum: 0 }
+        leftover: { type: integer, minimum: 0 }
+        menuName: { type: string }
+        menuPrice: { type: number, minimum: 0 }
+        menuCost: { type: number, minimum: 0 }
+        menuRecipe:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    RecipeItem:
+      type: object
+      required: [ingredientId, amount]
+      properties:
+        ingredientId: { type: string }
+        amount: { type: number, exclusiveMinimum: 0 }
+    MenuItem:
+      type: object
+      required: [id, name, description, price, cost, recipe, archivedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        price: { type: number }
+        cost: { type: number }
+        archivedAt: { type: ["string", "null"] }
+        recipe:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    MenuItemInput:
+      type: object
+      additionalProperties: false
+      required: [name, description, price, cost, recipe]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 500 }
+        price: { type: number, minimum: 0, maximum: 1000000 }
+        cost: { type: number, minimum: 0, maximum: 1000000 }
+        recipe:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    MenuCsvImportInput:
+      type: object
+      additionalProperties: false
+      required: [csv]
+      properties:
+        csv: { type: string, minLength: 1, maxLength: 2000000 }
+    MenuCsvImportApplyInput:
+      type: object
+      additionalProperties: false
+      required: [csv, expectedMenuRevision]
+      properties:
+        csv: { type: string, minLength: 1, maxLength: 2000000 }
+        expectedMenuRevision: { type: integer, minimum: 0 }
+    MenuCsvImportDishPreview:
+      type: object
+      additionalProperties: false
+      required: [name, description, action, price, cost, ingredientCount, ingredients]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        action: { type: string, enum: [add, update] }
+        price: { type: number }
+        cost: { type: number }
+        ingredientCount: { type: integer }
+        ingredients:
+          type: array
+          items: { $ref: "#/components/schemas/MenuCsvImportIngredientPreview" }
+    MenuCsvImportIngredientPreview:
+      type: object
+      additionalProperties: false
+      required: [name, unit, quantityPerPortion]
+      properties:
+        name: { type: string }
+        unit: { type: string }
+        quantityPerPortion: { type: number }
+    MenuCsvImportPreview:
+      type: object
+      additionalProperties: false
+      required: [valid, menuRevision, dishCount, dishes, errors]
+      properties:
+        valid: { type: boolean }
+        menuRevision: { type: integer, minimum: 0 }
+        dishCount: { type: integer }
+        dishes:
+          type: array
+          items: { $ref: "#/components/schemas/MenuCsvImportDishPreview" }
+        errors:
+          type: array
+          items: { type: string }
+    MenuItemUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, maxLength: 500 }
+        price: { type: number, minimum: 0, maximum: 1000000 }
+        cost: { type: number, minimum: 0, maximum: 1000000 }
+        active: { type: boolean }
+        recipe:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/RecipeItem" }
+    MenuRecipeDraftInput:
+      type: object
+      additionalProperties: false
+      required: [name, description]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, minLength: 5, maxLength: 500 }
+    MenuRecipeDraft:
+      type: object
+      additionalProperties: false
+      required: [recipe, explanation, notice]
+      properties:
+        recipe:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items: { $ref: "#/components/schemas/RecipeItem" }
+        explanation: { type: string, maxLength: 500 }
+        notice: { type: string, maxLength: 500 }
+    AiForecastDemoInput:
+      type: object
+      additionalProperties: false
+      required: [demoOnly]
+      properties:
+        demoOnly: { type: boolean, enum: [true] }
+    AiOwnerHistoryForecastInput:
+      type: object
+      additionalProperties: false
+      required: [ownerHistoryConsent, expectedHistoryStart, expectedHistoryEnd, expectedSalesCount, expectedPreparationCount]
+      properties:
+        ownerHistoryConsent: { type: boolean, enum: [true] }
+        expectedHistoryStart: { type: string, format: date }
+        expectedHistoryEnd: { type: string, format: date }
+        expectedSalesCount: { type: integer, minimum: 0, maximum: 2000 }
+        expectedPreparationCount: { type: integer, minimum: 0, maximum: 2000 }
+    AiOwnerHistoryDishForecast:
+      type: object
+      required: [itemName, predictedPortionsByDay, totalPredictedPortions, explanation]
+      properties:
+        itemName: { type: string, minLength: 1, maxLength: 160 }
+        predictedPortionsByDay:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items: { type: integer, minimum: 0, maximum: 1000 }
+        totalPredictedPortions: { type: integer, minimum: 0, maximum: 7000 }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiOwnerHistoryForecastResponse:
+      type: object
+      required: [mode, model, generatedAt, historyStart, historyEnd, salesCount, preparationCount, horizonStart, horizonEnd, summary, demandForecasts, disclaimer]
+      properties:
+        mode: { type: string, enum: [owner_history] }
+        model: { type: string }
+        generatedAt: { type: string, format: date-time }
+        historyStart: { type: string, format: date }
+        historyEnd: { type: string, format: date }
+        salesCount: { type: integer, minimum: 0, maximum: 2000 }
+        preparationCount: { type: integer, minimum: 0, maximum: 2000 }
+        horizonStart: { type: string, format: date }
+        horizonEnd: { type: string, format: date }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        demandForecasts:
+          type: array
+          items: { $ref: "#/components/schemas/AiOwnerHistoryDishForecast" }
+        disclaimer: { type: string }
+    AiDemoDishForecast:
+      type: object
+      required: [menuId, name, predictedPortionsByDay, totalPredictedPortions, explanation]
+      properties:
+        menuId: { type: string }
+        name: { type: string }
+        predictedPortionsByDay:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items: { type: integer, minimum: 0, maximum: 1000 }
+        totalPredictedPortions: { type: integer, minimum: 0, maximum: 7000 }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiDemoWastePrediction:
+      type: object
+      required: [ingredientId, name, estimatedAtRisk, unit, expiryDate, explanation]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        estimatedAtRisk: { type: number, minimum: 0, maximum: 1000000 }
+        unit: { type: string, enum: [kg, L, pcs] }
+        expiryDate: { type: string, format: date }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiDemoOrderRecommendation:
+      type: object
+      required: [ingredientId, name, suggestedOrderQuantity, unit, proposedDeliveryDate, explanation]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        suggestedOrderQuantity: { type: number, minimum: 0, maximum: 1000000 }
+        unit: { type: string, enum: [kg, L, pcs] }
+        proposedDeliveryDate: { type: string, format: date }
+        explanation: { type: string, minLength: 1, maxLength: 500 }
+    AiForecastDemoResponse:
+      type: object
+      required: [mode, model, generatedAt, historyDays, horizonStart, horizonEnd, summary, demandForecasts, wastePredictions, orderRecommendations, disclaimer]
+      properties:
+        mode: { type: string, enum: [synthetic_demo] }
+        model: { type: string }
+        generatedAt: { type: string, format: date-time }
+        historyDays: { type: integer, enum: [28] }
+        horizonStart: { type: string, format: date }
+        horizonEnd: { type: string, format: date }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        demandForecasts:
+          type: array
+          items: { $ref: "#/components/schemas/AiDemoDishForecast" }
+        wastePredictions:
+          type: array
+          items: { $ref: "#/components/schemas/AiDemoWastePrediction" }
+        orderRecommendations:
+          type: array
+          items: { $ref: "#/components/schemas/AiDemoOrderRecommendation" }
+        disclaimer: { type: string }
+    Forecast:
+      type: object
+      required: [menuId, name, predicted, capacity, suggested, confidence, reason]
+      properties:
+        menuId: { type: string }
+        name: { type: string }
+        predicted: { type: integer }
+        capacity: { type: integer }
+        suggested: { type: integer }
+        confidence: { type: string }
+        reason: { type: string }
+    Risk:
+      type: object
+      required: [ingredientId, name, daysLeft, level, expectedUse, atRisk, value, message]
+      properties:
+        ingredientId: { type: string }
+        name: { type: string }
+        daysLeft: { type: integer }
+        level: { type: string }
+        expectedUse: { type: number }
+        atRisk: { type: number }
+        value: { type: number }
+        message: { type: string }
+    Recommendation:
+      type: object
+      required: [id, type, targetId, title, description, original, suggested, unit, savings, status, approvedQuantity]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        targetId: { type: string }
+        title: { type: string }
+        description: { type: string }
+        original: { type: number }
+        suggested: { type: number }
+        unit: { type: string }
+        savings: { type: number }
+        status: { type: string }
+        approvedQuantity: { type: ["number", "null"] }
+    Activity:
+      type: object
+      required: [id, time, title, detail, decision, impact]
+      properties:
+        id: { type: string }
+        time: { type: string }
+        title: { type: string }
+        detail: { type: string }
+        decision: { type: string }
+        impact: { type: number }
+    Summary:
+      type: object
+      required: [predictedPortions, riskValue, pendingCount, estimatedSavings, baselineWasteCost, actualWasteCost, baselinePurchaseCost, plannedPurchaseCost, baselineWasteKg, actualWasteKg]
+      properties:
+        predictedPortions: { type: integer }
+        riskValue: { type: number }
+        pendingCount: { type: integer }
+        estimatedSavings: { type: number }
+        baselineWasteCost: { type: number }
+        actualWasteCost: { type: number }
+        baselinePurchaseCost: { type: number }
+        plannedPurchaseCost: { type: number }
+        baselineWasteKg: { type: number }
+        actualWasteKg: { type: number }
+    GuardState:
+      type: object
+      required: [today, tomorrow, cafeName, businessProfile, workspaceMode, synthetic, ingredients, sales, results, menu, forecasts, risks, recommendations, activity, summary, followUps, approvedRecommendations, automation]
+      properties:
+        today: { type: string }
+        tomorrow: { type: string }
+        cafeName: { type: string, deprecated: true, description: "Legacy compatibility alias for businessProfile.name." }
+        businessProfile: { $ref: "#/components/schemas/BusinessProfile" }
+        workspaceMode: { type: string, enum: [setup_required, synthetic_demo, owner_data] }
+        synthetic: { type: boolean }
+        automation: { $ref: "#/components/schemas/AutomationState" }
+        ingredients:
+          type: array
+          items: { $ref: "#/components/schemas/Ingredient" }
+        sales:
+          type: array
+          items: { $ref: "#/components/schemas/Sale" }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/Result" }
+        menu:
+          type: array
+          items: { $ref: "#/components/schemas/MenuItem" }
+        forecasts:
+          type: array
+          items: { $ref: "#/components/schemas/Forecast" }
+        risks:
+          type: array
+          items: { $ref: "#/components/schemas/Risk" }
+        recommendations:
+          type: array
+          items: { $ref: "#/components/schemas/Recommendation" }
+        activity:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }
+        summary: { $ref: "#/components/schemas/Summary" }
+        followUps:
+          type: array
+          items: { $ref: "#/components/schemas/FollowUp" }
+        approvedRecommendations:
+          type: array
+          items: { $ref: "#/components/schemas/Recommendation" }
+    BusinessProfile:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        type: { $ref: "#/components/schemas/BusinessType" }
+    BusinessProfileInput:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        type: { $ref: "#/components/schemas/BusinessType" }
+    WorkspaceSetupInput:
+      type: object
+      required: [mode]
+      properties:
+        mode: { type: string, enum: [synthetic_demo, owner_data] }
+        confirmReplaceSamples: { type: boolean }
+    BusinessType:
+      type: string
+      enum: [cafe, restaurant, food_vendor, cloud_kitchen, other]
+    FollowUpScheduleInput:
+      type: object
+      properties:
+        followUpDays: { type: integer, enum: [1, 2], default: 2 }
+    FollowUpIngredient:
+      type: object
+      required: [ingredientId, name, unit, startingQuantity, expiry, deliveryQuantity, deliveryDate, expectedUsage, expectedRemaining]
+      properties:
+        batches:
+          type: array
+          items: { $ref: "#/components/schemas/StockBatch" }
+        ingredientId: { type: string }
+        name: { type: string }
+        unit: { type: string }
+        startingQuantity: { type: number }
+        expiry: { type: string }
+        deliveryQuantity: { type: number }
+        deliveryDate: { type: string }
+        expectedUsage: { type: number }
+        expectedRemaining: { type: number }
+    OutcomeRowInput:
+      type: object
+      required: [ingredientId, remaining, wasted]
+      properties:
+        ingredientId: { type: string }
+        remaining: { type: number, minimum: 0, maximum: 1000000 }
+        wasted: { type: number, minimum: 0, maximum: 1000000 }
+    OutcomeInput:
+      type: object
+      required: [observationDate, actionTaken, rows, updateInventory]
+      properties:
+        observationDate: { type: string }
+        actionTaken: { type: string, minLength: 1, maxLength: 1000 }
+        updateInventory: { type: boolean }
+        rows:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/OutcomeRowInput" }
+    OutcomeRow:
+      allOf:
+        - $ref: "#/components/schemas/OutcomeRowInput"
+        - type: object
+          required: [assessment, nextAction, inventoryUpdate]
+          properties:
+            assessment: { type: string }
+            nextAction: { type: string }
+            inventoryUpdate: { type: string }
+    FollowUpOutcome:
+      type: object
+      required: [observationDate, actionTaken, rows, recordedAt]
+      properties:
+        observationDate: { type: string }
+        actionTaken: { type: string }
+        recordedAt: { type: string }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/OutcomeRow" }
+    FollowUp:
+      type: object
+      required: [id, recommendationId, recommendation, approvedAction, approvedQuantity, approvedAt, snapshotAt, startingDate, scheduledDate, name, status, ingredients, outcome, cancellationReason]
+      properties:
+        id: { type: string }
+        recommendationId: { type: string }
+        recommendation: { $ref: "#/components/schemas/Recommendation" }
+        approvedAction: { type: string }
+        approvedQuantity: { type: number }
+        approvedAt: { type: ["string", "null"] }
+        snapshotAt: { type: string }
+        startingDate: { type: string }
+        scheduledDate: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [outstanding, completed, cancelled] }
+        cancellationReason: { type: ["string", "null"] }
+        ingredients:
+          type: array
+          items: { $ref: "#/components/schemas/FollowUpIngredient" }
+        outcome:
+          oneOf:
+            - $ref: "#/components/schemas/FollowUpOutcome"
+            - type: "null"
+    RecordsInput:
+      type: object
+      required: [kind, rows]
+      properties:
+        kind: { type: string, enum: [sales, inventory, results] }
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 2000
+          items:
+            type: object
+            additionalProperties: true
+    HistoricalRecordsInput:
+      type: object
+      required: [rows]
+      properties:
+        fileName: { type: string, minLength: 1, maxLength: 255 }
+        rows:
+          type: array
+          minItems: 1
+          maxItems: 2000
+          items: { $ref: "#/components/schemas/HistoricalRecordInput" }
+    HistoricalRecordInput:
+      type: object
+      required: [kind, date]
+      properties:
+        kind: { type: string, enum: [sales, preparation, stock] }
+        date: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
+        menuId: { type: string, maxLength: 160 }
+        itemName: { type: string, maxLength: 160 }
+        quantity: { type: number, minimum: 0, maximum: 1000000 }
+        unit: { type: string, enum: [portions, kg, L, pcs] }
+        prepared: { type: integer, minimum: 0, maximum: 1000000 }
+        sold: { type: integer, minimum: 0, maximum: 1000000 }
+        leftover: { type: integer, minimum: 0, maximum: 1000000 }
+    HistoricalRecord:
+      type: object
+      required: [id, kind, date, importedAt]
+      properties:
+        id: { type: string }
+        batchId: { type: string }
+        fileName: { type: string }
+        kind: { type: string, enum: [sales, preparation, stock] }
+        date: { type: string }
+        importedAt: { type: string, format: date-time }
+        menuId: { type: string }
+        menuName: { type: string }
+        itemName: { type: string }
+        quantity: { type: number }
+        unit: { type: string }
+        prepared: { type: integer }
+        sold: { type: integer }
+        leftover: { type: integer }
+    HistoricalRecordsResponse:
+      type: object
+      required: [records, batches]
+      properties:
+        batches:
+          type: array
+          items: { $ref: "#/components/schemas/HistoricalBatch" }
+        records:
+          type: array
+          items: { $ref: "#/components/schemas/HistoricalRecord" }
+    HistoricalBatch:
+      type: object
+      required: [id, fileName, importedAt, recordCount]
+      properties:
+        id: { type: string }
+        fileName: { type: string }
+        importedAt: { type: string, format: date-time }
+        recordCount: { type: integer, minimum: 1 }
+    HistoricalBatchRemoval:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed: { type: boolean, enum: [true] }
+    IngredientPhotoUploadRequest:
+      type: object
+      required: [ingredientId, name, size, contentType]
+      properties:
+        ingredientId: { type: string, minLength: 1, maxLength: 160 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 5242880 }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+    IngredientPhotoUploadResponse:
+      type: object
+      required: [uploadURL, objectKey]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectKey: { type: string, pattern: "^[a-f0-9]{96}$" }
+    IngredientPhotoConfirmRequest:
+      type: object
+      required: [ingredientId, objectKey]
+      properties:
+        ingredientId: { type: string, minLength: 1, maxLength: 160 }
+        objectKey: { type: string, pattern: "^[a-f0-9]{96}$" }
+    DecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, edited, rejected] }
+        quantity: { type: number, minimum: 0 }
+        note: { type: string, maxLength: 500 }
+        followUpDays: { type: integer, enum: [1, 2], default: 2 }
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
