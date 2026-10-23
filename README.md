@@ -1,6 +1,6 @@
 # ExpiryGuardAI - Food Waste Prevention Assistant
 
->ExpiryGuardAi, a food waste prevention assistant to help food and beverage SMEs including cafés, restaurants, food vendors, and cloud kitchens, manage inventory efficiently , reduce avoidable food waste and reduce cost .
+>ExpiryGuardAI, a food waste prevention assistant to help food and beverage SMEs including cafés, restaurants, food vendors, and cloud kitchens, manage inventory efficiently , reduce avoidable food waste and reduce cost .
 
 ---
 
