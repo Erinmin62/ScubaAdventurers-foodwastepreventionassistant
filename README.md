@@ -23,7 +23,7 @@
 | Live Demo         | https://foodwastepreventionassistant.replit.app/               |
 | RunPod Endpoint   | -      |
 | Slide Deck        | https://example.com/slides                     |
-| Demo Video        | https://example.com/demo-video                 |
+| Demo Video        | https://youtu.be/qvuWjv1Wo_4                 |
 
 ---
 
