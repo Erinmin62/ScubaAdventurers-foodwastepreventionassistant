@@ -90,13 +90,11 @@ Explain how your project uses AI to solve the problem and what makes it valuable
 │   ├── SDC2026_ScubaAdventurers_Preliminary.pdf        # Preliminary submission
 │   ├── SDC2026_ScubaAdventurers_TechDeclaration.pdf    # Technology declaration
 │   └── REPLIT_PROOF_OF_USE.pdf                         # Replit proof of use    
-├── tests/
-│   └── test_utils.py        # Unit tests
-├── .env.example             # Example environment variables
 ├── .gitignore
-├── .replit                  # Replit run configuration
+├── .replit                                   # Replit run configuration
 ├── LICENSE
-├── requirements.txt         # Python dependencies
+├── package.json                              # Root scripts and dev dependencies
+├── pnpm-workspace.yaml                       # Monorepo workspace definition
 └── README.md
 ```
 
