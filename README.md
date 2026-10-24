@@ -51,7 +51,7 @@ ExpiryGuard AI combines AI-assisted inventory analysis with automated workflows 
 | ------------- | ---------------------------- |
 | Frontend      | TypeScript  , React           |
 | Backend       | Node.js , Express |
-| Database      | PostgreSQL, SQLite      |
+| Database      | PostgreSQL     |
 | AI / Compute  | CPU                 |
 | Hosting / Dev | Replit                       |
 
@@ -199,24 +199,25 @@ Make setup and automation more adaptable across cafes, restaurants, food vendors
 
 | Name        | Role                | GitHub                                   |
 | ----------- | ------------------- | ---------------------------------------- |
-| Member Name | Team Lead / Backend | [@username](https://github.com/username) |
-| Member Name | Frontend            | [@username](https://github.com/username) |
-| Member Name | AI / RunPod         | [@username](https://github.com/username) |
+| Yap Sze Min | Team Lead / Backend /Frontend | [@Erinmin62](https://github.com/Erinmin62) |
+| Edwin Goh Yong Jun | Frontend / Backend           | [@username](https://github.com/edwingoh0529-commits) |
+| Toh Ke Xuan | Pitch Deck / Live Demo         | [@username](https://github.com/FoxPear) |
+| Venosheni A/P Ethiraj Naidu | Pitch Deck        | [@username](https://github.com/Veno05) |
 
 ---
 
 ## Submission Checklist
 
-- [ ] Team name, domain (Domain 1 / Domain 2) and SDG track filled in
-- [ ] Slide deck link added
-- [ ] Demo video link added
-- [ ] Replit used, with proof of use in `submission/`
+- [/] Team name, domain (Domain 2) and SDG track filled in
+- [/] Slide deck link added
+- [/] Demo video link added
+- [/] Replit used, with proof of use in `submission/`
 - [ ] RunPod used, with proof of use in `submission/`
-- [ ] Preliminary submission completed (`SDC2026_TeamName_Preliminary.pdf`)
-- [ ] Technology declaration completed (`SDC2026_TeamName_TechDeclaration.pdf`)
-- [ ] Submission files renamed with your team name (replace `TeamName`)
-- [ ] "How to Run" steps verified
-- [ ] No API keys or secrets committed to the repository
+- [/] Preliminary submission completed (`SDC2026_TeamName_Preliminary.pdf`)
+- [/] Technology declaration completed (`SDC2026_TeamName_TechDeclaration.pdf`)
+- [/] Submission files renamed with your team name (replace `TeamName`)
+- [/] "How to Run" steps verified
+- [/] No API keys or secrets committed to the repository
 
 ## License
 
