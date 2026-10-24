@@ -59,25 +59,37 @@ Explain how your project uses AI to solve the problem and what makes it valuable
 
 ```
 .
-├── .agents
-│   └── memory
-│       ├── ai-demo-live-checks.md
-│       ├── api-test-bundle-isolation.md
-│       ├── email-delivery-guarantees.md
-│       ├── email-webhook-verification.md
-│       ├── food-sme-product-scope.md
-│       ├── forecast-data-readiness.md 
-├── docs/                    # Screenshots, diagrams
-├── runpod/
-│   └── handler.py           # RunPod serverless handler (GPU workload)
-├── src/
-│   ├── main.py              # Application entry point
-│   └── utils.py             # Helper functions
-├── submission/              # Required submission documents
-│   ├── SDC2026_TeamName_Preliminary.pdf      # Preliminary submission
-│   ├── SDC2026_TeamName_TechDeclaration.pdf  # Technology declaration
-│   ├── SDC2026_TeamName_Replit_POU.pdf       # Replit proof of use
-│   └── SDC2026_TeamName_Runpod_POU.pdf       # RunPod proof of use
+├── .agents/
+│   └── memory                                # Replit Agents notes (email/WhatsApp delivery, product scope, forecasting and testing)       
+├── artifacts/
+│   ├── api-server/                           # Backend API (Express + TypeScript)
+│   │   ├── scripts/                          # Delivery and integration test scripts
+│   │   └── src/
+│   │       ├── cli/                          # Email worker entry point
+│   │       ├── lib/                          # Guard logic: forecasting, reorders, notifications, inbox
+│   │       ├── middlewares/                  # Auth and proxy middleware
+│   │       └── routes/                       # REST endpoints
+│   ├── expiryguard/                          # Main web app (React + Vite)
+│   │   ├── e2e/                              # End-to-end tests
+│   │   └── src/
+│   │       ├── components/                   # UI components, inbox/notification center
+│   │       └── pages/                        # Dashboard, inventory, forecast, reordering, menu, impact
+│   ├── expiryguard-product-intro/            # Product intro video
+│   ├── expiryguard-project-deck/             # Pitch deck slides
+│   ├── expiryguardai-website-walkthrough/    # Website walkthrough slides
+│   └── mockup-sandbox/                       # UI mockup experiments                
+├── docs/                                     # Email, WhatsApp and reordering documentation
+├── lib/
+│   ├── api-client-react/                     # Generated React API client
+│   ├── api-spec/                             # OpenAPI spec + Orval config (single source of truth)
+│   ├── api-zod/                              # Generated Zod schemas and types
+│   ├── db/                                   # Drizzle ORM schema (PostgreSQL)
+│   └── integrations-openai-ai-server/        # OpenAI wrapper for AI forecasting
+├── scripts/                                  # Workspace utility scripts
+├── submission/                                         # Required submission documents
+│   ├── SDC2026_ScubaAdventurers_Preliminary.pdf        # Preliminary submission
+│   ├── SDC2026_ScubaAdventurers_TechDeclaration.pdf    # Technology declaration
+│   └── REPLIT_PROOF_OF_USE.pdf                         # Replit proof of use    
 ├── tests/
 │   └── test_utils.py        # Unit tests
 ├── .env.example             # Example environment variables
