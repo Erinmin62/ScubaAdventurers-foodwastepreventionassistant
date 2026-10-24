@@ -19,7 +19,7 @@
 
 | Resource          | Link                                           |
 | ----------------- | ---------------------------------------------- |
-| GitHub Repository | https://github.com/Erinmin62/foodwastepreventionassistant.git  |
+| GitHub Repository | https://github.com/Erinmin62/ScubaAdventurers-foodwastepreventionassistant.git  |
 | Live Demo         | https://foodwastepreventionassistant.replit.app/               |
 | RunPod Endpoint   | -      |
 | Slide Deck        | https://1drv.ms/p/c/d2d72522cb9cdce2/IQBVTAggQpSCTqMcxoEvlfByAfJuotmrAdSYKtg1jYr00ek?e=z4Iy2Z                     |
