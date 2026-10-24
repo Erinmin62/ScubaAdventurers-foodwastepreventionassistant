@@ -189,10 +189,10 @@ Useful AI needs reliable business records and testing against real outcomes. Aut
 
 ## Future Improvements
 
-- [ ] Improvement 1
+- [ ] Improvement 1:
 Run a pilot with food SMEs using consented real business records. Compare forecasts with actual sales, preparation, and leftovers before making accuracy or waste-reduction claims.
 
-- [ ] Improvement 2
+- [ ] Improvement 2:
 Make setup and automation more adaptable across cafes, restaurants, food vendors, and cloud kitchens, including configurable menus, stock settings, supplier lead times, and reliable notification checks. Explore Orbyte integration once its requirements are clear
 
 ## Team
