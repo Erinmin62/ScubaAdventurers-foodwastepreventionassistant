@@ -22,7 +22,7 @@
 | GitHub Repository | https://github.com/Erinmin62/foodwastepreventionassistant.git  |
 | Live Demo         | https://foodwastepreventionassistant.replit.app/               |
 | RunPod Endpoint   | -      |
-| Slide Deck        | https://example.com/slides                     |
+| Slide Deck        | https://1drv.ms/p/c/d2d72522cb9cdce2/IQBVTAggQpSCTqMcxoEvlfByAfJuotmrAdSYKtg1jYr00ek?e=z4Iy2Z                     |
 | Demo Video        | https://youtu.be/qvuWjv1Wo_4                 |
 
 ---
