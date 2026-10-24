@@ -20,9 +20,8 @@
 | Resource          | Link                                           |
 | ----------------- | ---------------------------------------------- |
 | GitHub Repository | https://github.com/Erinmin62/foodwastepreventionassistant.git  |
-| Replit Project    | https://replit.com/join#t=pmxdhqcanlmxaug-edwingoh0529 |
 | Live Demo         | https://foodwastepreventionassistant.replit.app/               |
-| RunPod Endpoint   | https://api.runpod.ai/v2/your-endpoint-id      |
+| RunPod Endpoint   | -      |
 | Slide Deck        | https://example.com/slides                     |
 | Demo Video        | https://example.com/demo-video                 |
 
