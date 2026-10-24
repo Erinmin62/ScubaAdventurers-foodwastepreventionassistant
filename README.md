@@ -88,9 +88,9 @@ ExpiryGuard AI combines AI-assisted inventory analysis with automated workflows 
 │   └── integrations-openai-ai-server/        # OpenAI wrapper for AI forecasting
 ├── scripts/                                  # Workspace utility scripts
 ├── submission/                                         # Required submission documents
+│   ├── REPLIT_PROOF_OF_USE.pdf                         # Replit proof of use
 │   ├── SDC2026_ScubaAdventurers_Preliminary.pdf        # Preliminary submission
-│   ├── SDC2026_ScubaAdventurers_TechDeclaration.pdf    # Technology declaration
-│   └── REPLIT_PROOF_OF_USE.pdf                         # Replit proof of use    
+│   └── SDC2026_ScubaAdventurers_TechDeclaration.pdf    # Technology declaration    
 ├── .gitignore
 ├── .replit                                   # Replit run configuration
 ├── LICENSE
