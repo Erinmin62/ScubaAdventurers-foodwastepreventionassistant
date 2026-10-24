@@ -200,9 +200,9 @@ Make setup and automation more adaptable across cafes, restaurants, food vendors
 | Name        | Role                | GitHub                                   |
 | ----------- | ------------------- | ---------------------------------------- |
 | Yap Sze Min | Team Lead / Backend /Frontend | [@Erinmin62](https://github.com/Erinmin62) |
-| Edwin Goh Yong Jun | Frontend / Backend           | [@edwingoh0529-commits](https://github.com/edwingoh0529-commits) |
-| Toh Ke Xuan | Pitch Deck / Live Demo         | [@FoxPear](https://github.com/FoxPear) |
-| Venosheni A/P Ethiraj Naidu | Pitch Deck        | [@Veno05](https://github.com/Veno05) |
+| Edwin Goh Yong Jun | Frontend / Backend           | [@username](https://github.com/edwingoh0529-commits) |
+| Toh Ke Xuan | Pitch Deck / Live Demo         | [@username](https://github.com/FoxPear) |
+| Venosheni A/P Ethiraj Naidu | Pitch Deck        | [@username](https://github.com/Veno05) |
 
 ---
 
