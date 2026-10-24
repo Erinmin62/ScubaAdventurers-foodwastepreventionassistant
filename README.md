@@ -59,6 +59,14 @@ Explain how your project uses AI to solve the problem and what makes it valuable
 
 ```
 .
+├── .agents
+│   └── memory
+│       ├── ai-demo-live-checks.md
+│       ├── api-test-bundle-isolation.md
+│       ├── email-delivery-guarantees.md
+│       ├── email-webhook-verification.md
+│       ├── food-sme-product-scope.md
+│       ├── forecast-data-readiness.md 
 ├── docs/                    # Screenshots, diagrams
 ├── runpod/
 │   └── handler.py           # RunPod serverless handler (GPU workload)
