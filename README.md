@@ -33,22 +33,24 @@
 
 Describe the real-world problem you are solving in 2–4 sentences. Who is affected, and why does it matter?
 
+Small and medium-sized food businesses, including cafés, restaurants, food vendors, and cloud kitchens, often struggle to track ingredient expiry dates, manage stock levels, and make timely restocking decisions. Without consistent inventory monitoring, ingredients may expire before being used, leading to avoidable food waste, financial losses, and inefficient daily operations. ExpiryGuard AI addresses this problem through automated expiry monitoring, waste-aware restocking support, daily planning, and in-app alerts to help SMEs manage inventory more efficiently and reduce food waste.
 ### Solution
 
 Explain how your project uses AI to solve the problem and what makes it valuable.
 
+ExpiryGuard AI combines AI-assisted inventory analysis with automated workflows to help food-related SMEs prevent avoidable food waste before it happens. By analysing inventory quantities, expiry dates, costs, and delivery information, the application helps identify ingredients at risk of expiring and supports smarter, waste-aware restocking decisions. Automated daily planning, follow-up checks, and in-app alerts help business owners prioritise urgent issues and take timely action, with human approval where required. What makes ExpiryGuard AI valuable is its focus on turning inventory information into practical actions—not just reporting problems—helping SMEs reduce potential waste, control costs, and manage daily operations more efficiently without adding unnecessary complexity.
 ### Key Features
 
-- **Feature 1** — Short description.
-- **Feature 2** — Short description.
-- **Feature 3** — Short description.
+- **Feature 1** — Automated Expiry Monitoring — Tracks ingredient expiry dates and identifies items approaching expiry, helping SMEs take action before ingredients go to waste.
+- **Feature 2** — Waste-Aware Reorder Scan — Analyses current stock levels and delivery information to flag potential overstocking and unnecessary reordering, supporting smarter purchasing decisions.
+- **Feature 3** — Automated Planning & Smart Alerts — Supports daily inventory planning and follow-up checks, while in-app notifications highlight urgent expiry risks, inventory issues, and actions requiring user approval.
 
 ### Tech Stack
 
 | Layer         | Technology                   |
 | ------------- | ---------------------------- |
-| Frontend      | TypeScript             |
-| Backend       | YAML |
+| Frontend      | TypeScript  , React           |
+| Backend       | Node.js , Express |
 | Database      | PostgreSQL, SQLite      |
 | AI / Compute  | CPU                 |
 | Hosting / Dev | Replit                       |
@@ -100,7 +102,7 @@ Explain how your project uses AI to solve the problem and what makes it valuable
 ### Architecture
 
 ```
-User ──► Replit (App / API) ──► RunPod Endpoint (GPU model)
+User ──► Replit (App / API)
                 │
                 └──► Response returned to user
 ```
@@ -150,11 +152,9 @@ python -m unittest discover tests
 
 Describe how your team used Replit. For example:
 
-- **Development:** Collaborative coding in a shared Repl using Multiplayer.
-- **Hosting:** The app is deployed with Replit Deployments at the Live Demo link above.
-- **Secrets:** API keys are stored in Replit Secrets, never in the code.
+We used Replit as our main development, testing, and hosting platform. We built and tested the frontend and backend in the Replit workspace using its workflows and preview; Replit Agent also assisted with development. The prototype is published as a public Replit VM deployment. We store credentials in Replit Secrets/environment variables, not in the source code. The app uses Replit PostgreSQL for workspace records and Replit App Storage for ingredient photos.
 
-📄 Proof of use: [`submission/SDC2026_TeamName_Replit_POU.pdf`](submission/SDC2026_TeamName_Replit_POU.pdf)
+📄 Proof of use: [`submission/SDC2026_TeamName_Replit_POU.pdf`](submission/REPLIT_PROOF_OF_USE.pdf)
 
 ## How We Use RunPod *(Required)*
 
@@ -180,12 +180,20 @@ curl -X POST https://api.runpod.ai/v2/$RUNPOD_ENDPOINT_ID/runsync \
 ## Challenges & Learnings
 
 - What challenges did you face, and how did you overcome them?
+
+Our prototype initially relied on synthetic data, so we couldn’t claim that its forecasts were accurate or that it had reduced real food waste. We addressed this by labeling demo results clearly, keeping AI experiments separate from live rule-based planning, validating AI responses, and requiring owner consent and review. We also worked to keep pantry, menu, sales, expiry, and notification workflows consistent and reusable beyond cafés. Email and WhatsApp setup showed us that automated alerts depend on provider configuration and reliable status checks.
+
 - What did your team learn?
+
+Useful AI needs reliable business records and testing against real outcomes. Automation should make routine work easier while keeping consequential decisions with the owner. We should measure waste and cost changes in a real SME pilot before making impact claims; Orbyte integration is a future possibility, not a current connection.
 
 ## Future Improvements
 
 - [ ] Improvement 1
+Run a pilot with food SMEs using consented real business records. Compare forecasts with actual sales, preparation, and leftovers before making accuracy or waste-reduction claims.
+
 - [ ] Improvement 2
+Make setup and automation more adaptable across cafes, restaurants, food vendors, and cloud kitchens, including configurable menus, stock settings, supplier lead times, and reliable notification checks. Explore Orbyte integration once its requirements are clear
 
 ## Team
 
